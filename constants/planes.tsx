@@ -35,7 +35,7 @@ export const PLANES_DATA: Plan[] = [
     image: '/images/Reingenierìa/Portadas%20tipo%20historia/card_35_contacto.webp',
     color: 'primary',
     cta: 'Empezar ahora',
-    link: '/contacto-digital-producto'
+    link: '/contacto-digital-v2'
   },
   {
     id: 'business',
@@ -50,7 +50,7 @@ export const PLANES_DATA: Plan[] = [
     image: '/images/Reingenierìa/Portadas%20tipo%20historia/card_100_business.webp',
     color: 'primary',
     cta: 'Activar Negocio',
-    link: '/contacto-business-producto',
+    link: '/contacto-digital-v2',
     isFeatured: true
   },
   {
@@ -65,7 +65,7 @@ export const PLANES_DATA: Plan[] = [
     image: '/images/Reingenierìa/Portadas%20tipo%20historia/card_200_catalogo.webp',
     color: 'primary',
     cta: 'Crear Catálogo',
-    link: '/contacto-business-catalogo-producto'
+    link: '/sitio-web-completo-v2'
   },
   {
     id: 'auditoria',
@@ -79,7 +79,7 @@ export const PLANES_DATA: Plan[] = [
     image: '/images/Reingenierìa/slide_activaqr2/costo_oculto_retail.webp',
     color: 'black',
     cta: 'Audita tu negocio hoy →',
-    link: '/auditoria-operativa-producto'
+    link: '/auditoria-operativa'
   },
   {
     id: 'web',

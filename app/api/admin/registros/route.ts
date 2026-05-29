@@ -8,11 +8,16 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET: Lista todos los registros (requiere admin key o seller_id)
+ * Params: page, limit, search, stats=true
  */
 export async function GET(req: NextRequest) {
     const auth = requireAdmin(req);
     const { searchParams } = new URL(req.url);
     const sellerId = searchParams.get('seller_id');
+    const search = searchParams.get('search');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const getStats = searchParams.get('stats') === 'true';
 
     // Admin key required unless seller_id is provided (legacy compat)
     if (auth && !sellerId) {
@@ -47,6 +52,7 @@ export async function GET(req: NextRequest) {
             LEFT JOIN registraya_vcard_sellers p ON s.parent_id = p.id
         `;
         const params: any[] = [];
+        const conditions: string[] = [];
 
         if (sellerId) {
             // Find children IDs
@@ -55,14 +61,37 @@ export async function GET(req: NextRequest) {
             const allIds = [Number(sellerId), ...childrenIds];
 
             const placeholders = allIds.map(() => '?').join(', ');
-            query += ` WHERE r.seller_id IN (${placeholders})`;
+            conditions.push(`r.seller_id IN (${placeholders})`);
             params.push(...allIds);
         }
 
-        query += ' ORDER BY r.created_at DESC LIMIT 100';
+        // Search filter - searches in ALL records when provided
+        if (search) {
+            conditions.push(`(LOWER(r.nombre) LIKE ? OR LOWER(r.email) LIKE ? OR LOWER(r.whatsapp) LIKE ?)`);
+            const searchPattern = `%${search.toLowerCase()}%`;
+            params.push(searchPattern, searchPattern, searchPattern);
+        }
+
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        // If getting stats only, return count
+        if (getStats) {
+            const countQuery = `SELECT COUNT(*) as total FROM registraya_vcard_registros r LEFT JOIN registraya_vcard_sellers s ON r.seller_id = s.id LEFT JOIN registraya_vcard_sellers p ON s.parent_id = p.id ${conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''}`;
+            const [countRows]: any = await pool.execute(countQuery, params);
+            return NextResponse.json({ total: countRows[0]?.total || 0 });
+        }
+
+        query += ' ORDER BY r.created_at DESC';
+        
+        // Pagination: only apply LIMIT/OFFSET when not searching (search returns all matches)
+        if (!search) {
+            query += ` LIMIT ${limit} OFFSET ${(page - 1) * limit}`;
+        }
 
         const [rows]: any = await pool.execute(query, params);
-        return NextResponse.json({ data: rows });
+        return NextResponse.json({ data: rows, page, limit });
     } catch (err: any) {
         console.error('Error fetching registros:', err);
         return NextResponse.json({ error: err.message }, { status: 500 });

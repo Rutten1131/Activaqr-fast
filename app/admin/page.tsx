@@ -86,6 +86,13 @@ export default function AdminDashboard() {
     const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
     const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
 
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [totalCount, setTotalCount] = useState(0);
+    const [statsTotal, setStatsTotal] = useState({ count: 0, income: 0, utility: 0, pending: 0, pendingCommission: 0, paidCommission: 0, cola: 0, comisionesPendientes: 0 });
+
     // Estados para creación de vendedor
     const [isCreateSellerModalOpen, setIsCreateSellerModalOpen] = useState(false);
     const [newSeller, setNewSeller] = useState({ nombre: '', email: '', password: '', comision_porcentaje: 30 });
@@ -241,11 +248,15 @@ export default function AdminDashboard() {
         setIsAuthorized(false);
     };
 
-    const fetchRegistros = async () => {
-        setLoading(true);
+    const fetchRegistros = async (page = 1, append = false, search = '') => {
+        setLoading(page === 1 && !append);
+        setLoadingMore(append);
         try {
             const adminKey = localStorage.getItem('admin_access_key') || '';
-            const res = await fetch('/api/admin/registros', {
+            let url = `/api/admin/registros?page=${page}&limit=50`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+            
+            const res = await fetch(url, {
                 headers: { 'x-admin-key': adminKey }
             });
             if (!res.ok) {
@@ -255,13 +266,83 @@ export default function AdminDashboard() {
                 return;
             }
             const result = await res.json();
-            if (result.data) setRegistros(result.data);
+            if (result.data) {
+                if (append) {
+                    setRegistros(prev => [...prev, ...result.data]);
+                } else {
+                    setRegistros(result.data);
+                }
+                setCurrentPage(page);
+                setHasMore(result.data.length === 50);
+            }
         } catch (err: any) {
             console.error('Error fetching registros:', err);
             alert(`Error de conexión: ${err.message}`);
         }
         setLoading(false);
+        setLoadingMore(false);
     };
+
+    const loadMoreRegistros = () => {
+        if (hasMore && !loadingMore) {
+            fetchRegistros(currentPage + 1, true, searchTerm);
+        }
+    };
+
+    // Fetch stats from ALL records (not paginated)
+    const fetchStatsTotal = async () => {
+        try {
+            const adminKey = localStorage.getItem('admin_access_key') || '';
+            const res = await fetch('/api/admin/registros?page=1&limit=10000', {
+                headers: { 'x-admin-key': adminKey }
+            });
+            if (res.ok) {
+                const result = await res.json();
+                const all = result.data || [];
+                
+                const totalIngreso = all.reduce((acc: number, r: any) => 
+                    (r.status === 'pagado' || r.status === 'entregado') ? acc + (r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35) : acc, 0);
+                const totalComisiones = all.reduce((acc: number, r: any) => {
+                    if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id) {
+                        const seller = sellers.find((s: any) => s.id === r.seller_id);
+                        const percentage = seller ? parseFloat(seller.comision_porcentaje) : 0;
+                        const price = r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35;
+                        return acc + (price * percentage / 100);
+                    }
+                    return acc;
+                }, 0);
+                const clientesPendientes = all.filter((r: any) => r.status === 'pendiente').length;
+                const valorPendiente = all.filter((r: any) => r.status === 'pendiente').reduce((acc: number, r: any) => 
+                    acc + (r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35), 0);
+                const comisionesPendientesCount = all.filter((r: any) => 
+                    r.seller_id && (r.commission_status === 'pending' || r.commission_status === 'paid_to_leader') && (r.status === 'pagado' || r.status === 'entregado')).length;
+                const colaCorreos = all.filter((r: any) => r.status === 'pagado' && !r.auto_email_sent).length;
+                
+                setStatsTotal({
+                    count: all.length,
+                    income: totalIngreso,
+                    utility: totalIngreso - totalComisiones,
+                    pending: clientesPendientes,
+                    pendingCommission: valorPendiente,
+                    paidCommission: 0,
+                    cola: colaCorreos,
+                    comisionesPendientes: comisionesPendientesCount
+                });
+                setTotalCount(all.length);
+            }
+        } catch (err) {
+            console.error('Error fetching stats total:', err);
+        }
+    };
+
+    // Debounced search + stats refresh
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchRegistros(1, false, searchTerm);
+            fetchStatsTotal();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
     const fetchSellers = async () => {
         try {
@@ -1476,7 +1557,7 @@ export default function AdminDashboard() {
                             Notificar
                         </button>
                         <button
-                            onClick={fetchRegistros}
+                            onClick={() => fetchRegistros(1, false, searchTerm)}
                             className="bg-white/5 border border-white/10 p-3 md:p-4 rounded-2xl hover:bg-white/10 transition-all text-white/40 hover:text-white shrink-0"
                         >
                             <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
@@ -1750,7 +1831,7 @@ export default function AdminDashboard() {
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform text-white"><QrCode size={48} /></div>
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-3">vCards Vendidas</p>
                         <p className="text-4xl font-black italic tracking-tighter text-white">
-                            {registros.length}
+                            {statsTotal.count}
                         </p>
                     </div>
 
@@ -1764,7 +1845,7 @@ export default function AdminDashboard() {
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform text-accent"><BarChart3 size={48} /></div>
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-3">Total Ingresado</p>
                         <p className="text-4xl font-black italic tracking-tighter text-accent">
-                            ${registros.reduce((acc, r) => (r.status === 'pagado' || r.status === 'entregado') ? acc + (r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35) : acc, 0).toFixed(2)}
+                            ${statsTotal.income.toFixed(2)}
                         </p>
                     </div>
 
@@ -1775,19 +1856,7 @@ export default function AdminDashboard() {
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform text-white"><ShieldAlert size={48} /></div>
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-3">Utilidad Neta</p>
                         <p className="text-4xl font-black italic tracking-tighter text-white">
-                            ${(() => {
-                                const totalIngreso = registros.reduce((acc, r) => (r.status === 'pagado' || r.status === 'entregado') ? acc + (r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35) : acc, 0);
-                                const totalComisiones = registros.reduce((acc, r) => {
-                                    if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id) {
-                                        const seller = sellers.find(s => s.id === r.seller_id);
-                                        const percentage = seller ? parseFloat(seller.comision_porcentaje) : 0;
-                                        const price = r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35;
-                                        return acc + (price * percentage / 100);
-                                    }
-                                    return acc;
-                                }, 0);
-                                return (totalIngreso - totalComisiones).toFixed(2);
-                            })()}
+                            ${statsTotal.utility.toFixed(2)}
                         </p>
                     </div>
 
@@ -1801,10 +1870,10 @@ export default function AdminDashboard() {
                         <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:scale-110 transition-transform text-primary"><Users size={48} /></div>
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-3 font-bold">Clientes x Cobrar</p>
                         <p className="text-4xl font-black italic tracking-tighter text-primary">
-                            {registros.filter(r => r.status === 'pendiente').length}
+                            {statsTotal.pending}
                         </p>
                         <p className="text-[10px] font-bold text-primary/60 mt-2">
-                            Val. Pendiente: ${registros.reduce((acc, r) => r.status === 'pendiente' ? acc + (r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35) : acc, 0).toFixed(2)}
+                            Val. Pendiente: ${statsTotal.pendingCommission.toFixed(2)}
                         </p>
                     </div>
 
@@ -1818,18 +1887,10 @@ export default function AdminDashboard() {
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform text-primary"><Users size={48} /></div>
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-3">Comisiones x Pagar</p>
                         <p className="text-4xl font-black italic tracking-tighter text-white">
-                            ${registros.reduce((acc, r) => {
-                                if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id && (r.commission_status === 'pending' || !r.commission_status)) {
-                                    const seller = sellers.find(s => s.id === r.seller_id);
-                                    const percentage = seller ? parseFloat(seller.comision_porcentaje) : 0;
-                                    const price = r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35;
-                                    return acc + (price * percentage / 100);
-                                }
-                                return acc;
-                            }, 0).toFixed(2)}
+                            ${statsTotal.pendingCommission.toFixed(2)}
                         </p>
                         <p className="text-[10px] font-bold text-white/40 mt-2">
-                            {registros.filter(r => r.seller_id && (r.commission_status === 'pending' || !r.commission_status) && (r.status === 'pagado' || r.status === 'entregado')).length} comisiones pendientes
+                            {statsTotal.comisionesPendientes} comisiones pendientes
                         </p>
                     </div>
 
@@ -2205,6 +2266,35 @@ export default function AdminDashboard() {
                                 ))}
                             </tbody>
                         </table>
+
+                        {/* Load More Button */}
+                        {hasMore && (
+                            <div className="flex justify-center py-8">
+                                <button
+                                    onClick={loadMoreRegistros}
+                                    disabled={loadingMore}
+                                    className="bg-primary hover:bg-primary/80 disabled:bg-primary/50 text-white font-bold px-8 py-4 rounded-full transition-all flex items-center gap-2"
+                                >
+                                    {loadingMore ? (
+                                        <>
+                                            <Loader2 size={20} className="animate-spin" />
+                                            Cargando más...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Cargar Más Registros
+                                            <ChevronDown size={20} />
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+
+                        {!hasMore && registros.length > 50 && (
+                            <p className="text-center text-white/40 py-4 text-sm font-bold">
+                                Mostrando todos los {totalCount} registros
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
