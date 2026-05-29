@@ -34,6 +34,26 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
     const [activeExpIndex, setActiveExpIndex] = React.useState(0);
     // State for Lightbox
     const [lightboxImg, setLightboxImg] = React.useState<string | null>(null);
+    // Touch handlers for swipe on Experience Slider
+    const [touchStart, setTouchStart] = React.useState<number>(0);
+    const handleTouchStartExperience = (e: React.TouchEvent) => {
+        setTouchStart(e.touches[0].clientX);
+    };
+    const handleTouchMoveExperience = (e: React.TouchEvent) => {
+        if (touchStart === 0) return;
+        const diff = e.touches[0].clientX - touchStart;
+        if (Math.abs(diff) > 60) {
+            const rawLines = props.data?.productos_servicios?.split('\n').filter((l: string) => l.trim().length > 0) || [];
+            const bannerCount = rawLines.length >= 1 ? rawLines.length : 3;
+            if (diff > 0) {
+                setActiveExpIndex(prev => (prev > 0 ? prev - 1 : bannerCount - 1));
+            } else {
+                setActiveExpIndex(prev => (prev < bannerCount - 1 ? prev + 1 : 0));
+            }
+            setTouchStart(0);
+        }
+    };
+    const handleTouchEndExperience = () => setTouchStart(0);
 
     // Close lightbox on Escape key + lock body scroll
     React.useEffect(() => {
@@ -253,7 +273,11 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                         </div>
 
                         <div className="relative w-full max-w-7xl mx-auto px-4 md:px-12">
-                            <div className="relative h-[50vh] md:h-[60vh] w-full overflow-hidden rounded-[2rem] md:rounded-[3rem] shadow-2xl">
+                            <div className="relative h-[50vh] md:h-[60vh] w-full overflow-hidden rounded-[2rem] md:rounded-[3rem] shadow-2xl"
+                                onTouchStart={handleTouchStartExperience}
+                                onTouchMove={handleTouchMoveExperience}
+                                onTouchEnd={handleTouchEndExperience}
+                            >
                                 {banners.map((col: any, idx: number) => {
                                     const experienceButton = getExperienceButtonForIndex(idx);
                                     return (
