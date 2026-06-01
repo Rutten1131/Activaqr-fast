@@ -463,6 +463,7 @@ export default function AdminDashboard() {
         if (isAuthorized) {
             fetchRegistros();
             fetchSellers();
+            fetchStatsTotal();
         }
     }, [isAuthorized]);
 
