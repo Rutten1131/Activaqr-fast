@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ZoomIn, Info, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ZoomIn, Info, DollarSign, ChevronLeft, ChevronRight, Plus, Minus, Trash2, ShoppingCart, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getVideoEmbedUrl, getYouTubeThumbnail, checkIsVerticalVideo } from "@/lib/videoUtils";
 
@@ -41,12 +41,91 @@ const TEMPLATE_FONTS: Record<string, { title: string; body: string }> = {
 };
 const DEFAULT_FONTS = { title: 'font-black', body: 'font-sans' };
 
+export interface CartItem {
+    product: CatalogItem;
+    quantity: number;
+}
+
 export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templateId, initialCategory }: CatalogGalleryProps) {
     const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
     const [mediaIndex, setMediaIndex] = useState(0);
     const [activeMediaType, setActiveMediaType] = useState<'image' | 'video'>('image');
+    
+    // Cart States
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [isCartOpen, setIsCartOpen] = useState(false);
+    const [detailQuantity, setDetailQuantity] = useState(1);
 
     const fonts = TEMPLATE_FONTS[templateId || ''] || DEFAULT_FONTS;
+
+    // Helper to parse price safely
+    const parsePrice = (priceStr?: string): number => {
+        if (!priceStr) return 0;
+        const clean = priceStr.replace(/[^0-9.,]/g, '').replace(',', '.');
+        return parseFloat(clean) || 0;
+    };
+
+    // Helper to add item to cart
+    const addToCart = (product: CatalogItem, qty: number) => {
+        setCart(prev => {
+            const existing = prev.find(i => i.product.id === product.id);
+            if (existing) {
+                return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + qty } : i);
+            }
+            return [...prev, { product, quantity: qty }];
+        });
+    };
+
+    // Helper to update item quantity in cart
+    const updateQuantity = (productId: string, qty: number) => {
+        if (qty <= 0) {
+            setCart(prev => prev.filter(i => i.product.id !== productId));
+        } else {
+            setCart(prev => prev.map(i => i.product.id === productId ? { ...i, quantity: qty } : i));
+        }
+    };
+
+    // Helper to remove item from cart
+    const removeFromCart = (productId: string) => {
+        setCart(prev => prev.filter(i => i.product.id !== productId));
+    };
+
+    // Compute cart summary
+    const cartTotals = useMemo(() => {
+        let totalItems = 0;
+        let priceSum = 0;
+        cart.forEach(item => {
+            totalItems += item.quantity;
+            priceSum += parsePrice(item.product.price || item.product.precio) * item.quantity;
+        });
+        return { totalItems, priceSum };
+    }, [cart]);
+
+    // Handle checkout to WhatsApp
+    const handleCheckout = () => {
+        if (!whatsapp || cart.length === 0) return;
+        let text = `🛒 *NUEVO PEDIDO DESDE EL CATÁLOGO*\n\n`;
+        cart.forEach((item, index) => {
+            const name = item.product.name || item.product.titulo || 'Producto';
+            const price = item.product.price || item.product.precio || 'Consultar';
+            const qty = item.quantity;
+            const numPrice = parsePrice(price);
+            const subtotal = numPrice * qty;
+            text += `${index + 1}. *${name}*\n`;
+            text += `   Cantidad: ${qty}\n`;
+            text += `   Precio unitario: ${price}\n`;
+            if (numPrice > 0) {
+                text += `   Subtotal: $${subtotal.toFixed(2)}\n`;
+            }
+            text += `\n`;
+        });
+        if (cartTotals.priceSum > 0) {
+            text += `*TOTAL ESTIMADO:* $${cartTotals.priceSum.toFixed(2)}\n\n`;
+        }
+        text += `¡Hola! Me gustaría confirmar la compra de estos productos.`;
+        const url = `https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+    };
 
     // Obtener arrays normalizados de imágenes y videos
     const getImages = (item: CatalogItem): string[] => {
@@ -66,6 +145,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
     const handleOpenItem = (item: CatalogItem) => {
         setSelectedItem(item);
         setMediaIndex(0);
+        setDetailQuantity(1); // Reset default qty in lightbox
         setActiveMediaType(getImages(item).length > 0 ? 'image' : 'video');
         if (onLightboxToggle) onLightboxToggle(true);
     };
@@ -457,14 +537,48 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                 )}
 
                                 {whatsapp && (
-                                    <div className="mt-10">
+                                    <div className="mt-8 flex flex-col gap-3">
+                                        {/* Selector de cantidad y Agregar al Carrito */}
+                                        <div className="flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/10">
+                                            <div className="flex items-center justify-between gap-3 bg-black/40 rounded-xl px-3 py-2 border border-white/10 select-none">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDetailQuantity(q => Math.max(1, q - 1))}
+                                                    className="text-white hover:text-[var(--theme-primary)] transition-colors p-1"
+                                                >
+                                                    <Minus size={14} />
+                                                </button>
+                                                <span className="text-white font-black text-sm w-4 text-center">{detailQuantity}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDetailQuantity(q => q + 1)}
+                                                    className="text-white hover:text-[var(--theme-primary)] transition-colors p-1"
+                                                >
+                                                    <Plus size={14} />
+                                                </button>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    addToCart(selectedItem, detailQuantity);
+                                                    handleCloseItem(); // Cerrar modal al añadir
+                                                }}
+                                                className="flex-1 bg-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/90 text-white py-3 px-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
+                                                style={{ backgroundColor: 'var(--theme-primary, #f66739)' }}
+                                            >
+                                                <ShoppingCart size={16} />
+                                                Añadir al Carrito
+                                            </button>
+                                        </div>
+
+                                        {/* Botón secundario para Comprar Directo */}
                                         <a
-                                            href={`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa el producto: ${selectedItem.name || selectedItem.titulo}. Precio: ${selectedItem.price || selectedItem.precio || 'Consultar'}`)}`}
+                                            href={`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa comprar: ${selectedItem.name || selectedItem.titulo}. Precio: ${selectedItem.price || selectedItem.precio || 'Consultar'}`)}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-black text-sm md:text-base uppercase tracking-widest flex items-center justify-center gap-3 shadow-[0_10px_30px_-5px_rgba(37,211,102,0.4)] hover:scale-[1.02] active:scale-95 transition-all"
+                                            className="w-full bg-[#25D366]/20 border border-[#25D366]/30 text-[#25D366] py-3 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#25D366]/30 active:scale-95 transition-all"
                                         >
-                                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                                                 <path d="M19.057 4.298c-1.883-1.884-4.386-2.922-7.05-2.922-5.495 0-9.968 4.471-9.968 9.966 0 1.756.459 3.468 1.328 4.975l-1.41 5.148 5.266-1.381c1.455.794 3.09 1.211 4.78 1.212h.004c5.493 0 9.964-4.471 9.964-9.966 0-2.662-1.036-5.166-2.921-7.052zm-7.05 15.393h-.003c-1.488 0-2.946-.4-4.23-1.155l-.304-.18-3.146.825.839-3.067-.197-.314c-.829-1.321-1.267-2.854-1.267-4.43 0-4.43 3.605-8.036 8.04-8.036 2.148 0 4.167.837 5.684 2.355 1.517 1.518 2.352 3.538 2.352 5.686-.002 4.434-3.609 8.041-8.043 8.041zm4.412-6.03c-.242-.121-1.431-.707-1.652-.788-.221-.081-.383-.121-.544.121-.161.242-.625.787-.766.949-.141.161-.282.181-.524.061-.242-.121-1.02-.376-1.943-1.199-.718-.641-1.203-1.433-1.344-1.675-.141-.242-.015-.373.106-.493.109-.108.242-.282.363-.423.121-.141.161-.242.242-.403.081-.161.04-.303-.02-.424-.061-.121-.544-1.312-.746-1.796-.196-.472-.397-.407-.544-.415-.141-.007-.302-.008-.463-.008-.161 0-.423.061-.644.303-.221.242-.846.827-.846 2.018 0 1.191.866 2.336.987 2.5.121.164 1.706 2.605 4.133 3.651.577.249 1.027.397 1.378.508.579.185 1.107.158 1.523.096.465-.069 1.431-.585 1.632-1.15.201-.564.201-1.049.141-1.15-.06-.101-.221-.161-.463-.282z"/>
                                             </svg>
                                             Consultar por WhatsApp
@@ -472,6 +586,147 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                     </div>
                                 )}
                             </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Botón flotante del carrito */}
+            {cartTotals.totalItems > 0 && (
+                <motion.button
+                    initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsCartOpen(true)}
+                    className="fixed bottom-24 right-6 z-[9998] bg-[#25D366] text-black p-5 rounded-full shadow-2xl flex items-center justify-center gap-3 border border-black/10 hover:shadow-[0_10px_35px_-5px_#25D366] transition-all cursor-pointer"
+                >
+                    <ShoppingBag size={24} className="text-black" />
+                    <span className="bg-black text-white text-[12px] font-black rounded-full h-6 w-6 flex items-center justify-center shadow-md">
+                        {cartTotals.totalItems}
+                    </span>
+                    {cartTotals.priceSum > 0 && (
+                        <span className="font-black text-base md:text-lg pr-1 border-l border-black/20 pl-3 text-black">
+                            ${cartTotals.priceSum.toFixed(2)}
+                        </span>
+                    )}
+                </motion.button>
+            )}
+
+            {/* Drawer lateral para el Carrito */}
+            <AnimatePresence>
+                {isCartOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[10000] flex justify-end bg-black/60 backdrop-blur-sm"
+                        onClick={() => setIsCartOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ x: "100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="w-full max-w-md h-full bg-[#111322] border-l border-white/10 shadow-2xl p-6 flex flex-col justify-between"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="flex flex-col flex-1 overflow-hidden">
+                                <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+                                    <div className="flex items-center gap-2">
+                                        <ShoppingBag className="text-[var(--theme-primary)]" size={24} style={{ color: 'var(--theme-primary, #f66739)' }} />
+                                        <h3 className="text-lg font-black text-white uppercase tracking-wider">Tu Pedido</h3>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsCartOpen(false)}
+                                        className="p-2 hover:bg-white/10 text-white rounded-full transition-colors cursor-pointer"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                {/* Cart Items */}
+                                <div className="space-y-4 overflow-y-auto pr-1 flex-1">
+                                    {cart.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-20 text-white/40">
+                                            <ShoppingBag size={48} className="mb-4 opacity-20" />
+                                            <p className="text-sm font-bold uppercase tracking-wider">El carrito está vacío</p>
+                                        </div>
+                                    ) : (
+                                        cart.map(item => {
+                                            const price = item.product.price || item.product.precio || '0';
+                                            const numPrice = parsePrice(price);
+                                            const subtotal = numPrice * item.quantity;
+                                            const images = getImages(item.product);
+                                            
+                                            return (
+                                                <div key={item.product.id} className="flex gap-4 p-3 bg-white/5 rounded-2xl border border-white/5 items-center">
+                                                    {/* Product Image */}
+                                                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-black/20 flex-shrink-0">
+                                                        {images[0] ? (
+                                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                                            <img src={images[0]} alt={item.product.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-white/20"><ShoppingBag size={20} /></div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Product Details */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="text-white font-bold text-sm truncate uppercase">{item.product.name || item.product.titulo}</h4>
+                                                        <p className="text-xs text-white/50 mb-2">{price}</p>
+                                                        
+                                                        {/* Quantity controls */}
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2 bg-black/30 rounded-lg p-1 border border-white/5">
+                                                                <button
+                                                                    onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                                                                    className="text-white/70 hover:text-white p-1 cursor-pointer"
+                                                                >
+                                                                    <Minus size={12} />
+                                                                </button>
+                                                                <span className="text-white font-bold text-xs w-4 text-center">{item.quantity}</span>
+                                                                <button
+                                                                    onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                                                                    className="text-white/70 hover:text-white p-1 cursor-pointer"
+                                                                >
+                                                                    <Plus size={12} />
+                                                                </button>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => removeFromCart(item.product.id)}
+                                                                className="text-red-400/80 hover:text-red-400 text-xs font-bold uppercase tracking-wider cursor-pointer"
+                                                            >
+                                                                Eliminar
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Summary & Checkout */}
+                            {cart.length > 0 && (
+                                <div className="border-t border-white/10 pt-6 mt-6 space-y-4">
+                                    <div className="flex justify-between items-center text-white">
+                                        <span className="text-xs font-bold uppercase tracking-wider text-white/50">Total Estimado</span>
+                                        <span className="text-2xl font-black">${cartTotals.priceSum.toFixed(2)}</span>
+                                    </div>
+                                    <button
+                                        onClick={handleCheckout}
+                                        className="w-full bg-[#25D366] hover:bg-[#22c35e] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-[0_10px_30px_-5px_rgba(37,211,102,0.4)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer border-none"
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                                            <path d="M19.057 4.298c-1.883-1.884-4.386-2.922-7.05-2.922-5.495 0-9.968 4.471-9.968 9.966 0 1.756.459 3.468 1.328 4.975l-1.41 5.148 5.266-1.381c1.455.794 3.09 1.211 4.78 1.212h.004c5.493 0 9.964-4.471 9.964-9.966 0-2.662-1.036-5.166-2.921-7.052zm-7.05 15.393h-.003c-1.488 0-2.946-.4-4.23-1.155l-.304-.18-3.146.825.839-3.067-.197-.314c-.829-1.321-1.267-2.854-1.267-4.43 0-4.43 3.605-8.036 8.04-8.036 2.148 0 4.167.837 5.684 2.355 1.517 1.518 2.352 3.538 2.352 5.686-.002 4.434-3.609 8.041-8.043 8.041zm4.412-6.03c-.242-.121-1.431-.707-1.652-.788-.221-.081-.383-.121-.544.121-.161.242-.625.787-.766.949-.141.161-.282.181-.524.061-.242-.121-1.02-.376-1.943-1.199-.718-.641-1.203-1.433-1.344-1.675-.141-.242-.015-.373.106-.493.109-.108.242-.282.363-.423.121-.141.161-.242.242-.403.081-.161.04-.303-.02-.424-.061-.121-.544-1.312-.746-1.796-.196-.472-.397-.407-.544-.415-.141-.007-.302-.008-.463-.008-.161 0-.423.061-.644.303-.221.242-.846.827-.846 2.018 0 1.191.866 2.336.987 2.5.121.164 1.706 2.605 4.133 3.651.577.249 1.027.397 1.378.508.579.185 1.107.158 1.523.096.465-.069 1.431-.585 1.632-1.15.201-.564.201-1.049.141-1.15-.06-.101-.221-.161-.463-.282z"/>
+                                        </svg>
+                                        Enviar Pedido por WhatsApp
+                                    </button>
+                                </div>
+                            )}
                         </motion.div>
                     </motion.div>
                 )}
