@@ -392,12 +392,8 @@ export default function VCardClient({ showCatalog = false }: VCardClientProps) {
                     <HedkandiTemplate 
                         {...baseProps} 
                         {...overrides} 
-                        afterExperienceSlot={
-                            <>
-                                {menuNode}
-                                {catalogNode}
-                            </>
-                        } 
+                        afterExperienceSlot={catalogNode} 
+                        beforeMarqueeSlot={menuNode}
                     />
                 );
             case 'luxury':

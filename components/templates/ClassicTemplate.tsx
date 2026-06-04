@@ -568,48 +568,6 @@ export default function ClassicTemplate({
                                                 </div>
                                             )}
 
-                                            {(() => {
-                                                const videoUrl = data.youtube_video_url || data.youtube || data.tiktok;
-                                                const embedUrl = getVideoEmbedUrl(videoUrl);
-                                                
-                                                if (embedUrl) {
-                                                    const isVertical = checkIsVerticalVideo(videoUrl);
-                                                    
-                                                    return (
-                                                        <div className="mt-12 md:mt-20">
-                                                            <div className="flex items-center justify-between mb-8">
-                                                                <h4 className="text-[10px] sm:text-xs font-display-condensed uppercase tracking-[0.3em] text-[var(--theme-primary)] flex items-center gap-3">
-                                                                    <span className="w-8 h-8 rounded-full bg-[var(--theme-primary)]/20 flex items-center justify-center">
-                                                                        <Zap size={14} className="text-[var(--theme-primary)]" />
-                                                                    </span>
-                                                                    Spotlight cinemático
-                                                                </h4>
-                                                                <span className="px-4 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black tracking-widest text-white/30 uppercase">
-                                                                    Foto films exclusive
-                                                                </span>
-                                                            </div>
-                                                            <div className={cn(
-                                                                "w-full rounded-[2rem] md:rounded-[3.5rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border border-white/10 bg-black/60 relative group",
-                                                                isVertical ? "max-w-md mx-auto aspect-[9/16]" : "aspect-video"
-                                                            )}>
-                                                                <iframe
-                                                                    width="100%"
-                                                                    height="100%"
-                                                                    src={embedUrl}
-                                                                    title="Video player"
-                                                                    frameBorder="0"
-                                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                                    allowFullScreen
-                                                                    className="w-full h-full scale-[1.01]"
-                                                                ></iframe>
-                                                                <div className="absolute inset-0 pointer-events-none border-[1px] border-white/5 rounded-[inherit]" />
-                                                                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/20 to-transparent" />
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
 
                                             {(() => {
                                                 // PRIORIDAD:
@@ -769,6 +727,80 @@ export default function ClassicTemplate({
                                                     </div>
                                                 );
                                             })()}
+
+                                            {/* Catálogo de Productos/Servicios (AQUÍ - DEBAJO DE SERVICIOS) */}
+                                            {(showCatalog || data?.plan === 'catalog' || data?.plan === 'digital') && (() => {
+                                                let catalogSource = data.catalogo_json;
+                                                if (!catalogSource && data.menu_digital?.trim().startsWith('[')) {
+                                                    catalogSource = data.menu_digital;
+                                                }
+                                                if (!catalogSource) return null;
+
+                                                const parsedCatalog = safeParse(catalogSource, { products: [], categories: [] });
+                                                const isServiceMenu = Array.isArray(parsedCatalog) && 
+                                                                     parsedCatalog.length > 0 && 
+                                                                     'items' in parsedCatalog[0];
+
+                                                return (
+                                                    <div className="w-full mt-12">
+                                                        {isServiceMenu ? (
+                                                            <CabinetMenu 
+                                                                data={parsedCatalog} 
+                                                                businessName={data.nombre_negocio || data.nombre} 
+                                                                whatsapp={data.whatsapp}
+                                                            />
+                                                        ) : (
+                                                            <CatalogGallery 
+                                                                data={parsedCatalog} 
+                                                                whatsapp={data.whatsapp}
+                                                                onLightboxToggle={setIsLightboxOpen}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* Video Spotlight (AQUÍ - DEBAJO DEL CATÁLOGO) */}
+                                            {(() => {
+                                                const videoUrl = data.youtube_video_url || data.youtube || data.tiktok;
+                                                const embedUrl = getVideoEmbedUrl(videoUrl);
+                                                if (embedUrl) {
+                                                    const isVertical = checkIsVerticalVideo(videoUrl);
+                                                    return (
+                                                        <div className="w-full mt-12 md:mt-20">
+                                                            <div className="flex items-center justify-between mb-8">
+                                                                <h4 className="text-[10px] sm:text-xs font-display-condensed uppercase tracking-[0.3em] text-[var(--theme-primary)] flex items-center gap-3">
+                                                                    <span className="w-8 h-8 rounded-full bg-[var(--theme-primary)]/20 flex items-center justify-center">
+                                                                        <Zap size={14} className="text-[var(--theme-primary)]" />
+                                                                    </span>
+                                                                    Spotlight cinemático
+                                                                </h4>
+                                                                <span className="px-4 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black tracking-widest text-white/30 uppercase">
+                                                                    Foto films exclusive
+                                                                </span>
+                                                            </div>
+                                                            <div className={cn(
+                                                                "w-full rounded-[2rem] md:rounded-[3.5rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border border-white/10 bg-black/60 relative group",
+                                                                isVertical ? "max-w-md mx-auto aspect-[9/16]" : "aspect-video"
+                                                            )}>
+                                                                <iframe
+                                                                    width="100%"
+                                                                    height="100%"
+                                                                    src={embedUrl}
+                                                                    title="Video player"
+                                                                    frameBorder="0"
+                                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                    allowFullScreen
+                                                                    className="w-full h-full scale-[1.01]"
+                                                                ></iframe>
+                                                                <div className="absolute inset-0 pointer-events-none border-[1px] border-white/5 rounded-[inherit]" />
+                                                                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/20 to-transparent" />
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </motion.div>
                                     )}
                                 </div>
@@ -778,44 +810,6 @@ export default function ClassicTemplate({
                         </div>
 
                         {/* Slot placeholder — el contenido real se renderiza fuera del grid */}
-
-                        {/* Catálogo de Productos/Servicios */}
-                        {(showCatalog || data?.plan === 'catalog' || data?.plan === 'digital') && (() => {
-                            // Intentar obtener el JSON del catálogo: prioritario catalogo_json, pero permitimos menu_digital si es JSON
-                            let catalogSource = data.catalogo_json;
-                            
-                            // Si menu_digital parece un JSON (comienza con [), lo usamos como fuente si no hay catalogo_json
-                            if (!catalogSource && data.menu_digital?.trim().startsWith('[')) {
-                                catalogSource = data.menu_digital;
-                            }
-
-                            if (!catalogSource) return null;
-
-                            const parsedCatalog = safeParse(catalogSource, { products: [], categories: [] });
-                            
-                            // Detect if it's the "Cabinet/Service Menu" format: [{"name": "...", "items": [...]}]
-                            const isServiceMenu = Array.isArray(parsedCatalog) && 
-                                                 parsedCatalog.length > 0 && 
-                                                 'items' in parsedCatalog[0];
-
-                            return (
-                                <div className="lg:col-span-12 order-2 xl:order-4 mt-6 md:mt-24">
-                                    {isServiceMenu ? (
-                                        <CabinetMenu 
-                                            data={parsedCatalog} 
-                                            businessName={data.nombre_negocio || data.nombre} 
-                                            whatsapp={data.whatsapp}
-                                        />
-                                    ) : (
-                                        <CatalogGallery 
-                                            data={parsedCatalog} 
-                                            whatsapp={data.whatsapp}
-                                            onLightboxToggle={setIsLightboxOpen}
-                                        />
-                                    )}
-                                </div>
-                            );
-                        })()}
                     </div>
                 </div>
 

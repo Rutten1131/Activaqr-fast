@@ -6,7 +6,7 @@ import { Share2, MapPin, Phone, Mail, Instagram, Facebook, Link as LinkIcon, Dow
 import { formatPhoneEcuador, cn } from '@/lib/utils';
 import { safeParse } from '@/lib/jsonUtils';
 import MapSection from '@/components/MapSection';
-import CatalogProGallery from '../card/CatalogProGallery';
+import CatalogGallery from '../card/CatalogGallery';
 import ShareButton from '@/components/ShareButton';
 import { BaseTemplateProps, HeroCarouselTemplateProps } from './types';
 import { checkIsVerticalVideo } from '@/lib/videoUtils';
@@ -387,7 +387,45 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
                 </div>
             </section>
 
-            {/* NEW: VIDEO SECTION */}
+
+            {/* 4. CATALOG / PROJECTS GALLERY */}
+            {(() => {
+                let catalogData: any = null;
+                try {
+                    catalogData = typeof data.catalogo_json === 'string' 
+                        ? JSON.parse(data.catalogo_json) 
+                        : data.catalogo_json;
+                } catch (e) {}
+
+                if (!catalogData) return null;
+
+                // Soporta tanto array directo como formato { products: [] }
+                const products = Array.isArray(catalogData) ? catalogData : (catalogData.products || []);
+                
+                if (products && products.length > 0) {
+                    return (
+                        <section id="proyectos" className="py-24 px-4 bg-[#F5F7FA]">
+                            <div className="max-w-7xl mx-auto">
+                                <div className="text-center mb-16">
+                                    <h4 className="text-[var(--theme-primary)] font-black tracking-widest uppercase text-sm mb-2">Galería de Proyectos</h4>
+                                    <h2 className="text-4xl md:text-5xl font-black text-navy uppercase tracking-tight">Nuestro <span className="text-[var(--theme-primary)]">Catálogo</span></h2>
+                                    <div className="w-20 h-1 bg-[var(--theme-primary)] mx-auto mt-6" />
+                                </div>
+                                
+                                <CatalogGallery 
+                                    data={catalogData} 
+                                    whatsapp={data.whatsapp}
+                                    onLightboxToggle={props.setIsLightboxOpen}
+                                    templateId="industrial"
+                                />
+                            </div>
+                        </section>
+                    );
+                }
+                return null;
+            })()}
+
+            {/* NEW: VIDEO SECTION (Ahora debajo de catálogo) */}
             {(() => {
                 const videoUrl = data.video_url || data.youtube_video_url || data.youtube || data.tiktok;
                 const embedUrl = getVideoEmbedUrl?.(videoUrl);
@@ -421,6 +459,13 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
                     </section>
                 );
             })()}
+
+            {/* ─── Slot Full-Width / Menú ─── */}
+            {afterExperienceSlot && (
+                <div className="w-full bg-white relative z-20">
+                    {afterExperienceSlot}
+                </div>
+            )}
 
             {/* 3. WHY CHOOSE US (Stats) */}
             <section id="nosotros" className="py-24 px-4 bg-[#001B3D] text-white">
@@ -468,49 +513,6 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
                     </div>
                 </div>
             </section>
-
-            {/* 4. CATALOG / PROJECTS GALLERY */}
-            {(() => {
-                let catalogData: any = null;
-                try {
-                    catalogData = typeof data.catalogo_json === 'string' 
-                        ? JSON.parse(data.catalogo_json) 
-                        : data.catalogo_json;
-                } catch (e) {}
-
-                if (!catalogData) return null;
-
-                // Soporta tanto array directo como formato { products: [] }
-                const products = Array.isArray(catalogData) ? catalogData : (catalogData.products || []);
-                
-                if (products && products.length > 0) {
-                    return (
-                        <section id="proyectos" className="py-24 px-4 bg-[#F5F7FA]">
-                            <div className="max-w-7xl mx-auto">
-                                <div className="text-center mb-16">
-                                    <h4 className="text-[var(--theme-primary)] font-black tracking-widest uppercase text-sm mb-2">Galería de Proyectos</h4>
-                                    <h2 className="text-4xl md:text-5xl font-black text-navy uppercase tracking-tight">Nuestro <span className="text-[var(--theme-primary)]">Catálogo</span></h2>
-                                    <div className="w-20 h-1 bg-[var(--theme-primary)] mx-auto mt-6" />
-                                </div>
-                                
-                                <CatalogProGallery 
-                                    data={catalogData} 
-                                    whatsapp={data.whatsapp}
-                                    themeColor={props.themePrimary || '#FF5C00'} 
-                                />
-                            </div>
-                        </section>
-                    );
-                }
-                return null;
-            })()}
-
-            {/* ─── Slot Full-Width: rompe el patrón con blanco ─── */}
-            {afterExperienceSlot && (
-                <div className="w-full bg-white relative z-20">
-                    {afterExperienceSlot}
-                </div>
-            )}
 
             {/* 5. LOCATION / MAP */}
                 {(() => {

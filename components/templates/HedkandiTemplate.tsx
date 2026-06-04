@@ -433,6 +433,9 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                 );
             })()}
 
+            {/* ─── SLOT 1: Después de Experience (menú, galería, servicios) ─── */}
+            {props.afterExperienceSlot}
+
             {/* ─── VIDEO/DESTACADO SECTION ─── */}
             <section className="bg-white py-12 px-4">
                 <div className="max-w-7xl mx-auto flex justify-center">
@@ -484,9 +487,6 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                     })()}
                 </div>
             </section>
-
-            {/* ─── SLOT 1: Después de Experience (menú, galería, servicios) ─── */}
-            {props.afterExperienceSlot}
 
             {/* 3. BIOGRAPHY SECTION */}
             <section className="bg-[#1A1A1A] text-white py-24 px-4 md:px-12">
