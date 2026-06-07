@@ -40,6 +40,11 @@ export default function Footer() {
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Comercial</span>
                             <Link href="/ventas" className="text-[11px] font-black text-[#FF6B2B] hover:text-white transition-colors uppercase tracking-widest">Ventas VIP</Link>
                         </div>
+                        <div className="flex flex-col gap-4">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Legal</span>
+                            <Link href="/terminos" className="text-[11px] font-bold text-white hover:text-[#FF6B2B] transition-colors">Términos</Link>
+                            <Link href="/privacidad" className="text-[11px] font-bold text-white hover:text-[#FF6B2B] transition-colors">Privacidad</Link>
+                        </div>
                     </div>
                 </div>
 
