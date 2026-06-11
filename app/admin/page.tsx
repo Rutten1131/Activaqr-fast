@@ -929,6 +929,10 @@ export default function AdminDashboard() {
                 }
             }
             // Crear nuevo registro con el mismo contenido pero nuevo slug
+            // Limpiar email para evitar duplicados
+            const emailOriginal = cleanData.email || '';
+            delete cleanData.email;
+            
             const clonePayload = {
                 ...cleanData,
                 slug: newSlug.trim(),
