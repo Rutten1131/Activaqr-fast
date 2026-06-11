@@ -890,6 +890,73 @@ export default function AdminDashboard() {
         setIsCreatingClient(false);
     };
 
+    const handleCloneClient = async (registro: any) => {
+        const baseSlug = registro.slug || registro.id;
+        const newSlug = baseSlug + '-copia-' + Date.now().toString().slice(-4);
+        
+        if (!/^[a-z0-9-]+$/.test(newSlug)) {
+            alert('El slug generado no es válido. Contacte al desarrollador.');
+            return;
+        }
+        
+        setIsSaving(true);
+        const adminKey = localStorage.getItem('admin_access_key') || '';
+        try {
+            // Obtener el registro completo primero
+            const res = await fetch(`/api/admin/registros/single?id=${registro.id}`, {
+                headers: { 'x-admin-key': adminKey }
+            });
+            const data = await res.json();
+            if (!res.ok || !data.data) {
+                alert('Error al obtener datos del registro');
+                return;
+            }
+            
+            const fullRegistro = data.data;
+            // Campos a excluir (calculados por la API o no existen en la DB)
+            const camposExcluir = [
+                'id', 'edit_code', 
+                'sold_by_name', 'sold_by_code', 
+                'download_count', 'downloads_count', 
+                'created_at', 'updated_at',
+                'last_edited_at',
+                'edit_uses_remaining'
+            ];
+            const cleanData: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(fullRegistro)) {
+                if (!camposExcluir.includes(key) && value !== undefined && value !== null) {
+                    cleanData[key] = value;
+                }
+            }
+            // Crear nuevo registro con el mismo contenido pero nuevo slug
+            const clonePayload = {
+                ...cleanData,
+                slug: newSlug.trim(),
+                nombre: (fullRegistro.nombre || '') + ' (Copia)',
+                status: 'pendiente',
+            };
+            
+            const createRes = await fetch('/api/admin/registros', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-key': adminKey
+                },
+                body: JSON.stringify(clonePayload)
+            });
+            const result = await createRes.json();
+            if (createRes.ok) {
+                alert(`✅ Cliente clonado con éxito.\n\nOriginal: /${baseSlug}\nNuevo: /${newSlug}`);
+                fetchRegistros(); // Refrescar lista
+            } else {
+                alert('Error: ' + (result.error || 'Error desconocido'));
+            }
+        } catch (err: any) {
+            alert('Error: ' + err.message);
+        }
+        setIsSaving(false);
+    };
+
     const handleCreateSeller = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsCreatingSeller(true);
@@ -2218,6 +2285,16 @@ export default function AdminDashboard() {
                                                     title="Editar vCard"
                                                 >
                                                     <Edit size={18} />
+                                                </button>
+
+                                                {/* Botón Clonar */}
+                                                <button
+                                                    onClick={() => handleCloneClient(r)}
+                                                    disabled={pendingIds.has(r.id)}
+                                                    className="p-2 bg-blue-500/20 text-blue-400 rounded-xl hover:bg-blue-500 hover:text-white transition-all shadow-lg shadow-blue-500/10"
+                                                    title="Clonar Cliente"
+                                                >
+                                                    <Copy size={18} />
                                                 </button>
 
                                                 <a

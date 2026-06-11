@@ -551,6 +551,20 @@ export default function VCardEditModal({
         });
     };
 
+    const handleCloneProduct = (prod: any) => {
+        if (catalogoJson.products.length >= 20) {
+            alert("Máximo 20 productos permitidos. No se puede clonar.");
+            return;
+        }
+        const cloned = {
+            ...prod,
+            id: `prod_${Date.now()}`,
+            nombre: (prod.nombre || prod.name || 'Producto') + ' (Copia)',
+            name: (prod.nombre || prod.name || 'Producto') + ' (Copia)',
+        };
+        updateCatalogo({ ...catalogoJson, products: [cloned, ...catalogoJson.products] });
+    };
+
     const handleSaveEdit = () => {
         let recalculatedNombre = editingRegistro.nombre;
         if (editingRegistro.tipo_perfil === 'persona') {
@@ -2051,6 +2065,7 @@ export default function VCardEditModal({
                                             <div className="grid grid-cols-1 gap-4 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar">
                                                 {catalogoJson.products.filter((p: any) => productCategoryFilter === 'Todas' || (p.categoria || p.category) === productCategoryFilter).map((prod: any, idx: number) => (
                                                     <div key={prod.id || idx} className="bg-white/[0.07] border border-white/20 p-6 rounded-3xl flex gap-6 relative group hover:bg-white/[0.1] transition-all">
+                                                        <button type="button" onClick={() => handleCloneProduct(prod)} className="absolute top-4 right-12 text-white/40 hover:text-primary transition-colors" title="Clonar producto"><Copy size={16} /></button>
                                                         <button type="button" onClick={() => updateCatalogo({ ...catalogoJson, products: catalogoJson.products.filter((p: any) => p.id !== prod.id) })} className="absolute top-4 right-4 text-white/40 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
                                                         <div className="w-24 shrink-0">
                                                             <div className="space-y-2">
