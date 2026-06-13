@@ -13,7 +13,7 @@ import ShareButton from '@/components/ShareButton';
 import { safeParse } from '@/lib/jsonUtils';
 import MapSection from '@/components/MapSection';
 import type { ClassicTemplateProps } from '@/components/templates/types';
-import { checkIsVerticalVideo } from '@/lib/videoUtils';
+import { checkIsVerticalVideo, getDirectVideoUrl } from '@/lib/videoUtils';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -764,25 +764,28 @@ export default function ClassicTemplate({
                                             {(() => {
                                                 const videoUrl = data.youtube_video_url || data.youtube || data.tiktok;
                                                 const embedUrl = getVideoEmbedUrl(videoUrl);
-                                                if (embedUrl) {
-                                                    const isVertical = checkIsVerticalVideo(videoUrl);
-                                                    return (
-                                                        <div className="w-full mt-12 md:mt-20">
-                                                            <div className="flex items-center justify-between mb-8">
-                                                                <h4 className="text-[10px] sm:text-xs font-display-condensed uppercase tracking-[0.3em] text-[var(--theme-primary)] flex items-center gap-3">
-                                                                    <span className="w-8 h-8 rounded-full bg-[var(--theme-primary)]/20 flex items-center justify-center">
-                                                                        <Zap size={14} className="text-[var(--theme-primary)]" />
-                                                                    </span>
-                                                                    Spotlight cinemático
-                                                                </h4>
-                                                                <span className="px-4 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black tracking-widest text-white/30 uppercase">
-                                                                    Foto films exclusive
+                                                const directVideoUrl = getDirectVideoUrl(videoUrl);
+                                                if (!embedUrl && !directVideoUrl) return null;
+                                                
+                                                const isVertical = checkIsVerticalVideo(videoUrl);
+                                                return (
+                                                    <div className="w-full mt-12 md:mt-20">
+                                                        <div className="flex items-center justify-between mb-8">
+                                                            <h4 className="text-[10px] sm:text-xs font-display-condensed uppercase tracking-[0.3em] text-[var(--theme-primary)] flex items-center gap-3">
+                                                                <span className="w-8 h-8 rounded-full bg-[var(--theme-primary)]/20 flex items-center justify-center">
+                                                                    <Zap size={14} className="text-[var(--theme-primary)]" />
                                                                 </span>
-                                                            </div>
-                                                            <div className={cn(
-                                                                "w-full rounded-[2rem] md:rounded-[3.5rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border border-white/10 bg-black/60 relative group",
-                                                                isVertical ? "max-w-md mx-auto aspect-[9/16]" : "aspect-video"
-                                                            )}>
+                                                                Spotlight cinemático
+                                                            </h4>
+                                                            <span className="px-4 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black tracking-widest text-white/30 uppercase">
+                                                                Foto films exclusive
+                                                            </span>
+                                                        </div>
+                                                        <div className={cn(
+                                                            "w-full rounded-[2rem] md:rounded-[3.5rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border border-white/10 bg-black/60 relative group",
+                                                            isVertical ? "max-w-md mx-auto aspect-[9/16]" : "aspect-video"
+                                                        )}>
+                                                            {embedUrl ? (
                                                                 <iframe
                                                                     width="100%"
                                                                     height="100%"
@@ -793,13 +796,25 @@ export default function ClassicTemplate({
                                                                     allowFullScreen
                                                                     className="w-full h-full scale-[1.01]"
                                                                 ></iframe>
-                                                                <div className="absolute inset-0 pointer-events-none border-[1px] border-white/5 rounded-[inherit]" />
-                                                                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/20 to-transparent" />
-                                                            </div>
+                                                            ) : (
+                                                                <video
+                                                                    width="100%"
+                                                                    height="100%"
+                                                                    controls
+                                                                    autoPlay={false}
+                                                                    muted
+                                                                    playsInline
+                                                                    className="w-full h-full object-contain"
+                                                                    src={directVideoUrl!}
+                                                                >
+                                                                    Tu navegador no soporta el elemento video.
+                                                                </video>
+                                                            )}
+                                                            <div className="absolute inset-0 pointer-events-none border-[1px] border-white/5 rounded-[inherit]" />
+                                                            <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/20 to-transparent" />
                                                         </div>
-                                                    );
-                                                }
-                                                return null;
+                                                    </div>
+                                                );
                                             })()}
                                         </motion.div>
                                     )}

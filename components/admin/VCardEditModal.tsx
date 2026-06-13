@@ -66,6 +66,32 @@ export default function VCardEditModal({
     const [slugMessage, setSlugMessage] = useState('');
     const [slugError, setSlugError] = useState(false);
 
+    // Video Aspect Ratio Helper
+    const getVideoAspectFromUrl = (url: string | null | undefined): 'vertical' | 'horizontal' | 'auto' => {
+        if (!url) return 'auto';
+        try {
+            const urlObj = new URL(url);
+            const aspect = urlObj.searchParams.get('aspect');
+            if (aspect === 'vertical') return 'vertical';
+            if (aspect === 'horizontal') return 'horizontal';
+        } catch { /* ignore */ }
+        return 'auto';
+    };
+
+    const setVideoAspectInUrl = (url: string, aspect: 'vertical' | 'horizontal' | 'auto'): string => {
+        try {
+            const urlObj = new URL(url);
+            if (aspect === 'auto') {
+                urlObj.searchParams.delete('aspect');
+            } else {
+                urlObj.searchParams.set('aspect', aspect);
+            }
+            return urlObj.toString();
+        } catch {
+            return url;
+        }
+    };
+
     const handleChangeSlug = async () => {
         if (!newSlug || newSlug === editingRegistro.slug) return;
         if (!/^[a-z0-9-]+$/.test(newSlug)) {
@@ -1537,7 +1563,7 @@ export default function VCardEditModal({
                                                 <Video size={18} /> VIDEO PROMOCIONAL
                                             </h3>
                                             <div className="space-y-4">
-                                                <label className="text-[9px] font-black uppercase text-red-500/40 mb-2 block">Enlace de Video (YouTube, TikTok, IG, FB)</label>
+                                                <label className="text-[9px] font-black uppercase text-red-500/40 mb-2 block">Enlace de Video (YouTube, TikTok, IG, FB) o archivo directo (BunnyNet, MP4)</label>
                                                 <div className="flex gap-4">
                                                     <input
                                                         className="flex-1 bg-[#050B1C] border border-red-500/20 rounded-2xl px-6 py-4 font-bold text-white outline-none focus:border-red-500 transition-all font-sans text-xs"
@@ -1559,6 +1585,26 @@ export default function VCardEditModal({
                                                             }} 
                                                         />
                                                     </label>
+                                                </div>
+                                                {/* Selector de orientacion para videos directos */}
+                                                <div className="flex items-center gap-3 pt-2">
+                                                    <label className="text-[9px] font-black uppercase text-red-500/40">Orientación:</label>
+                                                    <select
+                                                        className="bg-[#050B1C] border border-red-500/20 rounded-xl px-3 py-2 text-white text-xs font-bold focus:border-red-500 outline-none"
+                                                        value={getVideoAspectFromUrl(editingRegistro.youtube_video_url)}
+                                                        onChange={e => {
+                                                            const aspect = e.target.value as 'vertical' | 'horizontal' | 'auto';
+                                                            const currentUrl = editingRegistro.youtube_video_url || '';
+                                                            if (currentUrl) {
+                                                                setEditingRegistro({ ...editingRegistro, youtube_video_url: setVideoAspectInUrl(currentUrl, aspect) });
+                                                            }
+                                                        }}
+                                                    >
+                                                        <option value="auto">Auto (detectar)</option>
+                                                        <option value="vertical">Vertical (9:16)</option>
+                                                        <option value="horizontal">Horizontal (16:9)</option>
+                                                    </select>
+                                                    <span className="text-[9px] text-white/30">Para videos directos (BunnyNet, MP4)</span>
                                                 </div>
                                             </div>
                                         </div>

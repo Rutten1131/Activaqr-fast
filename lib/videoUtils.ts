@@ -70,10 +70,67 @@ export const getFacebookURL = (url: string): string | null => {
 };
 
 /**
+ * Detecta si una URL es un video directo (MP4, WebM, MOV, AVI, MKV, etc.)
+ * Incluye soporte para BunnyNet, Vimeo directo, Cloudflare Stream, etc.
+ */
+export const isDirectVideoUrl = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    const cleanUrl = url.trim().toLowerCase();
+    
+    // Si ya es un iframe, no es video directo
+    if (cleanUrl.startsWith('<iframe')) return false;
+    
+    // Extensiones comunes de video directo
+    const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v', '.ogv', '.3gp', '.flv'];
+    const hasVideoExtension = videoExtensions.some(ext => cleanUrl.includes(ext));
+    
+    // CDNs y servicios de video conocidos que usan links directos
+    const videoHosts = [
+        'bunny.net',
+        'bunnycdn.com',
+        'vimeo.com',          // archivos directos de Vimeo
+        'cloudflare.com',     // Cloudflare Stream
+        'streamable.com',
+        'vidyard.com',
+        'wistia.com',
+        'jwplayer.com',
+        'videoask.com',
+        'loom.com',
+        'cdn77.org',
+        'cdnsun.net',
+    ];
+    const isVideoHost = videoHosts.some(host => cleanUrl.includes(host));
+    
+    // URLs que terminan en /video o contienen /videos/
+    const hasVideoPath = cleanUrl.includes('/video') || cleanUrl.includes('/videos/');
+    
+    return hasVideoExtension || isVideoHost || hasVideoPath;
+};
+
+/**
+ * Retorna la URL directa de video si es un video directo, o null si es un embed de plataforma.
+ */
+export const getDirectVideoUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    if (isDirectVideoUrl(url)) {
+        // Si es un iframe, extraer el src
+        if (url.trim().toLowerCase().startsWith('<iframe')) {
+            const srcMatch = url.match(/src=["'](.*?)["']/);
+            if (srcMatch && srcMatch[1]) return srcMatch[1];
+        }
+        return url;
+    }
+    return null;
+};
+
+/**
  * Retorna la URL de embed correcta según la plataforma detectada.
  */
 export const getVideoEmbedUrl = (url: string | null | undefined): string | null => {
     if (!url) return null;
+    
+    // Si es un video directo, retornar null (el template debe usar <video> tag)
+    if (isDirectVideoUrl(url)) return null;
     
     const ytId = getYouTubeID(url);
     if (ytId) return `https://www.youtube.com/embed/${ytId}`;
@@ -111,6 +168,16 @@ export const checkIsVerticalVideo = (url: string | null | undefined): boolean =>
         if (srcMatch && srcMatch[1]) {
             cleanUrl = srcMatch[1].toLowerCase();
         }
+    }
+
+    // 0. Query param explícito: ?aspect=vertical o ?aspect=vertical
+    // Ejemplo: https://bunny.net/video.mp4?aspect=vertical
+    try {
+        const urlObj = new URL(cleanUrl.startsWith('http') ? cleanUrl : 'https://example.com' + cleanUrl);
+        const aspect = urlObj.searchParams.get('aspect');
+        if (aspect && aspect.toLowerCase() === 'vertical') return true;
+    } catch {
+        // Si falla el parsing de URL, continuamos con las detecciones basadas en plataforma
     }
 
     // 1. TikTok siempre es vertical (9:16)

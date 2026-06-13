@@ -9,7 +9,7 @@ import MapSection from '@/components/MapSection';
 import CatalogGallery from '../card/CatalogGallery';
 import ShareButton from '@/components/ShareButton';
 import { BaseTemplateProps, HeroCarouselTemplateProps } from './types';
-import { checkIsVerticalVideo } from '@/lib/videoUtils';
+import { checkIsVerticalVideo, getDirectVideoUrl } from '@/lib/videoUtils';
 
 
 export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
@@ -429,7 +429,8 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
             {(() => {
                 const videoUrl = data.video_url || data.youtube_video_url || data.youtube || data.tiktok;
                 const embedUrl = getVideoEmbedUrl?.(videoUrl);
-                if (!embedUrl) return null;
+                const directVideoUrl = getDirectVideoUrl(videoUrl);
+                if (!embedUrl && !directVideoUrl) return null;
 
                 const isVertical = checkIsVerticalVideo(videoUrl);
 
@@ -444,13 +445,28 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
                                 "relative w-full rounded-2xl overflow-hidden shadow-2xl border-4 border-white/5 mx-auto",
                                 isVertical ? "max-w-[400px] aspect-[9/16]" : "aspect-video"
                             )}>
-                                <iframe 
-                                    src={embedUrl} 
-                                    title="Video Corporativo"
-                                    className="w-full h-full"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                    allowFullScreen
-                                />
+                                {embedUrl ? (
+                                    <iframe 
+                                        src={embedUrl} 
+                                        title="Video Corporativo"
+                                        className="w-full h-full"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                        allowFullScreen
+                                    />
+                                ) : (
+                                    <video
+                                        width="100%"
+                                        height="100%"
+                                        controls
+                                        autoPlay={false}
+                                        muted
+                                        playsInline
+                                        className="w-full h-full object-contain"
+                                        src={directVideoUrl!}
+                                    >
+                                        Tu navegador no soporta el elemento video.
+                                    </video>
+                                )}
                             </div>
                         </div>
                         {/* Background decorative elements */}

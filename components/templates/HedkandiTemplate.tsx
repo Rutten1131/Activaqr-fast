@@ -7,7 +7,7 @@ import { safeParse } from '@/lib/jsonUtils';
 import MapSection from '@/components/MapSection';
 import { Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { checkIsVerticalVideo } from '@/lib/videoUtils';
+import { checkIsVerticalVideo, getDirectVideoUrl } from '@/lib/videoUtils';
 import ShareButton from '@/components/ShareButton';
 
 
@@ -442,6 +442,7 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                     {(() => {
                         const videoUrl = props.data?.video_url || props.data?.youtube_video_url || props.data?.youtube_url;
                         const embedUrl = props.getVideoEmbedUrl(videoUrl);
+                        const directVideoUrl = getDirectVideoUrl(videoUrl);
                         const isVertical = checkIsVerticalVideo(videoUrl);
 
                         return (
@@ -452,7 +453,7 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                                 transition={{ duration: 1 }}
                                 className={cn(
                                     "w-full flex justify-center mx-auto",
-                                    embedUrl ? (isVertical ? "max-w-[450px]" : "max-w-4xl") : "max-w-[400px]"
+                                    embedUrl || directVideoUrl ? (isVertical ? "max-w-[450px]" : "max-w-4xl") : "max-w-[400px]"
                                 )}
                             >
                                 {embedUrl ? (
@@ -471,6 +472,27 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                                                 allowFullScreen 
                                                 className="w-full h-full"
                                             />
+                                        </div>
+                                    </div>
+                                ) : directVideoUrl ? (
+                                    /* Video directo (BunnyNet, Vimeo directo, etc.) */
+                                    <div className="w-full rounded-[3rem] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-black/5 bg-black/5 p-3 md:p-6">
+                                        <div className={cn(
+                                            "rounded-[2rem] overflow-hidden bg-black",
+                                            isVertical ? "aspect-[9/16]" : "aspect-video"
+                                        )}>
+                                            <video
+                                                width="100%"
+                                                height="100%"
+                                                controls
+                                                autoPlay={false}
+                                                muted
+                                                playsInline
+                                                className="w-full h-full object-contain"
+                                                src={directVideoUrl}
+                                            >
+                                                Tu navegador no soporta el elemento video.
+                                            </video>
                                         </div>
                                     </div>
                                 ) : (
