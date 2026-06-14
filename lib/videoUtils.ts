@@ -23,10 +23,35 @@ export const getYouTubeThumbnail = (url: string): string | null => {
 
 export const getTikTokID = (url: string): string | null => {
     if (!url) return null;
-    if (url.includes('tiktok.com')) {
-        const match = url.match(/\/video\/(\d+)/) || url.match(/\/v\/(\d+)/);
-        return match ? match[1] : null;
+    if (!url.includes('tiktok.com')) return null;
+    
+    // Formato embed directo: https://www.tiktok.com/embed/123456789012345678
+    const embedMatch = url.match(/tiktok\.com\/embed\/(\d+)/);
+    if (embedMatch) return embedMatch[1];
+    
+    // Formato estandar: https://www.tiktok.com/@usuario/video/123456789012345678
+    const videoMatch = url.match(/\/video\/(\d+)/);
+    if (videoMatch) return videoMatch[1];
+    
+    // Formato antiguo: /v/123456789012345678
+    const vMatch = url.match(/\/v\/(\d+)/);
+    if (vMatch) return vMatch[1];
+    
+    // Formato share largo: https://www.tiktok.com/i18n/share/{username}/{videoId}
+    const shareMatch = url.match(/tiktok\.com\/i18n\/share\/[^\/]+\/(\d+)/);
+    if (shareMatch) return shareMatch[1];
+    
+    // Formato share simple: https://www.tiktok.com/i18n/share/{videoId}
+    const shareSimpleMatch = url.match(/tiktok\.com\/i18n\/share\/(\d+)/);
+    if (shareSimpleMatch) return shareSimpleMatch[1];
+    
+    // Links cortos vm.tiktok.com - NO se puede extraer ID sin hacer fetch
+    // Estos retornaran null pero el template puede intentar usar el link directo
+    if (url.includes('vm.tiktok.com') || url.includes('vt.tiktok.com')) {
+        // Retornar el URL tal cual para que el template intente embed de otra forma
+        return null;
     }
+    
     return null;
 };
 
@@ -137,6 +162,12 @@ export const getVideoEmbedUrl = (url: string | null | undefined): string | null 
 
     const ttId = getTikTokID(url);
     if (ttId) return `https://www.tiktok.com/embed/v2/${ttId}`;
+
+    // TikTok short links (vm.tiktok.com, vt.tiktok.com) - usar ?url= parametro
+    if (url.includes('tiktok.com') && (url.includes('vm.tiktok.com') || url.includes('vt.tiktok.com'))) {
+        // TikTok acepta la URL original como parametro para resolver el video
+        return `https://www.tiktok.com/embed/?url=${encodeURIComponent(url)}`;
+    }
 
     const igId = getInstagramID(url);
     if (igId) return `https://www.instagram.com/p/${igId}/embed`;
