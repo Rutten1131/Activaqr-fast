@@ -105,6 +105,24 @@ export const isDirectVideoUrl = (url: string | null | undefined): boolean => {
     // Si ya es un iframe, no es video directo
     if (cleanUrl.startsWith('<iframe')) return false;
     
+    // EXCLUIR redes sociales - tienen /video en URL pero NO son videos directos
+    // TikTok, YouTube, Facebook, Instagram, Twitter, etc.
+    const socialMediaHosts = [
+        'tiktok.com',
+        'youtube.com',
+        'youtu.be',
+        'facebook.com',
+        'fb.watch',
+        'instagram.com',
+        'twitter.com',
+        'x.com',
+        'linkedin.com',
+        'threads.net',
+    ];
+    if (socialMediaHosts.some(host => cleanUrl.includes(host))) {
+        return false;
+    }
+    
     // Extensiones comunes de video directo
     const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v', '.ogv', '.3gp', '.flv'];
     const hasVideoExtension = videoExtensions.some(ext => cleanUrl.includes(ext));
@@ -126,8 +144,8 @@ export const isDirectVideoUrl = (url: string | null | undefined): boolean => {
     ];
     const isVideoHost = videoHosts.some(host => cleanUrl.includes(host));
     
-    // URLs que terminan en /video o contienen /videos/
-    const hasVideoPath = cleanUrl.includes('/video') || cleanUrl.includes('/videos/');
+    // URLs que terminan en /video o contienen /videos/ (solo para CDNs no-sociales)
+    const hasVideoPath = (cleanUrl.includes('/video') || cleanUrl.includes('/videos/')) && !socialMediaHosts.some(host => cleanUrl.includes(host));
     
     return hasVideoExtension || isVideoHost || hasVideoPath;
 };
