@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
     try {
         const [rows]: any = await pool.execute(
-            'SELECT nombre, bio FROM registraya_vcard_registros WHERE slug = ?',
+            'SELECT nombre, foto_url, last_edited_at, bio FROM registraya_vcard_registros WHERE slug = ?',
             [slug]
         );
 
@@ -18,6 +18,12 @@ export async function generateMetadata({ params }: { params: { slug: string } })
             const client = rows[0];
             const name = client.nombre;
             const description = `Explora el catálogo de productos y servicios de ${name}. ${client.bio || ''}`;
+
+            // Version cache buster basado en última edición
+            const version = client.last_edited_at
+                ? new Date(client.last_edited_at).getTime().toString(36)
+                : slug.slice(-6);
+            const ogImageUrlWithVersion = `${ogImageUrl}?v=${version}`;
 
             return {
                 metadataBase: new URL(baseUrl),
@@ -30,8 +36,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
                     type: 'website',
                     images: [
                         {
-                            url: ogImageUrl,
-                            secureUrl: ogImageUrl,
+                            url: ogImageUrlWithVersion,
+                            secureUrl: ogImageUrlWithVersion,
                             width: 1200,
                             height: 630,
                             alt: `Catálogo de ${name}`,
@@ -43,7 +49,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
                     card: 'summary_large_image',
                     title: `${name} - Catálogo Interactivo`,
                     description: description,
-                    images: [ogImageUrl],
+                    images: [ogImageUrlWithVersion],
                 }
             };
         }

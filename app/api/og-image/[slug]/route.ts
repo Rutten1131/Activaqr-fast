@@ -71,6 +71,13 @@ export async function GET(
         
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.activaqr.com';
 
+        // ─── Cache buster: si ?v= está presente, forzamos siempre fresco ──
+        const version = request.nextUrl.searchParams.get('v');
+        const isFreshRequest = !!version; // Si hay ?v=, el cliente quiere datos frescos
+        const cacheControl = isFreshRequest
+            ? 'public, s-maxage=0, must-revalidate, max-age=0'
+            : 'public, s-maxage=86400, stale-while-revalidate=3600';
+
         const [rows]: any = await pool.execute(
             'SELECT foto_url FROM registraya_vcard_registros WHERE slug = ?',
             [slug]
@@ -95,8 +102,9 @@ export async function GET(
                         headers: {
                             'Content-Type': result.mimeType,
                             'Content-Length': String(result.buffer.length),
-                            'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600',
+                            'Cache-Control': cacheControl,
                             'X-OG-Type': 'processed-jpeg',
+                            'X-OG-Version': version || 'none',
                         },
                     });
                 }
@@ -112,8 +120,9 @@ export async function GET(
                         headers: {
                             'Content-Type': result.mimeType,
                             'Content-Length': String(result.buffer.length),
-                            'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600',
+                            'Cache-Control': cacheControl,
                             'X-OG-Type': 'converted-jpeg',
+                            'X-OG-Version': version || 'none',
                         },
                     });
                 }
@@ -121,7 +130,7 @@ export async function GET(
         }
 
         // ─── Fallback: redirigir a imagen OG default ───────────────────────
-        return Response.redirect(`${appUrl}/images/og-preview.jpg`);
+        return NextResponse.redirect(`${appUrl}/images/og-preview.jpg`, isFreshRequest ? 302 : 301);
         
     } catch (error) {
         console.error('Error serving OG image:', error);
