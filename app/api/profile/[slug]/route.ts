@@ -200,10 +200,19 @@ export async function GET(
                 );
 
                 const items = (dbProducts as any[]).map(prod => {
-                    // Formatear precio para que el frontend legacy no se rompa (ej: 12.50 -> "$12.50")
+                    // Formatear precio: preservar string original si ya tiene formato (ej: "$7.50")
+                    // Si es numérico, formatear como "$XX.XX"
                     let formattedPrice = '';
                     if (prod.price !== null && prod.price !== undefined) {
-                        formattedPrice = `$${Number(prod.price).toFixed(2)}`;
+                        const priceStr = String(prod.price);
+                        if (priceStr.startsWith('$')) {
+                            // Ya tiene formato $, conservarlo tal cual
+                            formattedPrice = priceStr;
+                        } else {
+                            // Es numérico, formatear
+                            const num = parseFloat(priceStr);
+                            formattedPrice = isNaN(num) ? '' : `$${num.toFixed(2)}`;
+                        }
                     }
 
                     return {
@@ -223,12 +232,16 @@ export async function GET(
                 });
             }
 
-            // Si hay datos estructurados, los inyectamos en user.menu_digital en formato JSON string
+            // Si hay datos estructurados en tablas relacionales, usarlos (reconstruidos).
+            // Si NO hay y el usuario tiene JSON original en menu_digital, intentar usarlo directamente.
             if (structuredCategories.length > 0) {
                 user.menu_digital = JSON.stringify(structuredCategories);
-            } else {
-                user.menu_digital = null;
+            } else if (user.menu_digital && user.menu_digital.trim().startsWith('[')) {
+                // No hay datos relacionales pero SÍ hay JSON legacy - conservarlo tal cual
+                // (La migración JIT puede no haber corrido o no encontró datos迁移)
+                console.log('[profile] No relational data found, preserving original menu_digital JSON');
             }
+            // else: menu_digital stays as-is (could be null or non-JSON value)
 
             return NextResponse.json(user);
 
