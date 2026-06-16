@@ -190,6 +190,9 @@ export async function GET(
                 [vcardId]
             );
 
+            // Extraer el JSON original de menu_digital ANTES de sobreescribir (para hacer fallback si precios están vacíos)
+            const originalMenuDigital = user.menu_digital;
+
             const structuredCategories: any[] = [];
             const categories = dbCategories as any[];
 
@@ -235,10 +238,20 @@ export async function GET(
             // Si hay datos estructurados en tablas relacionales, usarlos (reconstruidos).
             // Si NO hay y el usuario tiene JSON original en menu_digital, intentar usarlo directamente.
             if (structuredCategories.length > 0) {
-                user.menu_digital = JSON.stringify(structuredCategories);
+                // Verificar si TODOS los precios están vacíos (bug conocido de migración JIT)
+                const allPricesEmpty = structuredCategories.every((cat: any) =>
+                    cat.items.every((item: any) => !item.price || item.price === '')
+                );
+
+                if (allPricesEmpty && originalMenuDigital && originalMenuDigital.trim().startsWith('[')) {
+                    // Bug: los precios se perdieron en la migración JIT - usar el JSON original directamente
+                    console.log('[profile] All prices empty in relational tables, falling back to original menu_digital JSON');
+                    // No sobreescribimos menu_digital - dejamos el original que tiene los precios correctos
+                } else {
+                    user.menu_digital = JSON.stringify(structuredCategories);
+                }
             } else if (user.menu_digital && user.menu_digital.trim().startsWith('[')) {
                 // No hay datos relacionales pero SÍ hay JSON legacy - conservarlo tal cual
-                // (La migración JIT puede no haber corrido o no encontró datos迁移)
                 console.log('[profile] No relational data found, preserving original menu_digital JSON');
             }
             // else: menu_digital stays as-is (could be null or non-JSON value)
