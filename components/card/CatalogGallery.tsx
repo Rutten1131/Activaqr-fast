@@ -148,6 +148,20 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
         setDetailQuantity(1); // Reset default qty in lightbox
         setActiveMediaType(getImages(item).length > 0 ? 'image' : 'video');
         if (onLightboxToggle) onLightboxToggle(true);
+        // Scroll to catalog section - force scroll to top of catalog
+        setTimeout(() => {
+            const catalogElement = document.getElementById('catalogo');
+            if (catalogElement) {
+                const rect = catalogElement.getBoundingClientRect();
+                window.scrollTo({
+                    top: window.scrollY + rect.top - 100,
+                    behavior: 'smooth'
+                });
+            } else {
+                // Fallback: scroll to top of page
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }, 150);
     };
 
     const handleCloseItem = () => {
@@ -378,14 +392,14 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-10 bg-black/60 backdrop-blur-sm overflow-y-auto"
+                        className="fixed inset-0 z-[100] flex items-start md:items-center justify-center pt-2 md:p-10 bg-black/60 backdrop-blur-sm overflow-y-auto"
                         onClick={() => setSelectedItem(null)}
                     >
                         <motion.div
                             initial={{ y: 50, scale: 0.95 }}
                             animate={{ y: 0, scale: 1 }}
                             exit={{ y: 20, scale: 0.95 }}
-                            className="relative max-w-5xl w-full my-0 md:my-auto flex flex-col md:flex-row bg-[#1a1d33] md:rounded-[48px] overflow-y-auto md:overflow-hidden border border-white/30 shadow-2xl shadow-black/80"
+                            className="relative max-w-5xl w-full my-0 md:my-auto mt-auto md:mt-0 flex flex-col md:flex-row bg-[#1a1d33] md:rounded-[48px] overflow-y-auto md:overflow-hidden border border-white/30 shadow-2xl shadow-black/80"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Mobile/Global Close Button - Fixed on mobile to always stay visible */}

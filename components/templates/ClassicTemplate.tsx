@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
     Download, User, Smartphone, Zap, CheckCircle, Phone, MessageSquare, UserPlus,
@@ -73,6 +74,26 @@ export default function ClassicTemplate({
     afterMarqueeSlot?: React.ReactNode 
 }) {
     console.log("ACTIVAQR_DEBUG: ClassicTemplate Loaded for slug:", slug);
+
+    // Estado local para Lightbox de productos
+    const [lightboxImg, setLightboxImg] = React.useState<string | null>(null);
+
+    // Cerrar lightbox con Escape y bloquear scroll
+    React.useEffect(() => {
+        if (!lightboxImg) {
+            document.body.style.overflow = '';
+            return;
+        }
+        document.body.style.overflow = 'hidden';
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setLightboxImg(null);
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => {
+            document.body.style.overflow = '';
+            window.removeEventListener('keydown', handleKey);
+        };
+    }, [lightboxImg]);
 
     const handleWhatsapp = () => {
         if (data.whatsapp) {
@@ -663,7 +684,8 @@ export default function ClassicTemplate({
                                                                         viewport={{ once: true }}
                                                                         transition={{ delay: index * 0.1 }}
                                                                         whileHover={{ y: -10 }}
-                                                                        className="group relative h-[300px] md:h-[400px] rounded-[32px] overflow-hidden border border-white/10 bg-black/40 shadow-2xl"
+                                                                        className="group relative h-[300px] md:h-[400px] rounded-[32px] overflow-hidden border border-white/10 bg-black/40 shadow-2xl cursor-pointer"
+                                                                        onClick={() => setLightboxImg(imgSrc)}
                                                                     >
                                                                         <img 
                                                                             src={imgSrc}
@@ -742,7 +764,7 @@ export default function ClassicTemplate({
                                                                      'items' in parsedCatalog[0];
 
                                                 return (
-                                                    <div className="w-full mt-12">
+                                                    <div id="catalogo" className="w-full mt-12">
                                                         {isServiceMenu ? (
                                                             <CabinetMenu 
                                                                 data={parsedCatalog} 
@@ -1137,6 +1159,31 @@ export default function ClassicTemplate({
                         .video-container-tiktok :global(iframe), .video-container-tiktok { aspect-ratio: 9/16; max-height: 80vh; }
                     }
                 `}</style>
+
+                {/* ─── LIGHTBOX ─── */}
+                {lightboxImg && (
+                    <div 
+                        className="fixed inset-0 z-[9999] bg-black/90 flex items-end justify-end pb-4 md:pb-8 p-4 md:p-10 cursor-pointer overflow-auto"
+                        onClick={() => setLightboxImg(null)}
+                    >
+                        {/* Close button */}
+                        <button 
+                            onClick={() => setLightboxImg(null)}
+                            className="absolute top-4 right-4 md:top-8 md:right-8 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all z-10"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        {/* Image */}
+                        <img 
+                            src={lightboxImg} 
+                            alt="Imagen ampliada"
+                            className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl cursor-default"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                )}
             </main>
         </div>
     );
