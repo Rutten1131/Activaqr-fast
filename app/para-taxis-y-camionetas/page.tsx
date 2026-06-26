@@ -107,7 +107,7 @@ const TESTIMONIALS = [
   },
   {
     img: "/images/taxis/chofer4.webp",
-    quote: "Tenía clientes que me llamaban seguido. Un mes no me buscaron. Después me enteré que cambiaron de número y no me pudieron volver a encontrar. Eso no vuelve a pasar.",
+    quote: "Tenía clientes que me llamabas seguido. Un mes no me buscaron. Después me enteré que cambiaron de número y no me pudieron volver a encontrar. Eso no vuelve a pasar.",
     author: "Luis P.",
     role: "Camioneta de alquiler · Loja",
     tag: "CAMIONETA",
@@ -434,7 +434,7 @@ export default function ParaTaxisPage() {
               <div className="flex gap-5 items-start p-8 bg-[#0d0d0d] border border-[#1a1a1a] hover:border-[#FF6B2B]/30 transition-all duration-500 rounded-sm">
                 <span className="text-[#FF6B2B] font-black text-5xl leading-none flex-shrink-0 opacity-30">1</span>
                 <p className="text-white text-xl md:text-2xl font-bold leading-[1.5] pt-2">
-                  ¿Crees que alguna vez hayas perdido una carrera porque el cliente no se acordó cómo te llamaban?
+                  ¿Crees que alguna vez hayas perdido una carrera porque el cliente no se acordó cómo te llamabas?
                 </p>
               </div>
             </FadeInUp>
