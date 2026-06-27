@@ -675,11 +675,6 @@ export default function HomeClient() {
                 </div>
             </section>
 
-
-
-            {/* Sección: Reseñas de Google (Social Proof Dinámico) */}
-            <ReviewsSection />
-
             {/* Sección: Casos de Éxito (Social Proof Dinámico) */}
             <section className="py-24 bg-surface relative overflow-hidden">
                 <div className="max-w-7xl mx-auto px-6 relative z-10">

@@ -776,6 +776,7 @@ export default function ClassicTemplate({
                                                                 data={parsedCatalog} 
                                                                 whatsapp={data.whatsapp}
                                                                 onLightboxToggle={setIsLightboxOpen}
+                                                                lightboxInline={true}
                                                             />
                                                         )}
                                                     </div>

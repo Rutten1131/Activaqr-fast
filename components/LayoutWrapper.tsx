@@ -16,7 +16,8 @@ const HIDDEN_LAYOUT_ROUTES = [
     '/contacto-business-producto',
     '/contacto-business-catalogo-producto',
     '/sitio-web-completo-producto',
-    '/card'
+    '/card',
+    '/catalog'
 ];
 
 function isHiddenRoute(pathname: string | null): boolean {

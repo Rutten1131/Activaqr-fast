@@ -30,6 +30,7 @@ interface CatalogGalleryProps {
     onLightboxToggle?: (isOpen: boolean) => void;
     templateId?: string;
     initialCategory?: string;
+    lightboxInline?: boolean;
 }
 
 // Mapa de tipografías por template
@@ -46,7 +47,7 @@ export interface CartItem {
     quantity: number;
 }
 
-export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templateId, initialCategory }: CatalogGalleryProps) {
+export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templateId, initialCategory, lightboxInline = false }: CatalogGalleryProps) {
     const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
     const [mediaIndex, setMediaIndex] = useState(0);
     const [activeMediaType, setActiveMediaType] = useState<'image' | 'video'>('image');
@@ -236,6 +237,205 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                 <ZoomIn size={14} /> CATÁLOGO INTERACTIVO
             </h4>
 
+            {/* Inline Lightbox Modal - appears just below title when lightboxInline=true */}
+            {lightboxInline && selectedItem && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="relative w-full z-[100] bg-black/80 backdrop-blur-sm rounded-2xl md:rounded-[32px] border border-white/20 shadow-2xl shadow-black/50 overflow-hidden mb-6 md:mb-8"
+                >
+                    <motion.div
+                        initial={{ y: 30, scale: 0.98 }}
+                        animate={{ y: 0, scale: 1 }}
+                        exit={{ y: 20, scale: 0.98 }}
+                        className="relative w-full flex flex-col md:flex-row bg-[#1a1d33] rounded-2xl md:rounded-[32px] overflow-hidden border border-white/30 shadow-2xl shadow-black/80"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Close Button */}
+                        <button 
+                            className="absolute top-2 right-2 md:top-4 md:right-4 p-2 bg-red-500/90 hover:bg-red-500 text-white rounded-full transition-all z-[120] shadow-xl hover:scale-110 active:scale-95"
+                            onClick={handleCloseItem}
+                        >
+                            <X size={16} className="md:w-5 md:h-5" />
+                        </button>
+
+                        {/* Image Section - Mobile: smaller, top half */}
+                        <div className="w-full md:w-1/2 bg-black/50 aspect-[4/3] md:aspect-square flex flex-col items-center justify-center relative"
+                            style={{ maxHeight: '40vh' }}
+                        >
+                            {(() => {
+                                if (!selectedItem) return null;
+                                const images = getImages(selectedItem);
+                                const videos = getVideos(selectedItem);
+                                const allMedia: Array<{ type: 'image' | 'video'; url: string }> = [
+                                    ...images.map(url => ({ type: 'image' as const, url })),
+                                    ...videos.map(url => ({ type: 'video' as const, url })),
+                                ];
+                                const total = allMedia.length;
+                                const current = allMedia[mediaIndex];
+                                if (!current) return null;
+
+                                return (
+                                    <>
+                                        <AnimatePresence mode="wait">
+                                            <motion.div
+                                                key={`${mediaIndex}-${current.type}`}
+                                                initial={{ opacity: 0, x: 30 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -30 }}
+                                                className="w-full h-full flex items-center justify-center p-3 md:p-6"
+                                            >
+                                                {current.type === 'video' ? (
+                                                    (() => {
+                                                        const embedUrl = getVideoEmbedUrl(current.url);
+                                                        if (embedUrl) {
+                                                            const isVertical = checkIsVerticalVideo(current.url);
+                                                            return (
+                                                                <iframe 
+                                                                    src={embedUrl}
+                                                                    className={cn(
+                                                                        "rounded-xl md:rounded-2xl shadow-2xl mx-auto w-full h-full",
+                                                                        isVertical 
+                                                                            ? "max-h-[35vh] md:max-h-[60vh] aspect-[9/16]" 
+                                                                            : "aspect-video"
+                                                                    )}
+                                                                    allowFullScreen
+                                                                    allow="autoplay; encrypted-media"
+                                                                />
+                                                            );
+                                                        }
+                                                        return (
+                                                            <video 
+                                                                src={current.url} 
+                                                                controls 
+                                                                autoPlay
+                                                                className="max-w-full max-h-[35vh] md:max-h-[60vh] rounded-xl md:rounded-2xl shadow-2xl"
+                                                            />
+                                                        );
+                                                    })()
+                                                ) : (
+                                                    <img
+                                                        src={current.url}
+                                                        alt={selectedItem.name || selectedItem.titulo}
+                                                        className="max-w-full max-h-[35vh] md:max-h-[55vh] object-contain rounded-xl md:rounded-2xl shadow-2xl"
+                                                    />
+                                                )}
+                                            </motion.div>
+                                        </AnimatePresence>
+
+                                        {/* Navigation between images/videos */}
+                                        {total > 1 && (
+                                            <>
+                                                <button 
+                                                    onClick={() => setMediaIndex(i => (i - 1 + total) % total)}
+                                                    className="absolute left-1 md:left-2 top-1/2 -translate-y-1/2 p-1.5 md:p-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-full transition-all z-20 border border-white/10"
+                                                >
+                                                    <ChevronLeft size={14} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => setMediaIndex(i => (i + 1) % total)}
+                                                    className="absolute right-1 md:right-2 top-1/2 -translate-y-1/2 p-1.5 md:p-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-full transition-all z-20 border border-white/10"
+                                                >
+                                                    <ChevronRight size={14} />
+                                                </button>
+                                                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+                                                    {allMedia.map((m, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => setMediaIndex(i)}
+                                                            className={cn(
+                                                                "w-1.5 h-1.5 rounded-full transition-all",
+                                                                i === mediaIndex
+                                                                    ? "bg-white w-3"
+                                                                    : m.type === 'video' 
+                                                                        ? "bg-primary/60 hover:bg-primary" 
+                                                                        : "bg-white/40 hover:bg-white/60"
+                                                            )}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </>
+                                );
+                            })()}
+                        </div>
+
+                        {/* Details Section - Mobile: compact, bottom half */}
+                        <div className="w-full md:w-1/2 p-4 md:p-8 flex flex-col justify-center bg-gradient-to-br from-[#111322] to-[#0a0b14] relative overflow-y-auto"
+                            style={{ maxHeight: '45vh' }}
+                        >
+                            <div className="relative z-10">
+                                <div className="flex flex-wrap items-center gap-2 mb-3 md:mb-4">
+                                    <div className={`inline-block px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-white/10 text-white/60 text-[9px] md:text-[10px] ${fonts.title} uppercase tracking-widest w-fit border border-white/5`}>
+                                        {selectedItem.category || selectedItem.categoria}
+                                    </div>
+                                </div>
+                                
+                                <h2 className={`text-lg md:text-2xl lg:text-3xl ${fonts.title} text-white uppercase tracking-tight mb-2 md:mb-3 leading-tight`}>
+                                    {selectedItem.name || selectedItem.titulo}
+                                </h2>
+                                
+                                {(selectedItem.price || selectedItem.precio) && (
+                                    <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 bg-white/5 w-fit px-3 py-2 md:px-4 md:py-2 rounded-xl md:rounded-2xl border border-white/10 backdrop-blur-md">
+                                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-[var(--theme-primary)] to-[var(--theme-primary)]/50 flex items-center justify-center text-white shadow-lg shadow-[var(--theme-primary)]/20">
+                                            <DollarSign size={16} className="md:w-5 md:h-5" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[8px] md:text-[9px] text-white/50 font-black uppercase tracking-widest mb-0.5">Inversión</span>
+                                            <span className="text-base md:text-xl lg:text-2xl font-black text-white leading-none">{selectedItem.price || selectedItem.precio}</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {(selectedItem.description || selectedItem.descripcion) && (
+                                <div className="mb-3 md:mb-4">
+                                    <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 flex items-center gap-1 md:gap-2">
+                                        <Info size={10} className="md:w-3 md:h-3" /> DETALLES
+                                    </h4>
+                                    <div className={`text-white/70 text-xs md:text-sm leading-relaxed ${fonts.body} line-clamp-3`}>
+                                        {selectedItem.description || selectedItem.descripcion}
+                                    </div>
+                                </div>
+                            )}
+
+                            {whatsapp && (
+                                <div className="mt-auto flex flex-col gap-2">
+                                    {/* Add to Cart button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            addToCart(selectedItem, detailQuantity);
+                                            handleCloseItem();
+                                        }}
+                                        className="w-full bg-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/90 text-white py-2.5 md:py-3 px-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
+                                        style={{ backgroundColor: 'var(--theme-primary, #f66739)' }}
+                                    >
+                                        <ShoppingCart size={14} className="md:w-4 md:h-4" />
+                                        Añadir al Carrito
+                                    </button>
+
+                                    {/* WhatsApp button */}
+                                    <a
+                                        href={`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa: ${selectedItem.name || selectedItem.titulo}. Precio: ${selectedItem.price || selectedItem.precio || 'Consultar'}`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full bg-[#25D366]/20 border border-[#25D366]/30 text-[#25D366] py-2.5 md:py-3 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#25D366]/30 active:scale-95 transition-all"
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                            <path d="M19.057 4.298c-1.883-1.884-4.386-2.922-7.05-2.922-5.495 0-9.968 4.471-9.968 9.966 0 1.756.459 3.468 1.328 4.975l-1.41 5.148 5.266-1.381c1.455.794 3.09 1.211 4.78 1.212h.004c5.493 0 9.964-4.471 9.964-9.966 0-2.662-1.036-5.166-2.921-7.052zm-7.05 15.393h-.003c-1.488 0-2.946-.4-4.23-1.155l-.304-.18-3.146.825.839-3.067-.197-.314c-.829-1.321-1.267-2.854-1.267-4.43 0-4.43 3.605-8.036 8.04-8.036 2.148 0 4.167.837 5.684 2.355 1.517 1.518 2.352 3.538 2.352 5.686-.002 4.434-3.609 8.041-8.043 8.041zm4.412-6.03c-.242-.121-1.431-.707-1.652-.788-.221-.081-.383-.121-.544.121-.161.242-.625.787-.766.949-.141.161-.282.181-.524.061-.242-.121-1.02-.376-1.943-1.199-.718-.641-1.203-1.433-1.344-1.675-.141-.242-.015-.373.106-.493.109-.108.242-.282.363-.423.121-.141.161-.242.242-.403.081-.161.04-.303-.02-.424-.061-.121-.544-1.312-.746-1.796-.196-.472-.397-.407-.544-.415-.141-.007-.302-.008-.463-.008-.161 0-.423.061-.644.303-.221.242-.846.827-.846 2.018 0 1.191.866 2.336.987 2.5.121.164 1.706 2.605 4.133 3.651.577.249 1.027.397 1.378.508.579.185 1.107.158 1.523.096.465-.069 1.431-.585 1.632-1.15.201-.564.201-1.049.141-1.15-.06-.101-.221-.161-.463-.282z"/>
+                                        </svg>
+                                        WhatsApp
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+
             {/* Category Filters */}
             {categories.length > 1 && ( // Show filters if there's more than 1 category
                 <div className="flex flex-wrap gap-2 mb-6">
@@ -387,24 +587,34 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
 
             {/* Lightbox Modal */}
             <AnimatePresence>
-                {selectedItem && (
+                {/* Original Lightbox Modal - only show when NOT inline */}
+            {!lightboxInline && selectedItem && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-start md:items-center justify-center pt-2 md:p-10 bg-black/60 backdrop-blur-sm overflow-y-auto"
-                        onClick={() => setSelectedItem(null)}
+                        className={lightboxInline 
+                            ? "relative w-full z-[100] bg-black/60 backdrop-blur-sm rounded-2xl md:rounded-[32px] border border-white/20 shadow-2xl shadow-black/50 overflow-hidden mb-8"
+                            : "fixed inset-0 z-[100] flex items-start md:items-center justify-center pt-2 md:p-10 bg-black/60 backdrop-blur-sm overflow-y-auto"
+                        }
+                        onClick={lightboxInline ? undefined : () => setSelectedItem(null)}
                     >
                         <motion.div
                             initial={{ y: 50, scale: 0.95 }}
                             animate={{ y: 0, scale: 1 }}
                             exit={{ y: 20, scale: 0.95 }}
-                            className="relative max-w-5xl w-full my-0 md:my-auto mt-auto md:mt-0 flex flex-col md:flex-row bg-[#1a1d33] md:rounded-[48px] overflow-y-auto md:overflow-hidden border border-white/30 shadow-2xl shadow-black/80"
+                            className={lightboxInline
+                                ? "relative max-w-5xl w-full flex flex-col md:flex-row bg-[#1a1d33] rounded-2xl md:rounded-[32px] overflow-y-auto border border-white/30 shadow-2xl shadow-black/80"
+                                : "relative max-w-5xl w-full my-0 md:my-auto mt-auto md:mt-0 flex flex-col md:flex-row bg-[#1a1d33] md:rounded-[48px] overflow-y-auto md:overflow-hidden border border-white/30 shadow-2xl shadow-black/80"
+                            }
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Mobile/Global Close Button - Fixed on mobile to always stay visible */}
+                            {/* Mobile/Global Close Button */}
                             <button 
-                                className="fixed top-4 right-4 md:absolute md:top-8 md:right-8 p-3 bg-red-500/90 hover:bg-red-500 text-white rounded-full transition-all z-[120] shadow-xl hover:scale-110 active:scale-95"
+                                className={lightboxInline 
+                                    ? "absolute top-3 right-3 md:top-4 md:right-4 p-2 md:p-3 bg-red-500/90 hover:bg-red-500 text-white rounded-full transition-all z-[120] shadow-xl hover:scale-110 active:scale-95"
+                                    : "fixed top-4 right-4 md:absolute md:top-8 md:right-8 p-3 bg-red-500/90 hover:bg-red-500 text-white rounded-full transition-all z-[120] shadow-xl hover:scale-110 active:scale-95"
+                                }
                                onClick={handleCloseItem}
                             >
                                 <X size={20} className="md:w-6 md:h-6" />
