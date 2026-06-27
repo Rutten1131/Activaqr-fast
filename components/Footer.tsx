@@ -6,7 +6,10 @@ import { usePathname } from 'next/navigation';
 export default function Footer() {
     const pathname = usePathname();
     const isAdmin = pathname?.startsWith('/admin');
+    const isTaxiPage = pathname === '/para-taxis-y-camionetas';
     const isCatalog = false; // Disable hiding on catalog as per user request
+
+    if (isTaxiPage) return null;
 
     return (
         <footer className="py-20 bg-[#050505] relative overflow-hidden border-t border-white/5">

@@ -281,22 +281,6 @@ export default function ParaTaxisPage() {
   const YOUTUBE_VIDEO_ID = "tq5oNX8yvzo";
   const YT_EMBED = `https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?rel=0&modestbranding=1&color=white`;
 
-  // ─────────────────────────────────────────────
-  // Ocultar footer global en esta página
-  // ─────────────────────────────────────────────
-  useEffect(() => {
-    const footer = document.querySelector('footer');
-    if (footer) {
-      footer.style.display = 'none';
-    }
-    return () => {
-      const footer = document.querySelector('footer');
-      if (footer) {
-        footer.style.display = '';
-      }
-    };
-  }, []);
-
   return (
     <main
       className="bg-[#0a0a0a] min-h-screen font-sans selection:bg-[#FF6B2B] selection:text-white"
