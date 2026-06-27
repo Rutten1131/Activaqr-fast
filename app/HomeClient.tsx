@@ -12,7 +12,8 @@ import {
     ShieldCheck,
     ChevronRight,
     Edit,
-    CheckCircle
+    CheckCircle,
+    FileText
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -127,6 +128,7 @@ export default function HomeClient() {
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+    const [isFloatingVisible, setIsFloatingVisible] = useState(true);
     const [currentSlide, setCurrentSlide] = useState(0);
 
 
@@ -143,6 +145,23 @@ export default function HomeClient() {
         if (typeof window !== 'undefined' && window.location.hash === '#editar') {
             setIsEditModalOpen(true);
         }
+    }, []);
+
+    useEffect(() => {
+        let scrollTimeout: NodeJS.Timeout;
+        const handleScroll = () => {
+            setIsFloatingVisible(false);
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                setIsFloatingVisible(true);
+            }, 800);
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            clearTimeout(scrollTimeout);
+        };
     }, []);
 
     return (
@@ -869,6 +888,73 @@ export default function HomeClient() {
             <PopupManager />
             <EditPortalModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} />
             <QuoteModal isOpen={isQuoteModalOpen} onClose={() => setIsQuoteModalOpen(false)} />
+
+            {/* Floating Support Button */}
+            <motion.a
+                href="https://wa.me/593983237491?text=Hola,%20necesito%20soporte%20con%20ActivaQR"
+                target="_blank"
+                rel="noopener noreferrer"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ 
+                    opacity: isFloatingVisible ? 1 : 0, 
+                    x: isFloatingVisible ? 0 : -20,
+                    pointerEvents: isFloatingVisible ? 'auto' : 'none'
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="fixed top-20 left-6 z-40 bg-white/90 backdrop-blur-md border border-navy/10 text-navy px-3 py-2 rounded-xl shadow-2xl flex items-center gap-2 group hover:bg-white transition-all"
+            >
+                <div className="w-8 h-8 bg-green-500/10 rounded-full flex items-center justify-center shrink-0 group-hover:bg-green-500 group-hover:text-white transition-colors">
+                    <Phone size={16} className="text-green-500 group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left hidden sm:block">
+                    <p className="text-[9px] font-black text-navy uppercase leading-tight">Soporte</p>
+                </div>
+            </motion.a>
+            {/* Floating Buttons Container (Responsive) */}
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ 
+                    opacity: isFloatingVisible ? 1 : 0, 
+                    y: isFloatingVisible ? 0 : 20,
+                    pointerEvents: isFloatingVisible ? 'auto' : 'none'
+                }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-40 flex flex-row gap-2 sm:left-6 sm:translate-x-0 sm:w-auto sm:flex-col sm:bottom-6 transition-all"
+            >
+                {/* Floating Quote Button - ESCONDIDO
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsQuoteModalOpen(true)}
+                    className="flex-1 sm:flex-none bg-[#0a1124] backdrop-blur-md border border-white/10 text-white px-3 py-2.5 rounded-2xl shadow-2xl flex items-center justify-center sm:justify-start gap-2 group transition-all"
+                    style={{ boxShadow: '0 10px 30px -5px rgba(255, 107, 0, 0.3)' }}
+                >
+                    <div className="w-8 h-8 bg-primary/20 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-primary transition-colors">
+                        <FileText size={16} className="text-primary group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 hidden sm:block">Empresas</p>
+                        <p className="text-[11px] font-black text-white uppercase leading-tight">Cotizar</p>
+                    </div>
+                </motion.button>
+                */}
+
+                {/* Floating Edit Button */}
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="flex-1 sm:flex-none bg-white/95 backdrop-blur-md border border-navy/5 text-navy px-3 py-2.5 rounded-2xl shadow-xl flex items-center justify-center sm:justify-start gap-2 group transition-all"
+                >
+                    <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                        <Edit size={16} className="text-primary group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-navy/40 hidden sm:block">Actualizar</p>
+                        <p className="text-[11px] font-black text-navy uppercase leading-tight">Editar</p>
+                    </div>
+                </motion.button>
+            </motion.div>
         </main>
     );
 }
