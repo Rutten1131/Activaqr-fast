@@ -189,7 +189,16 @@ export default function VCardEditModal({
             portada_desktop: '',
             portada_movil: '',
             title: '',
-            active: true
+            description: '',
+            active: true,
+            // Oferta limitada para este banner
+            offerEnabled: false,
+            offerTitle: '',
+            offerDescription: '',
+            offerOriginalPrice: '',
+            offerPrice: '',
+            offerExpiresAt: '',
+            offerCtaText: ''
         };
         updateHeroSlides([...heroSlides, newSlide]);
     };
@@ -1345,6 +1354,84 @@ export default function VCardEditModal({
                                                                 placeholder="Ej. Soluciones Premium"
                                                             />
                                                         </div>
+                                                    </div>
+
+                                                    {/* Oferta Limitada por Banner */}
+                                                    <div className="bg-gradient-to-br from-orange-500/10 to-red-500/5 rounded-2xl p-5 border border-orange-500/20 space-y-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <h5 className="text-[10px] font-black uppercase tracking-widest text-orange-400 flex items-center gap-2">
+                                                                <Zap size={12} className="fill-orange-400" /> OFERTA DE TIEMPO LIMITADO
+                                                            </h5>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerEnabled: !s.offerEnabled } : s))}
+                                                                className={cn(
+                                                                    "px-3 py-1 rounded-full text-[9px] font-black uppercase transition-colors",
+                                                                    slide.offerEnabled ? "bg-green-500/20 text-green-400" : "bg-white/10 text-white/40"
+                                                                )}
+                                                            >
+                                                                {slide.offerEnabled ? '✓ ACTIVA' : 'OFF'}
+                                                            </button>
+                                                        </div>
+
+                                                        {slide.offerEnabled && (
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="col-span-2">
+                                                                    <label className="text-[8px] font-black uppercase tracking-widest text-orange-400/60 block mb-1">Texto Badge</label>
+                                                                    <input
+                                                                        className="w-full bg-[#050B1C] border border-orange-500/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-orange-500 transition-all"
+                                                                        value={slide.offerTitle || ''}
+                                                                        onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerTitle: e.target.value } : s))}
+                                                                        placeholder="Ej. 20% OFF"
+                                                                    />
+                                                                </div>
+                                                                <div className="col-span-2">
+                                                                    <label className="text-[8px] font-black uppercase tracking-widest text-orange-400/60 block mb-1">Descripción</label>
+                                                                    <input
+                                                                        className="w-full bg-[#050B1C] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-orange-500 transition-all"
+                                                                        value={slide.offerDescription || ''}
+                                                                        onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerDescription: e.target.value } : s))}
+                                                                        placeholder="Ej. En todos los servicios"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[8px] font-black uppercase tracking-widest text-orange-400/60 block mb-1">Precio Original</label>
+                                                                    <input
+                                                                        className="w-full bg-[#050B1C] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white/50 outline-none focus:border-orange-500 transition-all line-through"
+                                                                        value={slide.offerOriginalPrice || ''}
+                                                                        onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerOriginalPrice: e.target.value } : s))}
+                                                                        placeholder="$100"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[8px] font-black uppercase tracking-widest text-orange-400/60 block mb-1">Precio Oferta</label>
+                                                                    <input
+                                                                        className="w-full bg-[#050B1C] border border-orange-500/50 rounded-xl px-3 py-2 text-xs font-black text-orange-400 outline-none focus:border-orange-500 transition-all"
+                                                                        value={slide.offerPrice || ''}
+                                                                        onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerPrice: e.target.value } : s))}
+                                                                        placeholder="$80"
+                                                                    />
+                                                                </div>
+                                                                <div className="col-span-2">
+                                                                    <label className="text-[8px] font-black uppercase tracking-widest text-orange-400/60 block mb-1">Vencimiento</label>
+                                                                    <input
+                                                                        type="datetime-local"
+                                                                        className="w-full bg-[#050B1C] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-orange-500 transition-all"
+                                                                        value={slide.offerExpiresAt || ''}
+                                                                        onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerExpiresAt: e.target.value } : s))}
+                                                                    />
+                                                                </div>
+                                                                <div className="col-span-2">
+                                                                    <label className="text-[8px] font-black uppercase tracking-widest text-orange-400/60 block mb-1">Texto CTA</label>
+                                                                    <input
+                                                                        className="w-full bg-[#050B1C] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-orange-500 transition-all"
+                                                                        value={slide.offerCtaText || ''}
+                                                                        onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerCtaText: e.target.value } : s))}
+                                                                        placeholder="Aprovechar"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
 
                                                     <div className="grid grid-cols-2 gap-4">

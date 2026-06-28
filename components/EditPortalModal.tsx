@@ -111,6 +111,7 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
                     hero_button_text: data.data.hero_button_text || '',
                     sellerCode: data.data.sellerCode || ''
                 });
+                
                 setStep('edit');
             } else {
                 setError(data.error);
@@ -145,7 +146,7 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
             const result = await res.json();
 
             if (res.ok) {
-                setUserData({ ...userData, ...formattedData }); // Update local user data for preview
+                setUserData((prev: any) => ({ ...prev, ...formattedData })); // Update local user data for preview
                 setUsesRemaining(result.remaining);
                 setStep('success');
             } else {

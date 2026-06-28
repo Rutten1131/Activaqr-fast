@@ -401,23 +401,45 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                 </div>
                             )}
 
-                            {whatsapp && (
-                                <div className="mt-auto flex flex-col gap-2">
-                                    {/* Add to Cart button */}
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            addToCart(selectedItem, detailQuantity);
-                                            handleCloseItem();
-                                        }}
-                                        className="w-full bg-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/90 text-white py-2.5 md:py-3 px-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
-                                        style={{ backgroundColor: 'var(--theme-primary, #f66739)' }}
-                                    >
-                                        <ShoppingCart size={14} className="md:w-4 md:h-4" />
-                                        Añadir al Carrito
-                                    </button>
+                            {/* Always show Add to Cart - quantity selector + Add to Cart */}
+                            <div className="mt-auto flex flex-col gap-2">
+                                {/* Quantity selector */}
+                                <div className="flex items-center justify-center gap-3 bg-white/5 p-2 rounded-xl border border-white/10">
+                                    <div className="flex items-center gap-2 bg-black/40 rounded-lg px-3 py-1.5 border border-white/10">
+                                        <button
+                                            type="button"
+                                            onClick={() => setDetailQuantity(q => Math.max(1, q - 1))}
+                                            className="text-white/70 hover:text-white transition-colors p-1 cursor-pointer"
+                                        >
+                                            <Minus size={14} />
+                                        </button>
+                                        <span className="text-white font-black text-sm w-6 text-center">{detailQuantity}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDetailQuantity(q => q + 1)}
+                                            className="text-white/70 hover:text-white transition-colors p-1 cursor-pointer"
+                                        >
+                                            <Plus size={14} />
+                                        </button>
+                                    </div>
+                                </div>
 
-                                    {/* WhatsApp button */}
+                                {/* Add to Cart button */}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        addToCart(selectedItem, detailQuantity);
+                                        handleCloseItem();
+                                    }}
+                                    className="w-full bg-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/90 text-white py-2.5 md:py-3 px-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
+                                    style={{ backgroundColor: 'var(--theme-primary, #f66739)' }}
+                                >
+                                    <ShoppingCart size={14} className="md:w-4 md:h-4" />
+                                    Añadir al Carrito
+                                </button>
+
+                                {/* WhatsApp button - only if whatsapp exists */}
+                                {whatsapp && (
                                     <a
                                         href={`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa: ${selectedItem.name || selectedItem.titulo}. Precio: ${selectedItem.price || selectedItem.precio || 'Consultar'}`)}`}
                                         target="_blank"
@@ -429,8 +451,8 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                         </svg>
                                         WhatsApp
                                     </a>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </motion.div>
                 </motion.div>

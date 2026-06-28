@@ -15,6 +15,7 @@ import { safeParse } from '@/lib/jsonUtils';
 import MapSection from '@/components/MapSection';
 import type { ClassicTemplateProps } from '@/components/templates/types';
 import { checkIsVerticalVideo, getDirectVideoUrl } from '@/lib/videoUtils';
+import LimitedTimeOffer from '@/components/LimitedTimeOffer';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -105,6 +106,27 @@ export default function ClassicTemplate({
         const raw = data.json_override;
         const parsed = safeParse(raw, {});
         return parsed.authorityModule || { enabled: false };
+    })();
+
+    // Hero Offer from active slide (per-banner offer)
+    const heroOffer = (() => {
+        if (!activeSlides || activeSlides.length === 0) return undefined;
+        const currentSlide = activeSlides[currentSlideIndex];
+        if (!currentSlide) return undefined;
+        
+        // Build offer object from slide's offer fields
+        if (currentSlide.offerEnabled) {
+            return {
+                enabled: true,
+                title: currentSlide.offerTitle || '',
+                description: currentSlide.offerDescription || '',
+                originalPrice: currentSlide.offerOriginalPrice || '',
+                offerPrice: currentSlide.offerPrice || '',
+                expiresAt: currentSlide.offerExpiresAt || '',
+                ctaText: currentSlide.offerCtaText || ''
+            };
+        }
+        return undefined;
     })();
 
     const socialLinks = [
@@ -451,11 +473,15 @@ export default function ClassicTemplate({
                             buttonStyle="outline"
                         />
                     </motion.div>
+
+                    {/* Limited Time Offer - Solo visible en Hero */}
+                    <LimitedTimeOffer offer={heroOffer} themePrimary={themePrimary} />
                 </section>
             )}
 
             {/* =================== PROFILE DETAILS =================== */}
             <main id="profile-details" className="min-h-screen bg-[var(--theme-bg)] text-white selection:bg-[var(--theme-primary)]/30 py-8 md:py-12 relative overflow-clip font-sans">
+
                 <div className="absolute top-[-10%] right-[-10%] w-[70%] h-[50%] bg-[var(--theme-primary)]/20 blur-[120px] rounded-full pointer-events-none animate-pulse" />
                 <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#05509c]/20 blur-[100px] rounded-full pointer-events-none" />
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
@@ -1164,7 +1190,7 @@ export default function ClassicTemplate({
                 {/* ─── LIGHTBOX ─── */}
                 {lightboxImg && (
                     <div 
-                        className="fixed inset-0 z-[9999] bg-black/90 flex items-end justify-end pb-4 md:pb-8 p-4 md:p-10 cursor-pointer overflow-auto"
+                        className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4 md:p-10 cursor-pointer"
                         onClick={() => setLightboxImg(null)}
                     >
                         {/* Close button */}
@@ -1180,7 +1206,7 @@ export default function ClassicTemplate({
                         <img 
                             src={lightboxImg} 
                             alt="Imagen ampliada"
-                            className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl cursor-default"
+                            className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl cursor-default"
                             onClick={(e) => e.stopPropagation()}
                         />
                     </div>

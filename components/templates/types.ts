@@ -13,6 +13,14 @@ export interface HeroSlide {
     description?: string;
     portada_movil?: string;
     portada_desktop?: string;
+    // Offer fields per slide
+    offerEnabled?: boolean;
+    offerTitle?: string;
+    offerDescription?: string;
+    offerOriginalPrice?: string;
+    offerPrice?: string;
+    offerExpiresAt?: string;
+    offerCtaText?: string;
 }
 
 // Props base que TODOS los templates comparten

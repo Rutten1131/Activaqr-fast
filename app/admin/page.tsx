@@ -739,20 +739,18 @@ export default function AdminDashboard() {
             editingRegistro.nombre = recalculatedNombre;
         }
 
-        // 🔗 Sincronizar categorías de experiencia con el catálogo
+        // 🔗 Sincronizar categorías - usar directamente catalogo.categories (ya actualizado por handleDeleteCategory/addProduct)
         try {
-            const catsRaw = editingRegistro.productos_servicios || '';
-            const catNames = catsRaw.split('\n').map((l: string) => l.trim()).filter(Boolean);
-            
             let catalogo = editingRegistro.catalogo_json;
             if (typeof catalogo === 'string') { try { catalogo = JSON.parse(catalogo); } catch { catalogo = { categories: [], products: [] }; } }
             if (!catalogo || typeof catalogo !== 'object') catalogo = { categories: [], products: [] };
             if (!catalogo.categories) catalogo.categories = [];
             
-            // Fusionar categorías de experiencia + categorías existentes de productos
+            // IMPORTANTE: No regenerar categorías desde productos_servicios.
+            // El admin ya actualiza catalogo.categories directamente via handleDeleteCategory/handleAddProduct.
+            // Aquí solo aseguramos que categories sea un array limpio sin duplicados.
             const existingProductCats = (catalogo.products || []).map((p: any) => p.categoria || p.category).filter(Boolean);
-            const allCats = [...new Set([...catNames, ...catalogo.categories, ...existingProductCats])];
-            catalogo.categories = allCats;
+            catalogo.categories = [...new Set([...catalogo.categories, ...existingProductCats])];
             editingRegistro.catalogo_json = catalogo;
         } catch (e) {
             console.warn('[Admin] Error sincronizando categorías:', e);
