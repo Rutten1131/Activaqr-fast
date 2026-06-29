@@ -278,7 +278,7 @@ const YouTubeModal = ({
 // ─────────────────────────────────────────────
 export default function ParaTaxisPage() {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  const YOUTUBE_VIDEO_ID = "tq5oNX8yvzo";
+  const YOUTUBE_VIDEO_ID = "dlwJd-VEX28";
   const YT_EMBED = `https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?rel=0&modestbranding=1&color=white`;
 
   return (
