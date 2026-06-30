@@ -10,6 +10,7 @@ import CatalogGallery from '../card/CatalogGallery';
 import ShareButton from '@/components/ShareButton';
 import { BaseTemplateProps, HeroCarouselTemplateProps } from './types';
 import { checkIsVerticalVideo, getDirectVideoUrl } from '@/lib/videoUtils';
+import LimitedTimeOffer from '@/components/LimitedTimeOffer';
 
 
 export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
@@ -17,6 +18,33 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
     if (!data) return null;
 
     const [lightboxImg, setLightboxImg] = React.useState<string | null>(null);
+
+    // Hero offer from active slide
+    const heroOffer = (() => {
+        if (!activeSlides || activeSlides.length === 0) return undefined;
+        const currentSlide = activeSlides[currentSlideIndex];
+        if (!currentSlide) return undefined;
+        if (currentSlide.offerEnabled) {
+            return {
+                enabled: true,
+                badge: currentSlide.offerBadge || 'OFERTA',
+                title: currentSlide.offerTitle || '',
+                description: currentSlide.offerDescription || '',
+                originalPrice: currentSlide.offerOriginalPrice || '',
+                offerPrice: currentSlide.offerPrice || '',
+                expiresAt: currentSlide.offerExpiresAt || '',
+                ctaText: currentSlide.offerCtaText || ''
+            };
+        }
+        return undefined;
+    })();
+
+    // Theme primary color
+    const themePrimary = (() => {
+        const raw = data.json_override;
+        const parsed = safeParse(raw, {});
+        return parsed.themePrimary || '#FF6B00';
+    })();
 
     // Close lightbox on Escape key + lock body scroll
     React.useEffect(() => {
@@ -282,6 +310,9 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
                         {data.whatsapp && <div className="flex items-center gap-2"><Phone size={14} className="text-[var(--theme-primary)]" /> {formatPhoneEcuador(data.whatsapp)}</div>}
                     </div>
                 </div>
+
+                {/* Limited Time Offer Badge */}
+                <LimitedTimeOffer offer={heroOffer} themePrimary={themePrimary} />
             </section>
 
             {/* 2. SERVICES SECTION (Orange Blocks) */}

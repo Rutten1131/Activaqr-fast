@@ -11,6 +11,7 @@ import { safeParse as safeJsonParse } from '@/lib/jsonUtils';
 import { BaseTemplateProps, HeroCarouselTemplateProps } from './types';
 import { formatPhoneEcuador } from '@/lib/utils';
 import ShareButton from '@/components/ShareButton';
+import LimitedTimeOffer from '@/components/LimitedTimeOffer';
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -103,8 +104,25 @@ function InfoBar({ data }: { data: CarroceriasTemplateProps['data'] }) {
 }
 
 /** Hero section with full-bleed image and headline */
-function HeroSection(props: CarroceriasTemplateProps) {
-    const { data } = props;
+interface HeroSectionProps {
+    data: CarroceriasTemplateProps['data'];
+    activeSlides?: CarroceriasTemplateProps['activeSlides'];
+    currentSlideIndex?: number;
+    heroOffer?: {
+        enabled?: boolean;
+        badge?: string;
+        title?: string;
+        description?: string;
+        originalPrice?: string;
+        offerPrice?: string;
+        expiresAt?: string;
+        ctaText?: string;
+    };
+    themePrimary?: string;
+}
+
+function HeroSection(props: HeroSectionProps) {
+    const { data, heroOffer, themePrimary } = props;
     const bg = data.portada_desktop || data.portada_movil || data.foto_url
         || 'https://images.unsplash.com/photo-1586528116311-ad8ed7c80a30?w=1920&auto=format&fit=crop';
 
@@ -202,6 +220,9 @@ function HeroSection(props: CarroceriasTemplateProps) {
                     </div>
                 </motion.div>
             </div>
+
+            {/* Limited Time Offer Badge */}
+            <LimitedTimeOffer offer={heroOffer} themePrimary={themePrimary} />
         </section>
     );
 }
@@ -698,6 +719,29 @@ export default function CarroceriasTemplate(props: CarroceriasTemplateProps) {
     const cats     = data.catalogo_json?.categories || [];
     const products = data.catalogo_json?.products   || [];
 
+    // Hero offer from active slide
+    const heroOffer = (() => {
+        if (!props.activeSlides || props.activeSlides.length === 0) return undefined;
+        const currentSlide = props.activeSlides[props.currentSlideIndex || 0];
+        if (!currentSlide) return undefined;
+        if (currentSlide.offerEnabled) {
+            return {
+                enabled: true,
+                badge: currentSlide.offerBadge || 'OFERTA',
+                title: currentSlide.offerTitle || '',
+                description: currentSlide.offerDescription || '',
+                originalPrice: currentSlide.offerOriginalPrice || '',
+                offerPrice: currentSlide.offerPrice || '',
+                expiresAt: currentSlide.offerExpiresAt || '',
+                ctaText: currentSlide.offerCtaText || ''
+            };
+        }
+        return undefined;
+    })();
+
+    // Theme primary color (red for Carrocerias)
+    const themePrimary = RED;
+
     return (
         <div className="min-h-screen font-sans antialiased" style={{ background: '#f5f5f5' }}>
             {/* 0. NAVBAR */}
@@ -726,7 +770,7 @@ export default function CarroceriasTemplate(props: CarroceriasTemplateProps) {
             </nav>
 
             <InfoBar data={data} />
-            <HeroSection {...props} />
+            <HeroSection {...props} heroOffer={heroOffer} themePrimary={themePrimary} />
             {cats.length > 0 && <CategoryGrid categories={cats} products={products} />}
             <StatsBar />
             <AboutSection data={data} />

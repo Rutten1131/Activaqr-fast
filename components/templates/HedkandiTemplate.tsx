@@ -9,6 +9,7 @@ import { Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { checkIsVerticalVideo, getDirectVideoUrl } from '@/lib/videoUtils';
 import ShareButton from '@/components/ShareButton';
+import LimitedTimeOffer from '@/components/LimitedTimeOffer';
 
 
 /** Imágenes de fallback organizadas por categoría visual para la grilla de experiencia */
@@ -71,6 +72,29 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
             window.removeEventListener('keydown', handleKey);
         };
     }, [lightboxImg]);
+
+    // Hero offer from active slide
+    const heroOffer = (() => {
+        if (!props.activeSlides || props.activeSlides.length === 0) return undefined;
+        const currentSlide = props.activeSlides[props.currentSlideIndex || 0];
+        if (!currentSlide) return undefined;
+        if (currentSlide.offerEnabled) {
+            return {
+                enabled: true,
+                badge: currentSlide.offerBadge || 'OFERTA',
+                title: currentSlide.offerTitle || '',
+                description: currentSlide.offerDescription || '',
+                originalPrice: currentSlide.offerOriginalPrice || '',
+                offerPrice: currentSlide.offerPrice || '',
+                expiresAt: currentSlide.offerExpiresAt || '',
+                ctaText: currentSlide.offerCtaText || ''
+            };
+        }
+        return undefined;
+    })();
+
+    // Theme primary color
+    const themePrimary = props.themePrimary || '#FF5C00';
  
     return (
         <div 
@@ -184,6 +208,9 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                         </div>
                     </motion.div>
                 </div>
+
+                {/* Limited Time Offer Badge */}
+                <LimitedTimeOffer offer={heroOffer} themePrimary={themePrimary} />
             </section>
 
             {/* 2. THE EXPERIENCE SLIDER — Carrusel de banners contenidos y redondeados */}

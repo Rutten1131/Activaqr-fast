@@ -63,17 +63,18 @@ export default function LimitedTimeOffer({
         return () => clearInterval(timer);
     }, [offer?.expiresAt]);
 
-    // Don't Render if no offer, not enabled, or expired
-    if (!offer?.enabled || isExpired || !offer?.expiresAt) return null;
+    // Don't Render if no offer or not enabled (expired and expiresAt are optional)
+    if (!offer?.enabled) return null;
 
     const formatNumber = (n: number) => n.toString().padStart(2, "0");
 
     return (
         <>
-            {/* Badge pequeño en esquina del hero */}
+            {/* Badge pequeño en esquina del hero - Más atractivo */}
             <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, scale: 0.8, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className={cn(
                     "absolute top-6 right-6 md:top-8 md:right-8 z-50 cursor-pointer",
                     className
@@ -81,52 +82,78 @@ export default function LimitedTimeOffer({
                 onClick={() => setIsModalOpen(true)}
             >
                 <div 
-                    className="relative bg-black/90 backdrop-blur-md border border-white/10 rounded-2xl p-3 shadow-2xl shadow-black/50 overflow-hidden hover:border-orange-500/50 transition-all hover:scale-105"
-                    style={{ minWidth: "100px" }}
+                    className="relative bg-gradient-to-br from-black via-black to-gray-900 backdrop-blur-md border border-white/20 rounded-2xl p-4 shadow-2xl shadow-black/50 overflow-hidden hover:scale-105 transition-transform"
+                    style={{ minWidth: "150px" }}
                 >
-                    {/* Glow effect */}
-                    <div 
-                        className="absolute -top-10 -right-10 w-24 h-24 rounded-full opacity-20 blur-2xl pointer-events-none"
+                    {/* Animated glow background */}
+                    <motion.div 
+                        className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-2xl pointer-events-none"
                         style={{ backgroundColor: themePrimary }}
+                        animate={{ 
+                            opacity: [0.2, 0.4, 0.2],
+                            scale: [1, 1.2, 1]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
                     />
 
-                    <div className="relative z-10 flex flex-col items-center gap-1">
+                    {/* Animated shine effect */}
+                    <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                        animate={{ x: ['-100%', '100%'] }}
+                        transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
+                    />
+
+                    <div className="relative z-10 flex flex-col items-center gap-2">
                         {/* Badge / Title - Siempre dice OFERTA */}
-                        <div 
-                            className="text-sm md:text-base font-black uppercase tracking-wider px-4 py-1.5 rounded-full"
+                        <motion.div 
+                            className="text-xs md:text-sm font-black uppercase tracking-wider px-4 py-1.5 rounded-full shadow-lg"
                             style={{ 
                                 backgroundColor: themePrimary,
                                 color: '#000'
                             }}
+                            animate={{ scale: [1, 1.05, 1] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
                         >
-                            OFERTA
-                        </div>
+                            🔥 OFERTA
+                        </motion.div>
 
-                        {/* Countdown Timer */}
-                        <div className="flex items-center gap-0.5 text-white">
-                            <span className="text-xs md:text-sm font-black tabular-nums">
-                                {formatNumber(timeLeft.hours)}:{formatNumber(timeLeft.minutes)}
-                            </span>
-                            <span className="text-[8px] text-white/40">:</span>
-                            <span className="text-xs md:text-sm font-black tabular-nums" style={{ color: themePrimary }}>
-                                {formatNumber(timeLeft.seconds)}
-                            </span>
-                        </div>
+                        {/* Precios - Antes y Después */}
+                        {offer?.offerPrice && (
+                            <div className="flex flex-col items-center gap-1">
+                                {offer?.originalPrice && (
+                                    <span className="text-xs text-white/40 line-through font-medium">
+                                        {offer.originalPrice}
+                                    </span>
+                                )}
+                                <motion.span 
+                                    className="text-lg md:text-2xl font-black text-white"
+                                    style={{ color: themePrimary }}
+                                    animate={{ scale: [1, 1.1, 1] }}
+                                    transition={{ duration: 0.8, repeat: Infinity }}
+                                >
+                                    {offer.offerPrice}
+                                </motion.span>
+                            </div>
+                        )}
 
-                        {/* Label */}
-                        <span className="text-[7px] md:text-[8px] text-white/50 font-bold uppercase tracking-widest">
-                            {timeLeft.days > 0 
-                                ? `${timeLeft.days} día${timeLeft.days > 1 ? 's' : ''}`
-                                : "restante"
-                            }
+                        {/* Countdown Timer - solo mostrar si hay expiresAt */}
+                        {offer?.expiresAt && (
+                            <>
+                                <div className="flex items-center gap-1 text-white bg-white/10 px-3 py-1.5 rounded-lg">
+                                    <Clock size={12} className="text-white/60" />
+                                    <span className="text-xs md:text-sm font-black tabular-nums">
+                                        {timeLeft.days > 0 && `${timeLeft.days}d `}
+                                        {formatNumber(timeLeft.hours)}:{formatNumber(timeLeft.minutes)}:{formatNumber(timeLeft.seconds)}
+                                    </span>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Tap indicator */}
+                        <span className="text-[9px] md:text-[10px] text-white/40 font-medium uppercase tracking-widest">
+                            Tap →
                         </span>
                     </div>
-
-                    {/* Pulsing indicator */}
-                    <div 
-                        className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full animate-pulse"
-                        style={{ backgroundColor: themePrimary }}
-                    />
                 </div>
             </motion.div>
 

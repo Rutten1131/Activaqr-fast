@@ -15,6 +15,7 @@ export interface HeroSlide {
     portada_desktop?: string;
     // Offer fields per slide
     offerEnabled?: boolean;
+    offerBadge?: string;
     offerTitle?: string;
     offerDescription?: string;
     offerOriginalPrice?: string;
