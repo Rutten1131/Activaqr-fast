@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Download, Key, AlertCircle, CheckCircle, Loader2, Edit, ArrowRight } from 'lucide-react';
+import { X, Save, Download, Key, AlertCircle, CheckCircle, Loader2, Edit, ArrowRight, Plus, Trash2, Upload, Zap } from 'lucide-react';
 import { formatPhoneEcuador, cn } from '@/lib/utils';
 
 interface EditPortalModalProps {
@@ -18,6 +18,10 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
     const [userData, setUserData] = useState<any>(null);
     const [usesRemaining, setUsesRemaining] = useState(0);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+    // Hero Slides State
+    const [heroSlides, setHeroSlides] = useState<any[]>([]);
+    const [uploadingHeroSlide, setUploadingHeroSlide] = useState<string | null>(null);
 
     // Load code from localStorage on mount
     useEffect(() => {
@@ -58,6 +62,7 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
         portada_desktop: '', // New hero desktop
         portada_movil: '',   // New hero mobile
         hero_button_text: '', // Custom hero button text
+        hero_slides_json: '',
         sellerCode: ''
     });
 
@@ -109,8 +114,51 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
                     portada_desktop: data.data.portada_desktop || '',
                     portada_movil: data.data.portada_movil || '',
                     hero_button_text: data.data.hero_button_text || '',
+                    hero_slides_json: data.data.hero_slides_json || '',
                     sellerCode: data.data.sellerCode || ''
                 });
+                
+                // Parse and set hero slides
+                let parsedSlides: any[] = [];
+                if (data.data.hero_slides_json) {
+                    try {
+                        let raw = data.data.hero_slides_json;
+                        // Handle both string and object from MySQL JSON column
+                        if (typeof raw === 'string') {
+                            raw = JSON.parse(raw);
+                        }
+                        // Validate it's an array with items
+                        if (Array.isArray(raw) && raw.length > 0) {
+                            parsedSlides = raw;
+                        } else if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+                            // Handle case where it's a single object instead of array
+                            parsedSlides = [raw];
+                        }
+                    } catch (e) {
+                        console.error('Error parsing hero_slides_json:', e);
+                    }
+                }
+                
+                // Fallback: if no hero_slides but has legacy portada images, create a slide
+                if (parsedSlides.length === 0 && (data.data.portada_desktop || data.data.portada_movil)) {
+                    parsedSlides = [{
+                        id: `slide_${Date.now()}`,
+                        portada_desktop: data.data.portada_desktop || '',
+                        portada_movil: data.data.portada_movil || '',
+                        title: data.data.hero_section_title || 'Mi Banner',
+                        description: '',
+                        active: true,
+                        offerEnabled: false,
+                        offerTitle: '',
+                        offerDescription: '',
+                        offerOriginalPrice: '',
+                        offerPrice: '',
+                        offerExpiresAt: '',
+                        offerCtaText: ''
+                    }];
+                }
+                
+                setHeroSlides(parsedSlides);
                 
                 setStep('edit');
             } else {
@@ -129,7 +177,8 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
         // Auto-format WhatsApp before saving using global utility
         const formattedData = {
             ...formData,
-            whatsapp: formatPhoneEcuador(formData.whatsapp)
+            whatsapp: formatPhoneEcuador(formData.whatsapp),
+            hero_slides_json: JSON.stringify(heroSlides)
         };
 
         setLoading(true);
@@ -190,6 +239,81 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
             setError('Error al subir la imagen. Intenta con una más pequeña.');
         } finally {
             setUploadingPhoto(false);
+        }
+    };
+
+    // Hero Slide CRUD Functions
+    const addHeroSlide = () => {
+        if (heroSlides.length >= 10) {
+            alert('Máximo 10 banners permitidos.');
+            return;
+        }
+        const newSlide = {
+            id: `slide_${Date.now()}`,
+            portada_desktop: '',
+            portada_movil: '',
+            title: '',
+            description: '',
+            active: true,
+            offerEnabled: false,
+            offerTitle: '',
+            offerDescription: '',
+            offerOriginalPrice: '',
+            offerPrice: '',
+            offerExpiresAt: '',
+            offerCtaText: ''
+        };
+        setHeroSlides([...heroSlides, newSlide]);
+    };
+
+    const removeHeroSlide = (slideId: string) => {
+        if (heroSlides.length <= 1) {
+            alert('Debe haber al menos 1 banner.');
+            return;
+        }
+        setHeroSlides(heroSlides.filter((s: any) => s.id !== slideId));
+    };
+
+    const updateHeroSlides = (updatedSlides: any[]) => {
+        setHeroSlides(updatedSlides);
+    };
+
+    const toggleHeroSlideActive = (slideId: string, currentlyActive: boolean) => {
+        if (currentlyActive) {
+            const activeCount = heroSlides.filter((s: any) => s.active).length;
+            if (activeCount <= 1) {
+                alert('Debe haber al menos 1 banner activo.');
+                return;
+            }
+        }
+        setHeroSlides(heroSlides.map((s: any) => s.id === slideId ? { ...s, active: !s.active } : s));
+    };
+
+    const handleHeroSlideImageUpload = async (file: File, slideId: string, field: 'portada_desktop' | 'portada_movil') => {
+        setUploadingHeroSlide(slideId);
+        try {
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', file);
+
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                body: uploadFormData
+            });
+
+            if (!uploadRes.ok) throw new Error('Error al procesar la imagen');
+            
+            const result = await uploadRes.json();
+            
+            if (result.url) {
+                setHeroSlides(heroSlides.map((s: any) => s.id === slideId ? { ...s, [field]: result.url } : s));
+            } else {
+                alert('No se recibió la URL de la imagen');
+            }
+        } catch (err: any) {
+            console.error('Error uploading hero slide image:', err);
+            alert('Error de conexión al subir imagen.');
+        } finally {
+            setUploadingHeroSlide(null);
         }
     };
 
@@ -661,6 +785,248 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* 7. BANNERS DINÁMICOS HERO */}
+                                {(userData?.plan === 'business' || userData?.plan === 'catalog') && (
+                                    <div className="col-span-full border-b pb-4 mb-4">
+                                        <h4 className="text-sm font-black text-primary uppercase mb-4 flex items-center gap-2 italic">
+                                            <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                                            7. Banners Dinámicos Hero
+                                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black normal-case ml-2">
+                                                {heroSlides.length}/10 Creados
+                                            </span>
+                                        </h4>
+                                        <p className="text-xs text-gray-400 mb-4">
+                                            Los banners aparecen en tu tarjeta digital. Puedes activar hasta 10 banners con ofertas personalizadas por banner.
+                                        </p>
+
+                                        <div className="space-y-4">
+                                            {heroSlides.length === 0 ? (
+                                                <div className="text-center py-8 text-gray-400 text-sm">
+                                                    No hay banners configurados. Haz clic en "Añadir Nuevo Banner" para comenzar.
+                                                </div>
+                                            ) : heroSlides.map((slide: any, index: number) => (
+                                                <div key={slide?.id || `slide_${index}`} className="bg-gray-50 rounded-2xl p-4 border border-gray-200 space-y-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-16 h-10 bg-gray-200 rounded-lg overflow-hidden">
+                                                                {slide?.portada_desktop ? (
+                                                                    <img src={slide.portada_desktop} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-[8px] uppercase font-black">Sin img</div>
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs font-bold text-navy">{slide.title || 'Sin título'}</p>
+                                                                <p className="text-[10px] text-gray-400">{slide.active ? 'Activo' : 'Inactivo'}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleHeroSlideActive(slide.id, slide.active)}
+                                                                className={cn(
+                                                                    "px-3 py-1 rounded-full text-[10px] font-black uppercase transition-colors",
+                                                                    slide.active ? "bg-green-100 text-green-600" : "bg-gray-200 text-gray-400"
+                                                                )}
+                                                            >
+                                                                {slide.active ? 'Activo' : 'Inactivo'}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeHeroSlide(slide.id)}
+                                                                className="w-7 h-7 rounded-full bg-red-100 text-red-500 flex items-center justify-center hover:bg-red-200 transition-colors"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Título del Banner</label>
+                                                            <input
+                                                                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none focus:border-primary transition-all"
+                                                                value={slide.title || ''}
+                                                                onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, title: e.target.value } : s))}
+                                                                placeholder="Ej. Oferta del Hero"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Descripción del Banner</label>
+                                                            <input
+                                                                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none focus:border-primary transition-all"
+                                                                value={slide.description || ''}
+                                                                onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, description: e.target.value } : s))}
+                                                                placeholder="Ej. Soluciones Premium"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Oferta Limitada por Banner - SIEMPRE VISIBLE */}
+                                                    <div className={cn(
+                                                        "rounded-xl p-4 border space-y-3 transition-all",
+                                                        slide.offerEnabled 
+                                                            ? "bg-gradient-to-br from-orange-50 to-red-50 border-orange-200" 
+                                                            : "bg-gray-50 border-gray-200"
+                                                    )}>
+                                                        <div className="flex items-center justify-between">
+                                                            <h5 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
+                                                                style={{ color: slide.offerEnabled ? '#ea580c' : '#6b7280' }}>
+                                                                <Zap size={12} className={slide.offerEnabled ? "fill-orange-400" : "fill-gray-400"} /> 
+                                                                OFERTA DE TIEMPO LIMITADO
+                                                            </h5>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerEnabled: !s.offerEnabled } : s))}
+                                                                className={cn(
+                                                                    "px-3 py-1 rounded-full text-[9px] font-black uppercase transition-colors",
+                                                                    slide.offerEnabled ? "bg-green-100 text-green-600" : "bg-gray-200 text-gray-400"
+                                                                )}
+                                                            >
+                                                                {slide.offerEnabled ? '✓ ACTIVA' : 'OFF'}
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Siempre mostrar campos pero deshabilitados si no está activa */}
+                                                        <div className={cn("grid grid-cols-2 gap-3", !slide.offerEnabled && "opacity-50 pointer-events-none")}>
+                                                            <div className="col-span-2">
+                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Texto Badge</label>
+                                                                <input
+                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none transition-all"
+                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                    value={slide.offerTitle || ''}
+                                                                    onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerTitle: e.target.value } : s))}
+                                                                    placeholder="Ej. 20% OFF"
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-2">
+                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Descripción</label>
+                                                                <input
+                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none transition-all"
+                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                    value={slide.offerDescription || ''}
+                                                                    onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerDescription: e.target.value } : s))}
+                                                                    placeholder="Ej. En todos los servicios"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Precio Original</label>
+                                                                <input
+                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-gray-400 outline-none transition-all line-through"
+                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                    value={slide.offerOriginalPrice || ''}
+                                                                    onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerOriginalPrice: e.target.value } : s))}
+                                                                    placeholder="$100"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Precio Oferta</label>
+                                                                <input
+                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-black outline-none transition-all"
+                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb', color: slide.offerEnabled ? '#ea580c' : '#9ca3af' }}
+                                                                    value={slide.offerPrice || ''}
+                                                                    onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerPrice: e.target.value } : s))}
+                                                                    placeholder="$80"
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-2">
+                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Vencimiento</label>
+                                                                <input
+                                                                    type="datetime-local"
+                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none transition-all"
+                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                    value={slide.offerExpiresAt || ''}
+                                                                    onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerExpiresAt: e.target.value } : s))}
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-2">
+                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Texto CTA</label>
+                                                                <input
+                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none transition-all"
+                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                    value={slide.offerCtaText || ''}
+                                                                    onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerCtaText: e.target.value } : s))}
+                                                                    placeholder="Aprovechar"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        {!slide.offerEnabled && (
+                                                            <p className="text-[9px] text-gray-400 text-center italic">
+                                                                Activa la oferta para habilitar estos campos
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Desktop (16:9)</label>
+                                                            <div className="w-full aspect-video bg-gray-200 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden group relative">
+                                                                {slide.portada_desktop ? (
+                                                                    <img src={slide.portada_desktop} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <span className="text-[9px] uppercase font-black text-gray-400">Sin Imagen</span>
+                                                                )}
+                                                                <label className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all cursor-pointer backdrop-blur-sm z-10">
+                                                                    <Upload size={18} className="text-white" />
+                                                                    <input 
+                                                                        type="file" 
+                                                                        className="hidden" 
+                                                                        accept="image/*" 
+                                                                        onChange={e => {
+                                                                            const file = e.target.files?.[0];
+                                                                            if (file) handleHeroSlideImageUpload(file, slide.id, 'portada_desktop');
+                                                                        }} 
+                                                                    />
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Móvil (4:5)</label>
+                                                            <div className="w-full aspect-[4/5] bg-gray-200 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden group relative">
+                                                                {slide.portada_movil ? (
+                                                                    <img src={slide.portada_movil} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <span className="text-[9px] uppercase font-black text-gray-400 text-center px-2">Sin Imagen</span>
+                                                                )}
+                                                                <label className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all cursor-pointer backdrop-blur-sm z-10">
+                                                                    <Upload size={18} className="text-white" />
+                                                                    <input 
+                                                                        type="file" 
+                                                                        className="hidden" 
+                                                                        accept="image/*" 
+                                                                        onChange={e => {
+                                                                            const file = e.target.files?.[0];
+                                                                            if (file) handleHeroSlideImageUpload(file, slide.id, 'portada_movil');
+                                                                        }} 
+                                                                    />
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {heroSlides.length < 10 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={addHeroSlide}
+                                                    className="border-2 border-dashed border-gray-300 hover:border-primary rounded-2xl text-gray-400 hover:text-primary font-black uppercase text-[10px] tracking-widest transition-all flex flex-col items-center justify-center gap-3 min-h-[200px] w-full"
+                                                >
+                                                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                                                        <Plus size={24} />
+                                                    </div>
+                                                    Añadir Nuevo Banner
+                                                </button>
+                                            )}
+                                            {uploadingHeroSlide && (
+                                                <div className="flex items-center justify-center gap-2 text-primary font-black animate-pulse text-xs uppercase">
+                                                    <Loader2 size={14} className="animate-spin" />
+                                                    Subiendo imagen...
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 

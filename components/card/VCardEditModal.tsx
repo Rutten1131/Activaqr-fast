@@ -340,7 +340,21 @@ export default function VCardEditModal({
         google_rating: '',
         google_reviews_count: '',
         template_id: 'classic',
-        hero_slides_json: [] as Array<{ id: string, portada_desktop: string, portada_movil: string, title: string, active: boolean, description?: string }>,
+        hero_slides_json: [] as Array<{ 
+            id: string, 
+            portada_desktop: string, 
+            portada_movil: string, 
+            title: string, 
+            description?: string,
+            active: boolean,
+            offerEnabled?: boolean,
+            offerTitle?: string,
+            offerDescription?: string,
+            offerOriginalPrice?: string,
+            offerPrice?: string,
+            offerExpiresAt?: string,
+            offerCtaText?: string
+        }>,
         catalogo_json: { categories: [], products: [] } as { categories: string[], products: any[] },
         json_override: {} as any
     });
@@ -438,12 +452,30 @@ export default function VCardEditModal({
                                     portada_desktop: data.data.portada_desktop || '',
                                     portada_movil: data.data.portada_movil || '',
                                     title: data.data.hero_section_title || 'Oferta del Hero',
-                                    active: true
+                                    description: '',
+                                    active: true,
+                                    offerEnabled: false,
+                                    offerTitle: '',
+                                    offerDescription: '',
+                                    offerOriginalPrice: '',
+                                    offerPrice: '',
+                                    offerExpiresAt: '',
+                                    offerCtaText: ''
                                 }];
                             }
                             return [];
                         }
-                        return raw;
+                        // Ensure all slides have offer fields
+                        return raw.map((slide: any) => ({
+                            ...slide,
+                            offerEnabled: slide.offerEnabled || false,
+                            offerTitle: slide.offerTitle || '',
+                            offerDescription: slide.offerDescription || '',
+                            offerOriginalPrice: slide.offerOriginalPrice || '',
+                            offerPrice: slide.offerPrice || '',
+                            offerExpiresAt: slide.offerExpiresAt || '',
+                            offerCtaText: slide.offerCtaText || ''
+                        }));
                     })(),
                     catalogo_json: (() => {
                         const raw = data.data.catalogo_json ? (typeof data.data.catalogo_json === 'string' ? JSON.parse(data.data.catalogo_json) : data.data.catalogo_json) : null;
@@ -643,7 +675,15 @@ export default function VCardEditModal({
             portada_desktop: formData.portada_desktop || '', // Use current single portadas as default to avoid empty initially if possible
             portada_movil: formData.portada_movil || '',
             title: 'Nuevo Banner',
-            active: true
+            description: '',
+            active: true,
+            offerEnabled: false,
+            offerTitle: '',
+            offerDescription: '',
+            offerOriginalPrice: '',
+            offerPrice: '',
+            offerExpiresAt: '',
+            offerCtaText: ''
         };
         setFormData({
             ...formData,
@@ -696,6 +736,24 @@ export default function VCardEditModal({
             ...formData,
             hero_slides_json: formData.hero_slides_json.map(slide => 
                 slide.id === id ? { ...slide, description } : slide
+            )
+        });
+    };
+
+    const updateHeroSlideOffer = (id: string, field: string, value: any) => {
+        setFormData({
+            ...formData,
+            hero_slides_json: formData.hero_slides_json.map(slide => 
+                slide.id === id ? { ...slide, [field]: value } : slide
+            )
+        });
+    };
+
+    const toggleHeroSlideOffer = (id: string, enabled: boolean) => {
+        setFormData({
+            ...formData,
+            hero_slides_json: formData.hero_slides_json.map(slide => 
+                slide.id === id ? { ...slide, offerEnabled: enabled } : slide
             )
         });
     };
@@ -1242,7 +1300,7 @@ export default function VCardEditModal({
                                                         </div>
 
                                                         <div className="space-y-6">
-                                                            {formData.hero_slides_json?.map((slide, index) => (
+                                                            {formData.hero_slides_json?.map((slide: any, index: number) => (
                                                                 <div key={slide.id} className={cn("border rounded-2xl p-4 transition-colors relative", slide.active ? "border-navy/10 bg-white shadow-sm" : "border-gray-200 bg-gray-50 opacity-80")}>
                                                                     <div className="flex justify-between items-start mb-4">
                                                                         <div className="flex items-center gap-2">
@@ -1289,6 +1347,98 @@ export default function VCardEditModal({
                                                                                 placeholder="Ej. Soluciones premium"
                                                                             />
                                                                         </div>
+                                                                    </div>
+
+                                                                    {/* OFERTA DE TIEMPO LIMITADO - SIEMPRE VISIBLE */}
+                                                                    <div className={cn(
+                                                                        "rounded-xl p-4 border space-y-3 transition-all",
+                                                                        slide.offerEnabled 
+                                                                            ? "bg-gradient-to-br from-orange-50 to-red-50 border-orange-200" 
+                                                                            : "bg-gray-50 border-gray-200"
+                                                                    )}>
+                                                                        <div className="flex items-center justify-between">
+                                                                            <h5 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
+                                                                                style={{ color: slide.offerEnabled ? '#ea580c' : '#6b7280' }}>
+                                                                                <Zap size={12} className={slide.offerEnabled ? "fill-orange-400" : "fill-gray-400"} /> 
+                                                                                OFERTA DE TIEMPO LIMITADO
+                                                                            </h5>
+                                                                            <button 
+                                                                                type="button"
+                                                                                onClick={() => toggleHeroSlideOffer(slide.id, !slide.offerEnabled)}
+                                                                                className={cn("px-3 py-1 rounded-full text-[9px] font-black uppercase transition-colors", slide.offerEnabled ? "bg-green-100 text-green-600" : "bg-gray-200 text-gray-400")}
+                                                                            >
+                                                                                {slide.offerEnabled ? '✓ ACTIVA' : 'OFF'}
+                                                                            </button>
+                                                                        </div>
+
+                                                                        {/* Siempre mostrar campos pero deshabilitados si no está activa */}
+                                                                        <div className={cn("grid grid-cols-2 gap-3", !slide.offerEnabled && "opacity-50 pointer-events-none")}>
+                                                                            <div className="col-span-2">
+                                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Texto Badge</label>
+                                                                                <input 
+                                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none transition-all"
+                                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                                    value={slide.offerTitle || ''}
+                                                                                    onChange={(e) => updateHeroSlideOffer(slide.id, 'offerTitle', e.target.value)}
+                                                                                    placeholder="Ej. 20% OFF"
+                                                                                />
+                                                                            </div>
+                                                                            <div className="col-span-2">
+                                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Descripción</label>
+                                                                                <input 
+                                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none transition-all"
+                                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                                    value={slide.offerDescription || ''}
+                                                                                    onChange={(e) => updateHeroSlideOffer(slide.id, 'offerDescription', e.target.value)}
+                                                                                    placeholder="Ej. En todos los servicios"
+                                                                                />
+                                                                            </div>
+                                                                            <div>
+                                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Precio Original</label>
+                                                                                <input 
+                                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-gray-400 outline-none transition-all line-through"
+                                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                                    value={slide.offerOriginalPrice || ''}
+                                                                                    onChange={(e) => updateHeroSlideOffer(slide.id, 'offerOriginalPrice', e.target.value)}
+                                                                                    placeholder="$100"
+                                                                                />
+                                                                            </div>
+                                                                            <div>
+                                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Precio Oferta</label>
+                                                                                <input 
+                                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-black outline-none transition-all"
+                                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb', color: slide.offerEnabled ? '#ea580c' : '#9ca3af' }}
+                                                                                    value={slide.offerPrice || ''}
+                                                                                    onChange={(e) => updateHeroSlideOffer(slide.id, 'offerPrice', e.target.value)}
+                                                                                    placeholder="$80"
+                                                                                />
+                                                                            </div>
+                                                                            <div className="col-span-2">
+                                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Vencimiento</label>
+                                                                                <input 
+                                                                                    type="datetime-local"
+                                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none transition-all"
+                                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                                    value={slide.offerExpiresAt || ''}
+                                                                                    onChange={(e) => updateHeroSlideOffer(slide.id, 'offerExpiresAt', e.target.value)}
+                                                                                />
+                                                                            </div>
+                                                                            <div className="col-span-2">
+                                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Texto CTA</label>
+                                                                                <input 
+                                                                                    className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none transition-all"
+                                                                                    style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                                    value={slide.offerCtaText || ''}
+                                                                                    onChange={(e) => updateHeroSlideOffer(slide.id, 'offerCtaText', e.target.value)}
+                                                                                    placeholder="Aprovechar"
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                        {!slide.offerEnabled && (
+                                                                            <p className="text-[9px] text-gray-400 text-center italic">
+                                                                                Activa la oferta para habilitar estos campos
+                                                                            </p>
+                                                                        )}
                                                                     </div>
 
                                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
