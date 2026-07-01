@@ -209,18 +209,27 @@ export default function HomeClient() {
                             display: 'block',
                             marginBottom: '0.5rem'
                           }}>
-                            Contacto digital con QR — identidad profesional instalable en agenda
+                            Sistemas de contacto inteligente para negocios
                           </span>
-                            Tu negocio instalado en la agenda de tu cliente, <span className="text-primary italic">hoy mismo.</span>
+                            Convierte cualquier contacto en un <span className="text-primary italic">cliente recurrente.</span>
                         </motion.h1>
     
                         <motion.p
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="text-base md:text-lg text-foreground/70 mb-10 leading-relaxed font-medium max-w-xl"
+                            className="text-base md:text-lg text-foreground/70 mb-6 leading-relaxed font-medium max-w-xl"
                         >
-                            Deja de repartir papeles que terminan en el suelo. Con ActivaQR tu negocio se instala directamente en la agenda de tus clientes.
+                            Tus clientes ya escanean códigos QR todos los días. Ahora haz que cada escaneo se convierta en una oportunidad para que vuelvan a comprarte.
+                        </motion.p>
+
+                        <motion.p
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.25 }}
+                            className="text-sm md:text-base text-primary font-black italic mb-10 leading-relaxed max-w-xl"
+                        >
+                            No vendemos códigos QR. Creamos negocios fáciles de volver a encontrar.
                         </motion.p>
     
                         <motion.div
@@ -230,10 +239,10 @@ export default function HomeClient() {
                             className="flex flex-col sm:flex-row gap-5 justify-start items-center"
                         >
                             <a
-                                href="/registro"
+                                href="#demo-video"
                                 className="w-full sm:w-auto bg-primary text-white px-10 py-6 rounded-full font-black text-xl shadow-2xl shadow-primary/30 hover:translate-y-[-4px] active:translate-y-0 transition-all flex items-center justify-center gap-3 group"
                             >
-                                Empezar ahora <ArrowRight size={24} />
+                                Ver cómo funciona <ArrowRight size={24} />
                             </a>
                             <a
                                 href="#demo-video"
