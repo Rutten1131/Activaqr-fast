@@ -240,20 +240,7 @@ export default function MenuTabs({
             )}
 
             {/* ─── CTA FINAL ─── */}
-            {ctaText && (
-                <div className="mt-20 md:mt-24 text-center border-t border-gray-100 pt-12">
-                    <p className="font-sans-body text-gray-400 text-sm tracking-widest uppercase mb-4">
-                        Precios incluyen impuestos
-                    </p>
-                    <button
-                        onClick={onCtaClick}
-                        className="text-white px-10 md:px-12 py-4 font-display-condensed text-xl md:text-2xl tracking-widest uppercase hover:bg-black transition-colors"
-                        style={{ backgroundColor: accentCSS }}
-                    >
-                        {ctaText}
-                    </button>
-                </div>
-            )}
+            {/* CTA removido para evitar duplicacion con HedkandiTemplate - el CTA ya existe en la plantilla */}
             </div>
         </section>
     );

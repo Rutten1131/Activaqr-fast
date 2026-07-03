@@ -46,6 +46,13 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
         return parsed.themePrimary || '#FF6B00';
     })();
 
+    // Offer color from active slide (falls back to themePrimary)
+    const offerColor = (() => {
+        if (!activeSlides || activeSlides.length === 0) return themePrimary;
+        const currentSlide = activeSlides[currentSlideIndex];
+        return currentSlide?.offerColor || themePrimary;
+    })();
+
     // Close lightbox on Escape key + lock body scroll
     React.useEffect(() => {
         if (!lightboxImg) {
@@ -312,7 +319,7 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
                 </div>
 
                 {/* Limited Time Offer Badge */}
-                <LimitedTimeOffer offer={heroOffer} themePrimary={themePrimary} />
+                <LimitedTimeOffer offer={heroOffer} themePrimary={offerColor} />
             </section>
 
             {/* 2. SERVICES SECTION (Orange Blocks) */}

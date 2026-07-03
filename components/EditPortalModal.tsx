@@ -950,6 +950,27 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
                                                                     placeholder="Aprovechar"
                                                                 />
                                                             </div>
+                                                            <div className="col-span-2">
+                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Color del Modal</label>
+                                                                <div className="flex items-center gap-2">
+                                                                    <input
+                                                                        type="color"
+                                                                        className="w-10 h-10 rounded-xl border-2 cursor-pointer overflow-hidden"
+                                                                        style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                        value={slide.offerColor || '#FF5C00'}
+                                                                        onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerColor: e.target.value } : s))}
+                                                                    />
+                                                                    <input
+                                                                        type="text"
+                                                                        className="flex-1 bg-white border rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none"
+                                                                        style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                        value={slide.offerColor || ''}
+                                                                        onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerColor: e.target.value } : s))}
+                                                                        placeholder="#FF5C00"
+                                                                    />
+                                                                    <span className="text-[9px] text-gray-400 italic">Nombre o hex</span>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                         {!slide.offerEnabled && (
                                                             <p className="text-[9px] text-gray-400 text-center italic">

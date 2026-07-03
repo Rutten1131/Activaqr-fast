@@ -129,6 +129,13 @@ export default function ClassicTemplate({
         return undefined;
     })();
 
+    // Offer color from active slide (falls back to themePrimary)
+    const offerColor = (() => {
+        if (!activeSlides || activeSlides.length === 0) return themePrimary;
+        const currentSlide = activeSlides[currentSlideIndex];
+        return currentSlide?.offerColor || themePrimary;
+    })();
+
     const socialLinks = [
         {
             id: 'whatsapp',
@@ -475,7 +482,7 @@ export default function ClassicTemplate({
                     </motion.div>
 
                     {/* Limited Time Offer - Solo visible en Hero */}
-                    <LimitedTimeOffer offer={heroOffer} themePrimary={themePrimary} />
+                    <LimitedTimeOffer offer={heroOffer} themePrimary={offerColor} />
                 </section>
             )}
 

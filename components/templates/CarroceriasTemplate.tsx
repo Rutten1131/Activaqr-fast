@@ -119,6 +119,8 @@ interface HeroSectionProps {
         ctaText?: string;
     };
     themePrimary?: string;
+    /** Color para el modal de oferta (falls back to themePrimary) */
+    offerColor?: string;
 }
 
 function HeroSection(props: HeroSectionProps) {
@@ -222,7 +224,7 @@ function HeroSection(props: HeroSectionProps) {
             </div>
 
             {/* Limited Time Offer Badge */}
-            <LimitedTimeOffer offer={heroOffer} themePrimary={themePrimary} />
+            <LimitedTimeOffer offer={heroOffer} themePrimary={props.offerColor || themePrimary} />
         </section>
     );
 }

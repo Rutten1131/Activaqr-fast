@@ -95,6 +95,13 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
 
     // Theme primary color
     const themePrimary = props.themePrimary || '#FF5C00';
+
+    // Offer color from active slide (falls back to themePrimary)
+    const offerColor = (() => {
+        if (!props.activeSlides || props.activeSlides.length === 0) return themePrimary;
+        const currentSlide = props.activeSlides[props.currentSlideIndex || 0];
+        return currentSlide?.offerColor || themePrimary;
+    })();
  
     return (
         <div 
@@ -210,7 +217,7 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                 </div>
 
                 {/* Limited Time Offer Badge */}
-                <LimitedTimeOffer offer={heroOffer} themePrimary={themePrimary} />
+                <LimitedTimeOffer offer={heroOffer} themePrimary={offerColor} />
             </section>
 
             {/* 2. THE EXPERIENCE SLIDER — Carrusel de banners contenidos y redondeados */}
@@ -788,7 +795,7 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                 <div className="animate-hedkandi-marquee whitespace-nowrap mb-12">
                     {[...Array(10)].map((_, i) => (
                         <span key={i} className="font-display-condensed text-[10rem] md:text-[15rem] leading-none text-black mx-8 uppercase italic opacity-10">
-                            {props.data?.nombre_negocio || "HEDKANDI"}
+                            {props.marqueeText || props.data?.nombre_negocio || "HEDKANDI"}
                         </span>
                     ))}
                 </div>

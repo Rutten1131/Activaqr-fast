@@ -22,6 +22,8 @@ export interface HeroSlide {
     offerPrice?: string;
     offerExpiresAt?: string;
     offerCtaText?: string;
+    /** Color personalizado para el modal/badge de oferta (por defecto usa themePrimary del template) */
+    offerColor?: string;
 }
 
 // Props base que TODOS los templates comparten
@@ -118,4 +120,7 @@ export interface HedkandiTemplateProps extends MinimalTemplateProps {
     experienceSubtitle?: string;
     /** Si es true, oculta completamente la grilla de experiencia */
     hideExperience?: boolean;
+
+    /** Texto de fondo en el marquee (default: nombre_negocio o "HEDKANDI") */
+    marqueeText?: string;
 }

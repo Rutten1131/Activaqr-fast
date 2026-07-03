@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Download, Key, AlertCircle, CheckCircle, Loader2, Edit, Image as ImageIcon, Zap, Phone, User, ChevronDown, Store, Plus, Trash2, Activity, Video, Camera, Upload } from 'lucide-react';
+import { X, Save, Download, Key, AlertCircle, CheckCircle, Loader2, Edit, Image as ImageIcon, Zap, Phone, User, ChevronDown, Store, Plus, Trash2, Activity, Video, Camera, Upload, Info, Sparkles } from 'lucide-react';
 import { formatPhoneEcuador, cn } from '@/lib/utils';
 
 interface VCardEditModalProps {
@@ -49,7 +49,7 @@ export default function VCardEditModal({
     const [uploadingImage, setUploadingImage] = useState(false);
     const [userData, setUserData] = useState<any>(null);
     const [usesRemaining, setUsesRemaining] = useState(0);
-    const [activeSection, setActiveSection] = useState<'perfil' | 'contacto' | 'hero' | 'portada' | 'categorias' | 'catalogo' | 'autoridad' | 'industrial' | 'carta' | 'video-redes' | 'code' | 'success' | null>(initialSection);
+    const [activeSection, setActiveSection] = useState<'perfil' | 'contacto' | 'hero' | 'portada' | 'categorias' | 'catalogo' | 'autoridad' | 'industrial' | 'carta' | 'video-redes' | 'code' | 'success' | 'hedkandi' | null>(initialSection);
     const [isStructuring, setIsStructuring] = useState(false);
     const [productCategoryFilter, setProductCategoryFilter] = useState<string>('Todas');
     const productCategoryFilterRef = useRef('Todas');
@@ -1170,6 +1170,27 @@ export default function VCardEditModal({
         });
     };
 
+    // --- Hedkandi Template Config ---
+    const marqueeText = (() => {
+        const raw = formData.json_override;
+        const parsed = typeof raw === 'string' ? safeParse(raw, {}) : (raw || {});
+        return parsed.marqueeText || formData.nombre_negocio || '';
+    })();
+
+    const updateMarqueeText = (text: string) => {
+        setFormData(prev => {
+            const raw = prev.json_override;
+            const parsed = typeof raw === 'string' ? safeParse(raw, {}) : (raw || {});
+            return {
+                ...prev,
+                json_override: {
+                    ...parsed,
+                    marqueeText: text
+                }
+            };
+        });
+    };
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -1432,6 +1453,27 @@ export default function VCardEditModal({
                                                                                     onChange={(e) => updateHeroSlideOffer(slide.id, 'offerCtaText', e.target.value)}
                                                                                     placeholder="Aprovechar"
                                                                                 />
+                                                                            </div>
+                                                                            <div className="col-span-2">
+                                                                                <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Color del Modal</label>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <input 
+                                                                                        type="color"
+                                                                                        className="w-10 h-10 rounded-xl border-2 cursor-pointer overflow-hidden"
+                                                                                        style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                                        value={slide.offerColor || '#FF5C00'}
+                                                                                        onChange={(e) => updateHeroSlideOffer(slide.id, 'offerColor', e.target.value)}
+                                                                                    />
+                                                                                    <input 
+                                                                                        type="text"
+                                                                                        className="flex-1 bg-white border rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none"
+                                                                                        style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
+                                                                                        value={slide.offerColor || ''}
+                                                                                        onChange={(e) => updateHeroSlideOffer(slide.id, 'offerColor', e.target.value)}
+                                                                                        placeholder="#FF5C00"
+                                                                                    />
+                                                                                    <span className="text-[9px] text-gray-400 italic">Nombre o hex</span>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                         {!slide.offerEnabled && (
@@ -2070,6 +2112,59 @@ export default function VCardEditModal({
                                                                         </div>
                                                                     ))}
                                                                 </div>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    )}
+
+                                    {/* SECCIÓN 2.8: MÓDULO HEDKANDI (Texto del Marquee) */}
+                                    {(formData.template_id === 'hedkandi' || formData.template_id === 'showcase') && (
+                                        <div className="border-2 border-pink-500/20 rounded-2xl overflow-hidden shadow-sm">
+                                            <button 
+                                                onClick={() => setActiveSection(activeSection === 'hedkandi' ? null : 'hedkandi')} 
+                                                className="w-full flex items-center justify-between p-4 bg-pink-500/5 hover:bg-pink-500/10 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-pink-500 flex items-center justify-center text-white">
+                                                        <Sparkles size={18} />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <span className="font-black text-navy uppercase text-sm tracking-tighter block">Módulo Hedkandi / Showcase</span>
+                                                        <span className="text-[10px] font-bold text-pink-500 uppercase tracking-widest">Personaliza el texto del marquee</span>
+                                                    </div>
+                                                </div>
+                                                <ChevronDown size={20} className={cn("text-navy/30 transition-transform", activeSection === 'hedkandi' && "rotate-180")} />
+                                            </button>
+                                            <AnimatePresence>
+                                                {activeSection === 'hedkandi' && (
+                                                    <motion.div 
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: "auto", opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        className="overflow-hidden bg-white border-t border-pink-500/10"
+                                                    >
+                                                        <div className="p-6 space-y-4">
+                                                            <div className="bg-pink-50 border border-pink-100 rounded-xl p-4">
+                                                                <div className="flex gap-3 text-pink-800">
+                                                                    <Info size={18} className="shrink-0 mt-0.5" />
+                                                                    <div className="text-xs">
+                                                                        <p className="font-bold">Texto de Fondo en Marquee</p>
+                                                                        <p className="opacity-80 mt-1">Este texto aparece repetido como fondo animado en la sección de CTA. Por defecto usa el nombre del negocio.</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Texto del Marquee</label>
+                                                                <input 
+                                                                    className="w-full border rounded-xl p-3 text-gray-900 text-sm font-bold bg-gray-50 focus:ring-2 focus:ring-pink-500/20 outline-none transition-all"
+                                                                    value={marqueeText}
+                                                                    onChange={(e) => updateMarqueeText(e.target.value)}
+                                                                    placeholder={formData.nombre_negocio || "Nombre de tu negocio"}
+                                                                />
+                                                                <p className="text-[10px] text-gray-400 italic mt-1">Deja vacío para usar el nombre del negocio por defecto</p>
                                                             </div>
                                                         </div>
                                                     </motion.div>

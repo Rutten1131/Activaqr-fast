@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Trash2, Download, Save, RefreshCw, QrCode, ExternalLink, Clock, X as CloseIcon, Video, Store, Library, Plus, Edit, Zap, ChevronDown, Star, Info, LogOut, CheckCircle, FileText, Loader2, ShieldCheck, User, Image as ImageIcon, AlertCircle, Copy, Layers } from 'lucide-react';
+import { Upload, Trash2, Download, Save, RefreshCw, QrCode, ExternalLink, Clock, X as CloseIcon, Video, Store, Library, Plus, Edit, Zap, ChevronDown, Star, Info, LogOut, CheckCircle, FileText, Loader2, ShieldCheck, User, Image as ImageIcon, AlertCircle, Copy, Layers, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/lib/upload';
 
@@ -470,6 +470,27 @@ export default function VCardEditModal({
         } catch (err) {
             alert('Error al subir el archivo.');
         }
+    };
+
+    // --- Hedkandi Template Config: Marquee Text ---
+    const marqueeText = (() => {
+        let parsed: any = {};
+        try {
+            const raw = editingRegistro?.json_override;
+            parsed = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
+        } catch (e) {}
+        return parsed.marqueeText || editingRegistro?.nombre_negocio || '';
+    })();
+
+    const updateMarqueeText = (text: string) => {
+        let parsed: any = {};
+        try {
+            const raw = editingRegistro.json_override;
+            parsed = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
+        } catch (e) {}
+
+        parsed.marqueeText = text;
+        setEditingRegistro({ ...editingRegistro, json_override: parsed });
     };
 
     // Preparar sugerencias/atajos rápidos para este perfil
@@ -1430,6 +1451,25 @@ export default function VCardEditModal({
                                                                         placeholder="Aprovechar"
                                                                     />
                                                                 </div>
+                                                                <div className="col-span-2">
+                                                                    <label className="text-[8px] font-black uppercase tracking-widest text-orange-400/60 block mb-1">Color del Modal</label>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <input
+                                                                            type="color"
+                                                                            className="w-12 h-12 rounded-xl border-2 border-orange-500/30 cursor-pointer overflow-hidden"
+                                                                            value={slide.offerColor || '#FF5C00'}
+                                                                            onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerColor: e.target.value } : s))}
+                                                                        />
+                                                                        <input
+                                                                            type="text"
+                                                                            className="flex-1 bg-[#050B1C] border border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none"
+                                                                            value={slide.offerColor || ''}
+                                                                            onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerColor: e.target.value } : s))}
+                                                                            placeholder="#FF5C00"
+                                                                        />
+                                                                        <span className="text-[9px] text-white/30 italic">Nombre o hex</span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
@@ -1909,6 +1949,45 @@ export default function VCardEditModal({
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* MÓDULO HEDKANDI / SHOWCASE - Texto del Marquee */}
+                                    {(editingRegistro.template_id === 'hedkandi' || editingRegistro.template_id === 'showcase') && (
+                                        <div className="mt-8 pt-8 border-t border-primary/10">
+                                            <div className="bg-pink-500/5 p-6 rounded-[2rem] border border-pink-500/20 space-y-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-pink-500 flex items-center justify-center text-white">
+                                                        <Sparkles size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xs font-black uppercase tracking-[0.2em] text-pink-400">Módulo Hedkandi / Showcase</h4>
+                                                        <p className="text-[10px] text-white/40 mt-0.5">Personaliza el texto del marquee de fondo</p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="space-y-4">
+                                                    <div className="bg-pink-500/10 border border-pink-500/20 rounded-xl p-4">
+                                                        <div className="flex gap-3 text-pink-300">
+                                                            <Info size={16} className="shrink-0 mt-0.5" />
+                                                            <div className="text-xs">
+                                                                <p className="font-bold">Texto de Fondo en Marquee</p>
+                                                                <p className="opacity-70 mt-1">Este texto aparece repetido como fondo animado en la sección de CTA. Por defecto usa el nombre del negocio.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-pink-400/60 uppercase tracking-widest ml-1">Texto del Marquee</label>
+                                                        <input
+                                                            className="w-full bg-[#050B1C] border border-pink-500/20 rounded-2xl px-6 py-4 font-bold text-white outline-none focus:border-pink-500/40 transition-all text-xs"
+                                                            value={marqueeText}
+                                                            onChange={e => updateMarqueeText(e.target.value)}
+                                                            placeholder={editingRegistro.nombre_negocio || "Nombre de tu negocio"}
+                                                        />
+                                                        <p className="text-[9px] text-pink-400/40 ml-1">Deja vacío para usar el nombre del negocio por defecto</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })()}
