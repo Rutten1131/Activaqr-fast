@@ -379,8 +379,12 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                                                             whileHover={{ scale: 1.05 }}
                                                             whileTap={{ scale: 0.95 }}
                                                             onClick={() => {
+                                                                // Usar el enlace configurado en el editor, o caer al título de la tarjeta
+                                                                const overrides = safeParse(props.data?.json_override, {} as any);
+                                                                const catalogLinks = overrides.experienceCatalogLinks || {};
+                                                                const targetCat = catalogLinks[idx] || col.title;
                                                                 const url = new URL(window.location.href);
-                                                                url.searchParams.set('cat', col.title.toLowerCase());
+                                                                url.searchParams.set('cat', targetCat.toLowerCase());
                                                                 window.history.pushState({}, '', url.toString());
                                                                 document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                                             }}

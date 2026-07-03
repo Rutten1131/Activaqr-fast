@@ -1190,6 +1190,9 @@ export default function AdminDashboard() {
 
     const openCatalogManager = async (registro: any) => {
         setIsSaving(true);
+        // Limpiar estados anteriores ANTES de cargar nuevos datos
+        setCatalogItems([]);
+        setCatalogRegistro(null);
         try {
             const adminKey = localStorage.getItem('admin_access_key') || '';
             const res = await fetch(`/api/admin/registros/single?id=${registro.id}`, { headers: { 'x-admin-key': adminKey } });
@@ -2998,7 +3001,11 @@ export default function AdminDashboard() {
                                     </p>
                                 </div>
                                 <button 
-                                    onClick={() => setIsCatalogManagerOpen(false)}
+                                    onClick={() => {
+                                        setIsCatalogManagerOpen(false);
+                                        setCatalogItems([]);
+                                        setCatalogRegistro(null);
+                                    }}
                                     className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-all text-white/40 hover:text-white border border-white/10 shadow-xl backdrop-blur-md"
                                 >
                                     <X size={24} />
@@ -3255,27 +3262,28 @@ export default function AdminDashboard() {
                                             const descripcion = item.descripcion || item.description || '';
                                             const precio = item.precio || item.price || '';
                                             return (
-                                            <div key={item.id || index} className="bg-white/5 border border-white/10 rounded-3xl p-6 flex gap-6 group hover:bg-white/[0.08] transition-all relative">
-                                                <div className="w-20 h-20 bg-white/5 rounded-2xl overflow-hidden flex-shrink-0 border border-white/5">
+                                            <div key={item.id || index} className="bg-white/5 border border-white/10 rounded-3xl p-4 md:p-6 flex gap-4 md:gap-6 group hover:bg-white/[0.08] transition-all relative">
+                                                <div className="w-16 h-16 md:w-20 md:h-20 bg-white/5 rounded-2xl overflow-hidden flex-shrink-0 border border-white/5">
                                                     {imgSrc ? (
                                                         <img src={imgSrc} className="w-full h-full object-cover" />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center text-white/10 text-[18px] font-black">?</div>
                                                     )}
                                                 </div>
-                                                <div className="flex-1">
-                                                    <div className="flex justify-between items-start mb-1">
-                                                        <h5 className="font-bold text-white text-sm line-clamp-1">{titulo}</h5>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <h5 className="font-bold text-white text-sm line-clamp-1 flex-1">{titulo}</h5>
                                                         <button 
                                                             onClick={() => handleDeleteCatalogItem(index)}
-                                                            className="text-white/20 hover:text-red-500 transition-colors p-1"
+                                                            className="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 hover:border-red-500 transition-all rounded-xl p-2 md:p-1 flex-shrink-0"
+                                                            title="Eliminar producto"
                                                         >
-                                                            <Trash2 size={14} />
+                                                            <Trash2 size={16} />
                                                         </button>
                                                     </div>
-                                                    <p className="text-[10px] font-black text-primary uppercase mb-2 tracking-tighter">{categoria}</p>
-                                                    <p className="text-[10px] text-white/40 line-clamp-2 leading-relaxed">{descripcion}</p>
-                                                    {precio && <p className="text-xs font-black text-white mt-2">${precio}</p>}
+                                                    <p className="text-[10px] font-black text-primary uppercase mb-1 md:mb-2 tracking-tighter">{categoria}</p>
+                                                    <p className="text-[10px] text-white/40 line-clamp-2 leading-relaxed hidden md:block">{descripcion}</p>
+                                                    {precio && <p className="text-xs font-black text-white mt-1 md:mt-2">${precio}</p>}
                                                 </div>
                                             </div>
                                             );

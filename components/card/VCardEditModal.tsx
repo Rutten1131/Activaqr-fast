@@ -359,26 +359,9 @@ export default function VCardEditModal({
         json_override: {} as any
     });
 
-    // 🔄 Sincronizar NUEVAS líneas de productos_servicios → catálogo (solo cuando se agregan/eliminan líneas completas)
-    useEffect(() => {
-        const raw = formData?.productos_servicios || '';
-        const rawLines = raw.split('\n').map((l: string) => l.trim()).filter(Boolean);
-        if (rawLines.length === 0) return;
-
-        let catalogo = formData.catalogo_json;
-        if (!catalogo || typeof catalogo !== 'object') catalogo = { categories: [], products: [] };
-        if (!catalogo.categories) catalogo.categories = [];
-
-        // Limpiar 'Nueva Categoría' del array existente
-        const cleanCategories = catalogo.categories.filter((c: string) => c !== 'Nueva Categoría');
-
-        // Solo agregar líneas NUEVAS que no existan ya como categorías
-        const newCats = rawLines.filter((line: string) => !cleanCategories.includes(line));
-        if (newCats.length > 0 || cleanCategories.length !== catalogo.categories.length) {
-            catalogo.categories = [...cleanCategories, ...newCats];
-            setFormData({ ...formData, catalogo_json: catalogo });
-        }
-    }, [formData?.productos_servicios]);
+    // ℹ️ NOTA: El antiguo useEffect que sincronizaba productos_servicios → catalogo_json.categories
+    // fue eliminado porque causaba contaminación de categorías al abrir el editor.
+    // Las categorías del catálogo se construyen correctamente desde la BD en validateCode().
 
     const validateCode = async () => {
         const cleanedCode = editCode.trim().replace(/\s/g, '');
@@ -502,6 +485,9 @@ export default function VCardEditModal({
                             } else if (p.image || p.imagen || p.foto || p.url) {
                                 images = [p.image || p.imagen || p.foto || p.url].filter(Boolean);
                             }
+                            // Si el producto tiene categoría inválida, asignar string vacío (no 'Sin Categoría')
+                            const rawCat = p.category || p.categoria || '';
+                            const normalizedCat = (rawCat === 'Nueva Categoría' || rawCat === 'Sin Categoría' || rawCat === 'Todas') ? '' : rawCat;
                             return {
                                 id: p.id || `prod_${Math.random().toString(36).substr(2, 9)}`,
                                 name: p.name || p.nombre || p.titulo || '',
@@ -510,17 +496,23 @@ export default function VCardEditModal({
                                 image: images[0] || '',
                                 images: images,
                                 video: p.video || p.video_url || '',
-                                category: (p.category || p.categoria || 'Sin Categoría') === 'Nueva Categoría' ? 'Sin Categoría' : (p.category || p.categoria || 'Sin Categoría')
+                                category: normalizedCat
                             };
                         });
 
-                        // If categories empty, infer from products
+                        // Limpiar categorías inválidas: 'Nueva Categoría', 'Sin Categoría', 'Todas', ''
+                        const invalidCats = ['Nueva Categoría', 'Sin Categoría', 'Todas', ''];
+                        
+                        // Si categories está vacío, inferir desde productos válidos
                         if (categories.length === 0) {
-                            categories = Array.from(new Set(products.map((p: any) => p.category)));
+                            categories = Array.from(new Set(products.map((p: any) => p.category).filter((c: string) => c && !invalidCats.includes(c))));
+                        } else {
+                            // Limpiar categorías guardadas de valores inválidos
+                            categories = categories.filter((c: string) => c && !invalidCats.includes(c));
+                            // Añadir categorías que vengan de productos pero no estén en la lista
+                            const productCats = products.map((p: any) => p.category).filter((c: string) => c && !invalidCats.includes(c));
+                            categories = [...new Set([...categories, ...productCats])];
                         }
-
-                        // Limpiar 'Nueva Categoría' de la carga inicial
-                        categories = categories.filter((c: string) => c !== 'Nueva Categoría');
 
                         return { categories, products };
                     })(),
@@ -970,6 +962,27 @@ export default function VCardEditModal({
                     ...parsed,
                     experienceTitles: nextTitles
                 } 
+            };
+        });
+    };
+
+    // Actualiza el enlace de catálogo para una categoría de Características por índice
+    const updateCatalogLink = (index: number, catalogCategory: string) => {
+        setFormData(prev => {
+            const raw = prev.json_override;
+            const parsed = typeof raw === 'string' ? safeParse(raw, {}) : (raw || {});
+            const currentLinks = parsed.experienceCatalogLinks || {};
+            if (catalogCategory) {
+                currentLinks[index] = catalogCategory;
+            } else {
+                delete currentLinks[index];
+            }
+            return {
+                ...prev,
+                json_override: {
+                    ...parsed,
+                    experienceCatalogLinks: { ...currentLinks }
+                }
             };
         });
     };
@@ -1635,7 +1648,28 @@ export default function VCardEditModal({
                                                                                     placeholder={cat.originalTitle}
                                                                                 />
                                                                             </div>
-
+                                                                            {/* Enlace a categoría del catálogo */}
+                                                                            {formData.catalogo_json?.categories?.length > 0 && (
+                                                                                <div className="space-y-1">
+                                                                                    <p className="text-[10px] font-black text-primary/70 uppercase tracking-tighter flex items-center gap-1">
+                                                                                        <Store size={10} /> "Ver catálogo" → enlazar a:
+                                                                                    </p>
+                                                                                    <select
+                                                                                        className="w-full bg-primary/5 border border-primary/20 rounded-lg px-2 py-1.5 text-xs font-bold text-navy outline-none focus:border-primary transition-colors cursor-pointer"
+                                                                                        value={(() => {
+                                                                                            const raw = formData.json_override;
+                                                                                            const parsed = typeof raw === 'string' ? safeParse(raw, {}) : (raw || {});
+                                                                                            return (parsed.experienceCatalogLinks || {})[idx] || '';
+                                                                                        })()}
+                                                                                        onChange={(e) => updateCatalogLink(idx, e.target.value)}
+                                                                                    >
+                                                                                        <option value="">— Categoría automática (por nombre) —</option>
+                                                                                        {formData.catalogo_json.categories.map((catName: string) => (
+                                                                                            <option key={catName} value={catName}>{catName}</option>
+                                                                                        ))}
+                                                                                    </select>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                         <button
                                                                             type="button"
@@ -2223,7 +2257,7 @@ export default function VCardEditModal({
                                                                 </button>
                                                             </div>
                                                             <div className="flex flex-wrap gap-2">
-                                                                {formData.catalogo_json.categories.filter((c: string) => c !== 'Nueva Categoría').map((cat, idx) => (
+                                                                {formData.catalogo_json.categories.filter((c: string) => c && !['Nueva Categoría', 'Sin Categoría', 'Todas', '', 'General'].includes(c)).map((cat, idx) => (
                                                                     <div key={idx} className="bg-[#FF5C00]/10 border border-[#FF5C00]/20 px-3 py-1.5 rounded-full flex items-center gap-2">
                                                                         <span className="text-[11px] font-black text-[#FF5C00]">{cat}</span>
                                                                         <button onClick={() => {
@@ -2248,7 +2282,7 @@ export default function VCardEditModal({
                                                                         }} className="text-[#FF5C00]/50 hover:text-red-500 transition-colors"><X size={13} /></button>
                                                                     </div>
                                                                 ))}
-                                                                {formData.catalogo_json.categories.filter((c: string) => c !== 'Nueva Categoría').length === 0 && (
+                                                                {formData.catalogo_json.categories.filter((c: string) => c && !['Nueva Categoría', 'Sin Categoría', 'Todas', '', 'General'].includes(c)).length === 0 && (
                                                                     <span className="text-[10px] text-gray-400 italic">Crea categorías para agrupar tus productos 😊</span>
                                                                 )}
                                                             </div>
@@ -2262,16 +2296,19 @@ export default function VCardEditModal({
                                                                 className="flex-1 bg-gray-100 border border-gray-200 rounded-xl text-[11px] font-black uppercase py-2.5 px-3 outline-none text-navy"
                                                             >
                                                                 <option value="Todas">🎯 Todas</option>
-                                                                {formData.catalogo_json.categories.filter((c: string) => c !== 'Nueva Categoría').map(c => (
+                                                                {formData.catalogo_json.categories.filter((c: string) => c && !['Nueva Categoría', 'Sin Categoría', 'Todas', '', 'General'].includes(c)).map(c => (
                                                                     <option key={c} value={c}>📦 {c}</option>
                                                                 ))}
                                                             </select>
                                                             <button
                                                                 onClick={() => {
                                                                     const cf = productCategoryFilterRef.current;
-                                                                    const cats = formData.catalogo_json.categories.filter((c: string) => c !== 'Nueva Categoría');
+                                                                    const invalidCats = ['Nueva Categoría', 'Sin Categoría', 'Todas', '', 'General'];
+                                                                    const cats = formData.catalogo_json.categories.filter((c: string) => c && !invalidCats.includes(c));
                                                                     const norm = (s: string) => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                                                                    let cat = cf !== 'Todas' ? (cats.find(c => norm(c) === norm(cf)) || cf) : (cats[0] || 'General');
+                                                                    let cat = cf !== 'Todas' ? (cats.find(c => norm(c) === norm(cf)) || cf) : (cats[0] || '');
+                                                                    // Si cat es inválido, usar empty string
+                                                                    if (!cat || invalidCats.includes(cat)) cat = '';
                                                                     setFormData({
                                                                         ...formData,
                                                                         catalogo_json: {
@@ -2366,8 +2403,8 @@ export default function VCardEditModal({
                                                                             <div className="flex items-center gap-2">
                                                                                 <span className="text-gray-400 text-[11px] font-bold">$</span>
                                                                                 <input className="flex-1 bg-transparent border-0 border-b-2 border-gray-100 focus:border-[#FF5C00] pb-1 text-sm font-black text-navy outline-none placeholder:text-gray-300 transition-colors" value={prod.price} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, price: e.target.value } : p) } })} placeholder="Precio" type="number" step="0.01" min="0" />
-                                                                                <select className="bg-gray-100 border-0 rounded-lg px-2 py-1.5 text-[9px] font-black uppercase text-navy outline-none" value={prod.category || 'Sin Categoría'} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, category: e.target.value } : p) } })}>
-                                                                                    {formData.catalogo_json.categories.filter(c => c !== 'Nueva Categoría').map(c => (
+                                                                                <select className="bg-gray-100 border-0 rounded-lg px-2 py-1.5 text-[9px] font-black uppercase text-navy outline-none" value={prod.category || ''} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, category: e.target.value } : p) } })}>
+                                                                                    {formData.catalogo_json.categories.filter(c => c && !['Nueva Categoría', 'Sin Categoría', 'Todas', '', 'General'].includes(c)).map(c => (
                                                                                         <option key={c} value={c}>{c}</option>
                                                                                     ))}
                                                                                 </select>

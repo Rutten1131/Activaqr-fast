@@ -747,8 +747,13 @@ export default function ClassicTemplate({
                                                                                     {data.plan === 'catalog' && (
                                                                                     <button
                                                                                         onClick={() => {
+                                                                                            // Usar el enlace configurado en el editor, o caer al displayText de la tarjeta
+                                                                                            const overridesRaw = data?.json_override;
+                                                                                            const overridesParsed = overridesRaw ? (typeof overridesRaw === 'string' ? JSON.parse(overridesRaw) : overridesRaw) : {};
+                                                                                            const catalogLinks = overridesParsed.experienceCatalogLinks || {};
+                                                                                            const targetCat = catalogLinks[index] || displayText;
                                                                                             const url = new URL(window.location.href);
-                                                                                            url.searchParams.set('cat', displayText.toLowerCase());
+                                                                                            url.searchParams.set('cat', targetCat.toLowerCase());
                                                                                             window.history.pushState({}, '', url.toString());
                                                                                             document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                                                                         }}

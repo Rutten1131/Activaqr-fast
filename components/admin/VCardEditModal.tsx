@@ -553,26 +553,36 @@ export default function VCardEditModal({
         
         if (Array.isArray(parsed)) {
             const products = parsed.map((p: any) => {
-                const cat = p.categoria || p.category || 'Todas';
-                const normalizedCat = cat === 'Sin Categoría' ? 'Todas' : cat;
+                // Usar string vacío para productos sin categoría válida
+                const rawCat = p.categoria || p.category || '';
+                const invalidCats = ['Nueva Categoría', 'Sin Categoría', 'Todas', ''];
+                const normalizedCat = invalidCats.includes(rawCat) ? '' : rawCat;
                 return normalizeProduct({ ...p, categoria: normalizedCat, category: normalizedCat });
             });
+            // Filtrar categorías inválidas
+            const invalidCats = ['Nueva Categoría', 'Sin Categoría', 'Todas', ''];
+            const validCategories = Array.from(new Set(products.map((p: any) => p.categoria).filter((c: string) => c && !invalidCats.includes(c))));
             return {
-                categories: Array.from(new Set(products.map((p: any) => p.categoria))) as string[],
+                categories: validCategories,
                 products: products
             };
         }
         
         if (typeof parsed === 'object' && parsed !== null) {
             const rawCats = (parsed.categories || []) as string[];
-            const normalizedCats = Array.from(new Set(rawCats.map(c => c === 'Sin Categoría' ? 'Todas' : c))).filter(c => c !== 'Nueva Categoría');
+            // Filtrar categorías inválidas
+            const invalidCats = ['Nueva Categoría', 'Sin Categoría', 'Todas', ''];
+            const normalizedCats = rawCats.filter(c => c && !invalidCats.includes(c));
             const products = (parsed.products || []).map((p: any) => {
-                const cat = p.categoria || p.category || (normalizedCats[0] || 'Todas');
-                const normalizedCat = cat === 'Sin Categoría' ? 'Todas' : cat;
+                const rawCat = p.categoria || p.category || '';
+                const normalizedCat = invalidCats.includes(rawCat) ? '' : rawCat;
                 return normalizeProduct({ ...p, categoria: normalizedCat, category: normalizedCat });
             });
+            // Añadir categorías de productos que no estén en la lista
+            const productCats = products.map((p: any) => p.categoria).filter((c: string) => c && !invalidCats.includes(c));
+            const allValidCats = [...new Set([...normalizedCats, ...productCats])];
             return {
-                categories: normalizedCats,
+                categories: allValidCats,
                 products: products
             };
         }
