@@ -13,6 +13,8 @@ export interface CatalogItem {
     name?: string;
     titulo?: string;
     image?: string;
+    images?: string[];  // Support both English and Spanish
+    imagenes?: string[]; // Spanish variant
     url?: string;
     description?: string;
     descripcion?: string;
@@ -130,12 +132,14 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
 
     // Obtener arrays normalizados de imágenes y videos
     const getImages = (item: CatalogItem): string[] => {
-        const imgs = (item as any).imagenes;
+        // Buscar tanto 'imagenes' (español) como 'images' (inglés)
+        const imgs = (item as any).imagenes || (item as any).images;
         if (Array.isArray(imgs) && imgs.length > 0) return imgs;
         const single = item.image || item.url || item.foto || item.imagen;
         return single ? [single] : [];
     };
     const getVideos = (item: CatalogItem): string[] => {
+        // Buscar tanto 'videos' como 'video' (que puede ser array o string individual)
         const vids = (item as any).videos;
         if (Array.isArray(vids) && vids.length > 0) return vids;
         const single = item.video || item.video_url;
@@ -278,51 +282,43 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
 
                                 return (
                                     <>
-                                        <AnimatePresence mode="wait">
-                                            <motion.div
-                                                key={`${mediaIndex}-${current.type}`}
-                                                initial={{ opacity: 0, x: 30 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, x: -30 }}
-                                                className="w-full h-full flex items-center justify-center p-3 md:p-6"
-                                            >
-                                                {current.type === 'video' ? (
-                                                    (() => {
-                                                        const embedUrl = getVideoEmbedUrl(current.url);
-                                                        if (embedUrl) {
-                                                            const isVertical = checkIsVerticalVideo(current.url);
-                                                            return (
-                                                                <iframe 
-                                                                    src={embedUrl}
-                                                                    className={cn(
-                                                                        "rounded-xl md:rounded-2xl shadow-2xl mx-auto w-full h-full",
-                                                                        isVertical 
-                                                                            ? "max-h-[35vh] md:max-h-[60vh] aspect-[9/16]" 
-                                                                            : "aspect-video"
-                                                                    )}
-                                                                    allowFullScreen
-                                                                    allow="autoplay; encrypted-media"
-                                                                />
-                                                            );
-                                                        }
+                                        <div className="w-full h-full flex items-center justify-center p-3 md:p-6">
+                                            {current.type === 'video' ? (
+                                                (() => {
+                                                    const embedUrl = getVideoEmbedUrl(current.url);
+                                                    if (embedUrl) {
+                                                        const isVertical = checkIsVerticalVideo(current.url);
                                                         return (
-                                                            <video 
-                                                                src={current.url} 
-                                                                controls 
-                                                                autoPlay
-                                                                className="max-w-full max-h-[35vh] md:max-h-[60vh] rounded-xl md:rounded-2xl shadow-2xl"
+                                                            <iframe 
+                                                                src={embedUrl}
+                                                                className={cn(
+                                                                    "rounded-xl md:rounded-2xl shadow-2xl mx-auto w-full h-full",
+                                                                    isVertical 
+                                                                        ? "max-h-[35vh] md:max-h-[60vh] aspect-[9/16]" 
+                                                                        : "aspect-video"
+                                                                )}
+                                                                allowFullScreen
+                                                                allow="autoplay; encrypted-media"
                                                             />
                                                         );
-                                                    })()
-                                                ) : (
-                                                    <img
-                                                        src={current.url}
-                                                        alt={selectedItem.name || selectedItem.titulo}
-                                                        className="max-w-full max-h-[35vh] md:max-h-[55vh] object-contain rounded-xl md:rounded-2xl shadow-2xl"
-                                                    />
-                                                )}
-                                            </motion.div>
-                                        </AnimatePresence>
+                                                    }
+                                                    return (
+                                                        <video 
+                                                            src={current.url} 
+                                                            controls 
+                                                            autoPlay
+                                                            className="max-w-full max-h-[35vh] md:max-h-[60vh] rounded-xl md:rounded-2xl shadow-2xl"
+                                                        />
+                                                    );
+                                                })()
+                                            ) : (
+                                                <img
+                                                    src={current.url}
+                                                    alt={selectedItem.name || selectedItem.titulo}
+                                                    className="max-w-full max-h-[35vh] md:max-h-[55vh] object-contain rounded-xl md:rounded-2xl shadow-2xl"
+                                                />
+                                            )}
+                                        </div>
 
                                         {/* Navigation between images/videos */}
                                         {total > 1 && (
