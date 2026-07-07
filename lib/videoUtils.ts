@@ -188,10 +188,10 @@ export const getVideoEmbedUrl = (url: string | null | undefined): string | null 
     }
 
     const igId = getInstagramID(url);
-    if (igId) return `https://www.instagram.com/p/${igId}/embed`;
+    if (igId) return `https://www.instagram.com/reel/${igId}/embed/`;
 
     const fbUrl = getFacebookURL(url);
-    if (fbUrl) return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(fbUrl)}&show_text=0`;
+    if (fbUrl) return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(fbUrl)}&show_text=0&autoplay=0`;
 
     // Si pasaron un iframe de YouTube/TikTok/Vimeo, intentar extraer el src
     if (url.trim().toLowerCase().startsWith('<iframe')) {
@@ -219,14 +219,23 @@ export const checkIsVerticalVideo = (url: string | null | undefined): boolean =>
         }
     }
 
-    // 0. Query param explícito: ?aspect=vertical o ?aspect=vertical
-    // Ejemplo: https://bunny.net/video.mp4?aspect=vertical
+    // 0. Query param o palabra explícita de orientación (Máxima Prioridad)
     try {
         const urlObj = new URL(cleanUrl.startsWith('http') ? cleanUrl : 'https://example.com' + cleanUrl);
         const aspect = urlObj.searchParams.get('aspect');
         if (aspect && aspect.toLowerCase() === 'vertical') return true;
+        if (aspect && aspect.toLowerCase() === 'horizontal') return false;
+        
+        // Si el link de Facebook tiene indicios claros de ser horizontal (watch, videos, etc)
+        if (cleanUrl.includes('facebook.com') && (
+            cleanUrl.includes('/watch') || 
+            cleanUrl.includes('/videos/') || 
+            cleanUrl.includes('video.php')
+        )) {
+            return false;
+        }
     } catch {
-        // Si falla el parsing de URL, continuamos con las detecciones basadas en plataforma
+        // Continuamos
     }
 
     // 1. TikTok siempre es vertical (9:16)
@@ -238,15 +247,46 @@ export const checkIsVerticalVideo = (url: string | null | undefined): boolean =>
     // 3. YouTube Shorts son verticales (9:16)
     if (cleanUrl.includes('youtube.com/shorts') || cleanUrl.includes('youtu.be/shorts')) return true;
 
-    // 4. Facebook Reels son verticales (9:16)
+    // 4. Facebook Reels e Instagram son verticales (9:16) por defecto, a menos que el backend haya determinado que es horizontal
     if (
-        cleanUrl.includes('facebook.com/reel') || 
         cleanUrl.includes('/share/r/') || 
         (cleanUrl.includes('facebook.com/plugins/video') && cleanUrl.includes('/reel/'))
     ) {
+        // El default de plugins es vertical
         return true;
     }
-
+ 
     return false;
 };
 
+/**
+ * Detecta si una URL es de video (cualquier plataforma soportada o video directo).
+ * Útil para auto-clasificar links pegados por el usuario en el editor.
+ */
+/**
+ * Detecta si una URL necesita ser renderizada con el SDK de Meta (Instagram o Facebook).
+ * Estas URLs NO funcionan con iframes crudos y necesitan los SDKs oficiales.
+ */
+export const needsMetaSDKEmbed = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    const trimmed = url.trim().toLowerCase();
+    return trimmed.includes('instagram.com') || trimmed.includes('facebook.com') || trimmed.includes('fb.watch');
+};
+
+export const isVideoUrl = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    const trimmed = url.trim();
+    if (!trimmed) return false;
+    
+    // Check all supported video platforms
+    if (getYouTubeID(trimmed)) return true;
+    if (getTikTokID(trimmed)) return true;
+    if (getInstagramID(trimmed)) return true;
+    if (getFacebookURL(trimmed)) return true;
+    if (isDirectVideoUrl(trimmed)) return true;
+    
+    // TikTok short links that getTikTokID can't resolve
+    if (trimmed.includes('vm.tiktok.com') || trimmed.includes('vt.tiktok.com')) return true;
+    
+    return false;
+};

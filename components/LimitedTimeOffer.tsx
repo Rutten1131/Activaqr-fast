@@ -114,10 +114,9 @@ export default function LimitedTimeOffer({
                 />
 
                 <div
-                    className="relative overflow-hidden rounded-[22px] flex flex-col items-center cursor-pointer"
+                    className="relative overflow-hidden rounded-[22px] flex flex-col items-center cursor-pointer w-[155px] md:w-[180px]"
                     style={{
                         background: `linear-gradient(160deg, ${themePrimary} 0%, color-mix(in srgb, ${themePrimary} 70%, #000) 100%)`,
-                        minWidth: "110px",
                     }}
                     onClick={() => setIsModalOpen(true)}
                 >
@@ -157,7 +156,7 @@ export default function LimitedTimeOffer({
                     </div>
 
                     {/* MAIN CONTENT AREA */}
-                    <div className="relative z-10 flex flex-col items-center px-3 pb-1">
+                    <div className="relative z-10 flex flex-col items-center px-3 pb-1 w-full">
                         {/* Original price — crossed out, small */}
                         {offer.originalPrice && (
                             <span className="text-[11px] font-black text-black/50 line-through leading-none">
@@ -167,9 +166,9 @@ export default function LimitedTimeOffer({
 
                         {/* THE BIG NUMBER/TEXT — like the reference "35%" */}
                         <motion.div
-                            className="font-black text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)] text-center"
+                            className="font-black text-white leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)] text-center w-full overflow-hidden text-ellipsis"
                             style={{
-                                fontSize: "clamp(2rem, 12vw, 3rem)",
+                                fontSize: "clamp(1.8rem, 10vw, 2.5rem)",
                                 textShadow: "0 2px 8px rgba(0,0,0,0.3), -1px -1px 0 rgba(0,0,0,0.2), 1px 1px 0 rgba(0,0,0,0.2)",
                             }}
                             animate={{ scale: [1, 1.04, 1] }}
@@ -187,7 +186,7 @@ export default function LimitedTimeOffer({
 
                         {/* Description / sub-line when price is shown */}
                         {offer.offerPrice && offer.title && (
-                            <span className="text-[10px] font-black text-white/90 uppercase tracking-wider leading-none text-center">
+                            <span className="text-[9px] font-black text-white/95 uppercase tracking-wider leading-tight text-center px-1.5 mt-1.5 block w-full break-words">
                                 {offer.title}
                             </span>
                         )}

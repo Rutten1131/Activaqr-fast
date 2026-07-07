@@ -14,24 +14,49 @@ async function resolveShortUrl(url: string | null | undefined): Promise<string |
         lower.includes('vm.tiktok.com') || 
         lower.includes('vt.tiktok.com') || 
         lower.includes('fb.watch') || 
-        lower.includes('facebook.com/share');
+        lower.includes('facebook.com/share') ||
+        lower.includes('facebook.com/watch') ||
+        lower.includes('fb.gg') ||
+        lower.includes('instagram.com/reel') ||
+        lower.includes('instagram.com/p');
         
     if (!shouldResolve) return url;
 
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 segundos max de timeout
+        const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
 
         const response = await fetch(url, {
             method: 'GET',
             redirect: 'follow',
             signal: controller.signal,
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
             }
         });
         clearTimeout(timeoutId);
-        return response.url || url;
+
+        const finalUrl = response.url;
+        
+        // Si responde 200 y el body contiene og:url o canonical (común en redirects camuflados de Meta)
+        if (response.status === 200) {
+            const html = await response.text();
+            
+            const ogUrlMatch = html.match(/<meta\s+property="og:url"\s+content="([^"]+)"/i) || 
+                               html.match(/<meta\s+content="([^"]+)"\s+property="og:url"/i);
+            
+            const canonicalMatch = html.match(/<link\s+rel="canonical"\s+href="([^"]+)"/i) || 
+                                   html.match(/<link\s+href="([^"]+)"\s+rel="canonical"/i);
+            
+            const extracted = ogUrlMatch ? ogUrlMatch[1] : (canonicalMatch ? canonicalMatch[1] : null);
+            if (extracted && extracted.startsWith('http')) {
+                return extracted;
+            }
+        }
+
+        return finalUrl || url;
     } catch (e) {
         console.error('Failed to resolve short URL:', url, e);
         return url;
@@ -59,6 +84,37 @@ export async function POST(req: NextRequest) {
         // Resolver URL corta de video si existe
         if (youtube_video_url) {
             youtube_video_url = await resolveShortUrl(youtube_video_url);
+        }
+
+        // Resolver URLs cortas de videos dentro de catalogo_json si existe
+        if (catalogo_json) {
+            try {
+                let parsed = typeof catalogo_json === 'string' 
+                    ? JSON.parse(catalogo_json) 
+                    : catalogo_json;
+
+                if (parsed && parsed.products && Array.isArray(parsed.products)) {
+                    for (let i = 0; i < parsed.products.length; i++) {
+                        const prod = parsed.products[i];
+                        if (prod.videos && Array.isArray(prod.videos)) {
+                            prod.videos = await Promise.all(prod.videos.map(async (vUrl: string) => {
+                                return await resolveShortUrl(vUrl);
+                            }));
+                        }
+                        if (prod.video) {
+                            prod.video = await resolveShortUrl(prod.video);
+                        }
+                    }
+                    if (typeof catalogo_json === 'string') {
+                        catalogo_json = JSON.stringify(parsed);
+                    } else {
+                        catalogo_json = parsed;
+                    }
+                    body.catalogo_json = catalogo_json;
+                }
+            } catch (e) {
+                console.error('Error resolving video URLs in catalogo_json on register:', e);
+            }
         }
 
 

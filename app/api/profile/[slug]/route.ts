@@ -3,6 +3,120 @@ import pool from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+async function resolveShortUrl(url: string | null | undefined): Promise<string | null | undefined> {
+    if (!url) return url;
+    const lower = url.toLowerCase().trim();
+    
+    const shouldResolve = 
+        lower.includes('vm.tiktok.com') || 
+        lower.includes('vt.tiktok.com') || 
+        lower.includes('fb.watch') || 
+        lower.includes('facebook.com/share') ||
+        lower.includes('facebook.com/watch') ||
+        lower.includes('fb.gg') ||
+        lower.includes('instagram.com/reel') ||
+        lower.includes('instagram.com/p');
+        
+    if (!shouldResolve) return url;
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
+
+        const response = await fetch(url, {
+            method: 'GET',
+            redirect: 'follow',
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
+            }
+        });
+        clearTimeout(timeoutId);
+
+        const finalUrl = response.url;
+        
+        if (response.status === 200) {
+            const html = await response.text();
+            
+            const ogUrlMatch = html.match(/<meta\s+property="og:url"\s+content="([^"]+)"/i) || 
+                               html.match(/<meta\s+content="([^"]+)"\s+property="og:url"/i);
+            
+            const canonicalMatch = html.match(/<link\s+rel="canonical"\s+href="([^"]+)"/i) || 
+                                   html.match(/<link\s+href="([^"]+)"\s+rel="canonical"/i);
+            
+            const extracted = ogUrlMatch ? ogUrlMatch[1] : (canonicalMatch ? canonicalMatch[1] : null);
+            if (extracted && extracted.startsWith('http')) {
+                return extracted;
+            }
+        }
+
+        return finalUrl || url;
+    } catch (e) {
+        console.error('Failed to resolve short URL in profile load:', url, e);
+        return url;
+    }
+}
+
+/**
+ * Detecta la orientación real de un video de Facebook/Instagram leyendo los meta tags
+ * og:video:width y og:video:height del HTML de la página.
+ * Devuelve la URL con ?aspect=vertical o ?aspect=horizontal agregado.
+ */
+async function annotateVideoAspect(url: string | null | undefined): Promise<string | null | undefined> {
+    if (!url) return url;
+    const lower = url.toLowerCase().trim();
+
+    // Si ya tiene parámetro aspect, no hacer nada
+    if (lower.includes('aspect=vertical') || lower.includes('aspect=horizontal')) return url;
+
+    // Solo procesar URLs de Facebook reel (donde no sabemos si es vertical u horizontal)
+    // Instagram siempre es vertical, no necesitamos detectar
+    const isFacebookReel = lower.includes('facebook.com/reel');
+    if (!isFacebookReel) return url;
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            redirect: 'follow',
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            }
+        });
+        clearTimeout(timeoutId);
+
+        if (response.status === 200) {
+            const html = await response.text();
+
+            // Extraer og:video:width y og:video:height
+            const widthMatch = html.match(/<meta\s+property="og:video:width"\s+content="(\d+)"/i) ||
+                               html.match(/<meta\s+content="(\d+)"\s+property="og:video:width"/i);
+            const heightMatch = html.match(/<meta\s+property="og:video:height"\s+content="(\d+)"/i) ||
+                                html.match(/<meta\s+content="(\d+)"\s+property="og:video:height"/i);
+
+            if (widthMatch && heightMatch) {
+                const width = parseInt(widthMatch[1], 10);
+                const height = parseInt(heightMatch[1], 10);
+                const aspect = height > width ? 'vertical' : 'horizontal';
+                const separator = url.includes('?') ? '&' : '?';
+                console.log(`[annotateVideoAspect] ${url} → ${width}x${height} → ${aspect}`);
+                return `${url}${separator}aspect=${aspect}`;
+            }
+        }
+
+        return url;
+    } catch (e) {
+        console.error('Failed to annotate video aspect:', url, e);
+        return url;
+    }
+}
+
 // Helper simple para parsear JSON de forma segura
 function safeParseJson(str: string | null): any {
     if (!str) return null;
@@ -254,7 +368,84 @@ export async function GET(
                 // No hay datos relacionales pero SÍ hay JSON legacy - conservarlo tal cual
                 console.log('[profile] No relational data found, preserving original menu_digital JSON');
             }
-            // else: menu_digital stays as-is (could be null or non-JSON value)
+
+            // --- RESOLUCIÓN RETROACTIVA DE LINKS DE COMPARTIR AL VUELO ---
+            let needsDbUpdate = false;
+            
+            if (user.youtube_video_url) {
+                const resolved = await resolveShortUrl(user.youtube_video_url);
+                if (resolved !== user.youtube_video_url) {
+                    user.youtube_video_url = resolved;
+                    needsDbUpdate = true;
+                }
+                const annotated = await annotateVideoAspect(user.youtube_video_url);
+                if (annotated !== user.youtube_video_url) {
+                    user.youtube_video_url = annotated;
+                    needsDbUpdate = true;
+                }
+            }
+
+            if (user.catalogo_json) {
+                try {
+                    let parsed = typeof user.catalogo_json === 'string'
+                        ? JSON.parse(user.catalogo_json)
+                        : user.catalogo_json;
+
+                    if (parsed && parsed.products && Array.isArray(parsed.products)) {
+                        for (let i = 0; i < parsed.products.length; i++) {
+                            const prod = parsed.products[i];
+                            
+                            // Resolver array videos + detectar orientación
+                            if (prod.videos && Array.isArray(prod.videos)) {
+                                const processedVideos = await Promise.all(prod.videos.map(async (vUrl: string) => {
+                                    let r = await resolveShortUrl(vUrl);
+                                    if (r !== vUrl) needsDbUpdate = true;
+                                    // Detectar orientación real del video
+                                    const annotated = await annotateVideoAspect(r);
+                                    if (annotated !== r) { needsDbUpdate = true; r = annotated; }
+                                    return r;
+                                }));
+                                prod.videos = processedVideos;
+                            }
+
+                            // Resolver single video + detectar orientación
+                            if (prod.video) {
+                                let resolvedSingle = await resolveShortUrl(prod.video);
+                                if (resolvedSingle !== prod.video) {
+                                    prod.video = resolvedSingle;
+                                    needsDbUpdate = true;
+                                }
+                                const annotated = await annotateVideoAspect(prod.video);
+                                if (annotated !== prod.video) {
+                                    prod.video = annotated;
+                                    needsDbUpdate = true;
+                                }
+                            }
+                        }
+                    }
+
+                    user.catalogo_json = typeof user.catalogo_json === 'string'
+                        ? JSON.stringify(parsed)
+                        : parsed;
+
+                } catch (errJson) {
+                    console.error('Error parsing catalogo_json in profile load JIT converter:', errJson);
+                }
+            }
+
+            // Guardar en base de datos para persistir los links resueltos y su orientación
+            if (needsDbUpdate) {
+                const dbVal = typeof user.catalogo_json === 'object' ? JSON.stringify(user.catalogo_json) : user.catalogo_json;
+                try {
+                    await connection.execute(
+                        'UPDATE registraya_vcard_registros SET catalogo_json = ?, youtube_video_url = ? WHERE id = ?',
+                        [dbVal, user.youtube_video_url, user.id]
+                    );
+                    console.log('[profile] Successfully cached resolved video URLs & orientation parameters to DB.');
+                } catch (errUpdate) {
+                    console.error('Failed to cache resolved video URLs in profile load:', errUpdate);
+                }
+            }
 
             return NextResponse.json(user);
 

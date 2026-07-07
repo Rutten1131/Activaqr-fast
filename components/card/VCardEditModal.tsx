@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Download, Key, AlertCircle, CheckCircle, Loader2, Edit, Image as ImageIcon, Zap, Phone, User, ChevronDown, Store, Plus, Trash2, Activity, Video, Camera, Upload, Info, Sparkles } from 'lucide-react';
 import { formatPhoneEcuador, cn } from '@/lib/utils';
+import { isVideoUrl } from '@/lib/videoUtils';
 
 interface VCardEditModalProps {
     isOpen: boolean;
@@ -485,6 +486,22 @@ export default function VCardEditModal({
                             } else if (p.image || p.imagen || p.foto || p.url) {
                                 images = [p.image || p.imagen || p.foto || p.url].filter(Boolean);
                             }
+
+                            // Extract videos array
+                            let videos: string[] = [];
+                            if (Array.isArray(p.videos) && p.videos.length > 0) {
+                                videos = p.videos;
+                            } else if (p.video || p.video_url) {
+                                videos = [p.video || p.video_url].filter(Boolean);
+                            }
+
+                            // Live migration: Move video URLs from images to videos
+                            const videoUrlsFromImages = images.filter(url => isVideoUrl(url));
+                            if (videoUrlsFromImages.length > 0) {
+                                videos = [...new Set([...videos, ...videoUrlsFromImages])];
+                                images = images.filter(url => !isVideoUrl(url));
+                            }
+
                             // Si el producto tiene categoría inválida, asignar string vacío (no 'Sin Categoría')
                             const rawCat = p.category || p.categoria || '';
                             const normalizedCat = (rawCat === 'Nueva Categoría' || rawCat === 'Sin Categoría' || rawCat === 'Todas') ? '' : rawCat;
@@ -495,7 +512,8 @@ export default function VCardEditModal({
                                 description: p.description || p.descripcion || '',
                                 image: images[0] || '',
                                 images: images,
-                                video: p.video || p.video_url || '',
+                                video: videos[0] || '',
+                                videos: videos,
                                 category: normalizedCat
                             };
                         });
@@ -2395,14 +2413,30 @@ export default function VCardEditModal({
                                                                                     {(prod.images?.length || 0) > 5 && <div className="w-9 h-9 rounded-lg bg-gray-200 flex items-center justify-center text-[10px] font-black text-gray-500 shadow-sm">+{prod.images.length - 5}</div>}
                                                                                 </div>
                                                                             )}
+                                                                            
+                                                                            {/* Miniaturas de videos vinculados */}
+                                                                            {(prod.videos?.length || 0) > 0 && (
+                                                                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                                                                    {prod.videos.map((vidUrl: string, vIdx: number) => (
+                                                                                        <div key={vIdx} className="w-9 h-9 rounded-lg bg-black overflow-hidden border border-gray-200 relative group/vid shadow-sm flex items-center justify-center text-white" title={vidUrl}>
+                                                                                            <Video size={12} className="text-white/60 group-hover/vid:opacity-0 transition-opacity" />
+                                                                                            <button onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                const updated = prod.videos.filter((_: string, idx: number) => idx !== vIdx);
+                                                                                                setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, videos: updated, video: updated[0] || '' } : p) } });
+                                                                                            }} className="absolute inset-0 bg-red-500/80 flex items-center justify-center opacity-0 group-hover/vid:opacity-100 transition-opacity text-white text-[8px] font-black"><X size={10} /></button>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-
+ 
                                                                         {/* Nombre + Precio */}
                                                                         <div className="flex-1 min-w-0 space-y-1.5">
                                                                             <input className="w-full bg-transparent border-0 border-b-2 border-gray-100 focus:border-[#FF5C00] pb-1 text-sm font-black text-navy outline-none placeholder:text-gray-300 transition-colors" value={prod.name} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, name: e.target.value } : p) } })} placeholder="Nombre del producto" />
                                                                             <div className="flex items-center gap-2">
                                                                                 <span className="text-gray-400 text-[11px] font-bold">$</span>
-                                                                                <input className="flex-1 bg-transparent border-0 border-b-2 border-gray-100 focus:border-[#FF5C00] pb-1 text-sm font-black text-navy outline-none placeholder:text-gray-300 transition-colors" value={prod.price} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, price: e.target.value } : p) } })} placeholder="Precio" type="number" step="0.01" min="0" />
+                                                                                <input className="flex-1 bg-transparent border-0 border-b-2 border-gray-100 focus:border-[#FF5C00] pb-1 text-sm font-black text-navy outline-none placeholder:text-gray-300 transition-colors" value={prod.price} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, price: e.target.value } : p) } })} placeholder="Precio" type="text" />
                                                                                 <select className="bg-gray-100 border-0 rounded-lg px-2 py-1.5 text-[9px] font-black uppercase text-navy outline-none" value={prod.category || ''} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, category: e.target.value } : p) } })}>
                                                                                     {formData.catalogo_json.categories.filter(c => c && !['Nueva Categoría', 'Sin Categoría', 'Todas', '', 'General'].includes(c)).map(c => (
                                                                                         <option key={c} value={c}>{c}</option>
@@ -2411,10 +2445,10 @@ export default function VCardEditModal({
                                                                             </div>
                                                                         </div>
                                                                     </div>
-
+ 
                                                                     {/* DESCRIPCIÓN */}
                                                                     <textarea className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-[11px] font-medium text-navy min-h-[52px] resize-none outline-none focus:border-[#FF5C00]/50 transition-all placeholder:text-gray-300" value={prod.description} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, description: e.target.value } : p) } })} placeholder="Descripción breve del producto..." rows={2} />
-
+ 
                                                                     {/* SUBIR ARCHIVO o pegar LINK (imagen o video) */}
                                                                     <div className="mt-2 flex items-center gap-2">
                                                                         <label className="flex items-center gap-1 text-[10px] font-bold text-[#FF5C00] bg-[#FF5C00]/10 hover:bg-[#FF5C00]/20 px-3 py-1.5 rounded-lg cursor-pointer transition-all">
@@ -2428,8 +2462,13 @@ export default function VCardEditModal({
                                                                                 const res = await fetch('/api/upload', { method: 'POST', body: fd });
                                                                                 if (res.ok) {
                                                                                     const { url } = await res.json();
-                                                                                    const current = prod.images || (prod.image ? [prod.image] : []);
-                                                                                    setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, images: [...current, url], image: current[0] || url } : p) } });
+                                                                                    if (isVideoUrl(url) || file.type.startsWith('video/')) {
+                                                                                        const current = prod.videos || (prod.video ? [prod.video] : []);
+                                                                                        setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, videos: [...current, url], video: current[0] || url } : p) } });
+                                                                                    } else {
+                                                                                        const current = prod.images || (prod.image ? [prod.image] : []);
+                                                                                        setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, images: [...current, url], image: current[0] || url } : p) } });
+                                                                                    }
                                                                                 }
                                                                             }} />
                                                                         </label>
@@ -2440,8 +2479,13 @@ export default function VCardEditModal({
                                                                                 const input = document.getElementById(`media-link-${prod.id}`) as HTMLInputElement;
                                                                                 const url = input?.value?.trim();
                                                                                 if (!url) return;
-                                                                                const current = prod.images || (prod.image ? [prod.image] : []);
-                                                                                setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, images: [...current, url], image: current[0] || url } : p) } });
+                                                                                if (isVideoUrl(url)) {
+                                                                                    const current = prod.videos || (prod.video ? [prod.video] : []);
+                                                                                    setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, videos: [...current, url], video: current[0] || url } : p) } });
+                                                                                } else {
+                                                                                    const current = prod.images || (prod.image ? [prod.image] : []);
+                                                                                    setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, images: [...current, url], image: current[0] || url } : p) } });
+                                                                                }
                                                                                 input.value = '';
                                                                             }} className="text-[10px] font-black text-[#FF5C00] hover:underline px-2 whitespace-nowrap">+ Link</button>
                                                                         </div>
