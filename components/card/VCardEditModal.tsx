@@ -444,7 +444,8 @@ export default function VCardEditModal({
                                     offerOriginalPrice: '',
                                     offerPrice: '',
                                     offerExpiresAt: '',
-                                    offerCtaText: ''
+                                    offerCtaText: '',
+                                    autoDisableBanner: false
                                 }];
                             }
                             return [];
@@ -458,7 +459,8 @@ export default function VCardEditModal({
                             offerOriginalPrice: slide.offerOriginalPrice || '',
                             offerPrice: slide.offerPrice || '',
                             offerExpiresAt: slide.offerExpiresAt || '',
-                            offerCtaText: slide.offerCtaText || ''
+                            offerCtaText: slide.offerCtaText || '',
+                            autoDisableBanner: slide.autoDisableBanner || false
                         }));
                     })(),
                     catalogo_json: (() => {
@@ -1494,6 +1496,12 @@ export default function VCardEditModal({
                                                                                         updateHeroSlideOffer(slide.id, 'offerExpiresAt', e.target.value);
                                                                                     }}
                                                                                 />
+                                                                                <div className="flex items-center gap-2 mt-2 select-none cursor-pointer" onClick={() => updateHeroSlideOffer(slide.id, 'autoDisableBanner', !slide.autoDisableBanner)}>
+                                                                                    <div className={cn("w-7 h-4 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0", slide.autoDisableBanner ? "bg-orange-500" : "bg-gray-200")}>
+                                                                                        <div className={cn("w-3 h-3 rounded-full bg-white transition-transform duration-200 ease-in-out", slide.autoDisableBanner ? "translate-x-3" : "translate-x-0")} />
+                                                                                    </div>
+                                                                                    <span className="text-[8px] font-black uppercase tracking-wider text-navy/60">¿Apagar banner completo al expirar?</span>
+                                                                                </div>
                                                                             </div>
                                                                             <div className="col-span-2">
                                                                                 <label className="text-[8px] font-black uppercase tracking-widest block mb-1" style={{ color: slide.offerEnabled ? '#f97316' : '#9ca3af' }}>Texto CTA</label>

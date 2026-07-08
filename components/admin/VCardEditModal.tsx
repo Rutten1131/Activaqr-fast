@@ -198,7 +198,8 @@ export default function VCardEditModal({
             offerOriginalPrice: '',
             offerPrice: '',
             offerExpiresAt: '',
-            offerCtaText: ''
+            offerCtaText: '',
+            autoDisableBanner: false
         };
         updateHeroSlides([...heroSlides, newSlide]);
     };
@@ -1448,9 +1449,15 @@ export default function VCardEditModal({
                                                                     <input
                                                                         type="datetime-local"
                                                                         className="w-full bg-[#050B1C] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-orange-500 transition-all"
-                                                                        value={slide.offerExpiresAt || ''}
+                                                                        value={(slide.offerExpiresAt || '').substring(0, 16)}
                                                                         onChange={e => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, offerExpiresAt: e.target.value } : s))}
                                                                     />
+                                                                    <div className="flex items-center gap-2 mt-2 select-none cursor-pointer" onClick={() => updateHeroSlides(heroSlides.map((s: any) => s.id === slide.id ? { ...s, autoDisableBanner: !slide.autoDisableBanner } : s))}>
+                                                                        <div className={cn("w-7 h-4 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0", slide.autoDisableBanner ? "bg-orange-500" : "bg-white/10")}>
+                                                                            <div className={cn("w-3 h-3 rounded-full bg-white transition-transform duration-200 ease-in-out", slide.autoDisableBanner ? "translate-x-3" : "translate-x-0")} />
+                                                                        </div>
+                                                                        <span className="text-[8px] font-black uppercase tracking-wider text-white/60">¿Apagar banner completo al expirar?</span>
+                                                                    </div>
                                                                 </div>
                                                                 <div className="col-span-2">
                                                                     <label className="text-[8px] font-black uppercase tracking-widest text-orange-400/60 block mb-1">Texto CTA</label>

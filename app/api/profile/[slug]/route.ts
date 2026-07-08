@@ -393,6 +393,10 @@ export async function GET(
                                 const expireTime = new Date(expStr).getTime();
                                 if (expireTime <= now) {
                                     slide.offerEnabled = false; // Pasar a OFF
+                                    if (slide.autoDisableBanner === true || String(slide.autoDisableBanner) === 'true') {
+                                        slide.active = false; // Desactivar banner completo
+                                        console.log(`[profile] JIT Auto-Disabled banner slide ID: ${slide.id} due to expiration.`);
+                                    }
                                     slidesChanged = true;
                                     needsDbUpdate = true;
                                     console.log(`[profile] JIT Auto-Expired offer on banner ID: ${slide.id}`);
