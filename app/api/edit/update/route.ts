@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
         if (data.youtube_video_url) {
             data.youtube_video_url = await resolveShortUrl(data.youtube_video_url);
         }
+        console.log('[DEBUG UPDATE API] Received hero_slides_json:', JSON.stringify(data.hero_slides_json));
 
         // Resolver URLs cortas de videos dentro de catalogo_json si existe
         if (data.catalogo_json) {

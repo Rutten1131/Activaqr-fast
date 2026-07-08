@@ -600,6 +600,16 @@ export default function VCardEditModal({
                     : (formData.json_override || '{}')
             };
 
+            // DEBUG: Log hero_slides_json before sending to API
+            if (formattedData.hero_slides_json) {
+                const slides = formattedData.hero_slides_json;
+                if (Array.isArray(slides)) {
+                    slides.forEach((s: any, i: number) => {
+                        console.log(`[SAVE DEBUG] slide[${i}] offerExpiresAt="${s.offerExpiresAt}" offerEnabled=${s.offerEnabled} offerTitle="${s.offerTitle}"`);
+                    });
+                }
+            }
+
             const res = await fetch('/api/edit/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -695,10 +705,10 @@ export default function VCardEditModal({
             offerExpiresAt: '',
             offerCtaText: ''
         };
-        setFormData({
-            ...formData,
-            hero_slides_json: [...formData.hero_slides_json, newSlide]
-        });
+        setFormData(prev => ({
+            ...prev,
+            hero_slides_json: [...prev.hero_slides_json, newSlide]
+        }));
     };
 
     const toggleHeroSlideActive = (id: string, currentlyActive: boolean) => {
@@ -709,12 +719,12 @@ export default function VCardEditModal({
                 return;
             }
         }
-        setFormData({
-            ...formData,
-            hero_slides_json: formData.hero_slides_json.map(slide => 
+        setFormData(prev => ({
+            ...prev,
+            hero_slides_json: prev.hero_slides_json.map(slide => 
                 slide.id === id ? { ...slide, active: !currentlyActive } : slide
             )
-        });
+        }));
     };
 
     const removeHeroSlide = (id: string) => {
@@ -726,46 +736,51 @@ export default function VCardEditModal({
                 return;
             }
         }
-        setFormData({
-            ...formData,
-            hero_slides_json: formData.hero_slides_json.filter(s => s.id !== id)
-        });
+        setFormData(prev => ({
+            ...prev,
+            hero_slides_json: prev.hero_slides_json.filter(s => s.id !== id)
+        }));
     };
 
     const updateHeroSlideTitle = (id: string, title: string) => {
-        setFormData({
-            ...formData,
-            hero_slides_json: formData.hero_slides_json.map(slide => 
+        setFormData(prev => ({
+            ...prev,
+            hero_slides_json: prev.hero_slides_json.map(slide => 
                 slide.id === id ? { ...slide, title } : slide
             )
-        });
+        }));
     };
 
     const updateHeroSlideDescription = (id: string, description: string) => {
-        setFormData({
-            ...formData,
-            hero_slides_json: formData.hero_slides_json.map(slide => 
+        setFormData(prev => ({
+            ...prev,
+            hero_slides_json: prev.hero_slides_json.map(slide => 
                 slide.id === id ? { ...slide, description } : slide
             )
-        });
+        }));
     };
 
     const updateHeroSlideOffer = (id: string, field: string, value: any) => {
-        setFormData({
-            ...formData,
-            hero_slides_json: formData.hero_slides_json.map(slide => 
-                slide.id === id ? { ...slide, [field]: value } : slide
+        let finalValue = value;
+        if (field === 'offerExpiresAt' && value && value.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            finalValue = `${value}T08:00`;
+        }
+        console.log('[DEBUG offerUpdate]', field, '=', finalValue);
+        setFormData(prev => ({
+            ...prev,
+            hero_slides_json: prev.hero_slides_json.map(slide => 
+                slide.id === id ? { ...slide, [field]: finalValue } : slide
             )
-        });
+        }));
     };
 
     const toggleHeroSlideOffer = (id: string, enabled: boolean) => {
-        setFormData({
-            ...formData,
-            hero_slides_json: formData.hero_slides_json.map(slide => 
+        setFormData(prev => ({
+            ...prev,
+            hero_slides_json: prev.hero_slides_json.map(slide => 
                 slide.id === id ? { ...slide, offerEnabled: enabled } : slide
             )
-        });
+        }));
     };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1471,8 +1486,13 @@ export default function VCardEditModal({
                                                                                     type="datetime-local"
                                                                                     className="w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-navy outline-none transition-all"
                                                                                     style={{ borderColor: slide.offerEnabled ? '#fed7aa' : '#e5e7eb' }}
-                                                                                    value={slide.offerExpiresAt || ''}
-                                                                                    onChange={(e) => updateHeroSlideOffer(slide.id, 'offerExpiresAt', e.target.value)}
+                                                                                    value={(slide.offerExpiresAt || '').substring(0, 16)}
+                                                                                    onChange={(e) => {
+                                                                                        updateHeroSlideOffer(slide.id, 'offerExpiresAt', e.target.value);
+                                                                                    }}
+                                                                                    onBlur={(e) => {
+                                                                                        updateHeroSlideOffer(slide.id, 'offerExpiresAt', e.target.value);
+                                                                                    }}
                                                                                 />
                                                                             </div>
                                                                             <div className="col-span-2">

@@ -48,8 +48,11 @@ export default function LimitedTimeOffer({
         if (!offer?.expiresAt) return;
 
         const calculateTimeLeft = () => {
-            const difference =
-                new Date(offer.expiresAt!).getTime() - new Date().getTime();
+            let expStr = offer.expiresAt!;
+            if (!expStr.includes('Z') && !expStr.match(/[+-]\d{2}:\d{2}$/)) {
+                expStr = expStr + '-05:00';
+            }
+            const difference = new Date(expStr).getTime() - new Date().getTime();
 
             if (difference <= 0) {
                 setIsExpired(true);
@@ -71,7 +74,7 @@ export default function LimitedTimeOffer({
         return () => clearInterval(timer);
     }, [offer?.expiresAt]);
 
-    if (!offer?.enabled || isDismissed) return null;
+    if (!offer?.enabled || isDismissed || isExpired) return null;
 
     const formatNumber = (n: number) => n.toString().padStart(2, "0");
 

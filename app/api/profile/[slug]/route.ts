@@ -371,6 +371,42 @@ export async function GET(
 
             // --- RESOLUCIÓN RETROACTIVA DE LINKS DE COMPARTIR AL VUELO ---
             let needsDbUpdate = false;
+
+            // JIT Expiration of Limited Time Offers
+            if (user.hero_slides_json) {
+                try {
+                    let slides = typeof user.hero_slides_json === 'string'
+                        ? JSON.parse(user.hero_slides_json)
+                        : user.hero_slides_json;
+                        
+                    if (Array.isArray(slides)) {
+                        let slidesChanged = false;
+                        const now = new Date().getTime();
+                        
+                        for (let slide of slides) {
+                            if (slide.offerEnabled && slide.offerExpiresAt) {
+                                // datetime-local no incluye zona horaria. Si no tiene offset (+/- o Z), asumir Ecuador (UTC-5)
+                                let expStr = slide.offerExpiresAt;
+                                if (!expStr.includes('Z') && !expStr.match(/[+-]\d{2}:\d{2}$/)) {
+                                    expStr = expStr + '-05:00';
+                                }
+                                const expireTime = new Date(expStr).getTime();
+                                if (expireTime <= now) {
+                                    slide.offerEnabled = false; // Pasar a OFF
+                                    slidesChanged = true;
+                                    needsDbUpdate = true;
+                                    console.log(`[profile] JIT Auto-Expired offer on banner ID: ${slide.id}`);
+                                }
+                            }
+                        }
+                        if (slidesChanged) {
+                            user.hero_slides_json = JSON.stringify(slides);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error parsing hero_slides_json for JIT expiration check:', e);
+                }
+            }
             
             if (user.youtube_video_url) {
                 const resolved = await resolveShortUrl(user.youtube_video_url);
@@ -436,14 +472,15 @@ export async function GET(
             // Guardar en base de datos para persistir los links resueltos y su orientación
             if (needsDbUpdate) {
                 const dbVal = typeof user.catalogo_json === 'object' ? JSON.stringify(user.catalogo_json) : user.catalogo_json;
+                const dbSlidesVal = typeof user.hero_slides_json === 'object' ? JSON.stringify(user.hero_slides_json) : user.hero_slides_json;
                 try {
                     await connection.execute(
-                        'UPDATE registraya_vcard_registros SET catalogo_json = ?, youtube_video_url = ? WHERE id = ?',
-                        [dbVal, user.youtube_video_url, user.id]
+                        'UPDATE registraya_vcard_registros SET catalogo_json = ?, youtube_video_url = ?, hero_slides_json = ? WHERE id = ?',
+                        [dbVal, user.youtube_video_url, dbSlidesVal, user.id]
                     );
-                    console.log('[profile] Successfully cached resolved video URLs & orientation parameters to DB.');
+                    console.log('[profile] Successfully cached resolved video URLs, expiration updates & orientation parameters to DB.');
                 } catch (errUpdate) {
-                    console.error('Failed to cache resolved video URLs in profile load:', errUpdate);
+                    console.error('Failed to cache resolved video URLs or expiration updates in profile load:', errUpdate);
                 }
             }
 
