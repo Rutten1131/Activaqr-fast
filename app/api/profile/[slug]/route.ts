@@ -71,10 +71,9 @@ async function annotateVideoAspect(url: string | null | undefined): Promise<stri
     // Si ya tiene parámetro aspect, no hacer nada
     if (lower.includes('aspect=vertical') || lower.includes('aspect=horizontal')) return url;
 
-    // Solo procesar URLs de Facebook reel (donde no sabemos si es vertical u horizontal)
-    // Instagram siempre es vertical, no necesitamos detectar
-    const isFacebookReel = lower.includes('facebook.com/reel');
-    if (!isFacebookReel) return url;
+    // Procesar cualquier URL de Facebook para detectar su orientación real
+    const isFacebook = lower.includes('facebook.com') || lower.includes('fb.watch');
+    if (!isFacebook) return url;
 
     try {
         const controller = new AbortController();
