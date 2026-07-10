@@ -118,10 +118,11 @@ export async function POST(req: NextRequest) {
         }
 
 
-        // SECURITY: Never accept 'pagado' status from client. 
-        // Only webhooks or admin can change status to paid.
+
+
+        // SECURITY: Never accept 'pagado' status from client unless it is a solidario campaign or seller direct.
         let finalStatus = body.status;
-        if (finalStatus === 'pagado') {
+        if (finalStatus === 'pagado' && body.payment_method !== 'solidario' && body.payment_method !== 'seller_direct') {
             console.warn(`SECURITY: Attempted status bypass for ${email}`);
             finalStatus = 'pendiente';
         }
@@ -271,7 +272,7 @@ export async function POST(req: NextRequest) {
                 const values = [
                     newId, now, finalNombre, email, whatsapp, profesion || null, empresa || null, bio || null, direccion || null,
                     web || null, google_business || null, instagram || null, linkedin || null, facebook || null, tiktok || null, youtube || null, x || null, productos_servicios || null,
-                    plan || null, foto_url || null, comprobante_url || null, galeriaUrlsJson, finalStatus || 'pendiente', null, finalSlug, etiquetas || null,
+                    plan || null, foto_url || null, comprobante_url || null, galeriaUrlsJson, finalStatus || 'pendiente', finalStatus === 'pagado' ? now : null, finalSlug, etiquetas || null,
                     'pending', // commission_status
                     finalSellerId,
                     isFootprintAttributed,

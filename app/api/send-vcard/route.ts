@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // Nombre del producto según el plan
-        let productName = '$20 Contacto Digital';
+        // Nombre del producto según el plan (actualizado a $35 para digital)
+        let productName = '$35 Contacto Digital';
         if (plan === 'business') productName = '$60 Contacto Business';
         if (plan === 'catalogo') productName = '$120 Contacto Business + Catálogo';
 
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
             `;
         }
 
-        // Sección del código de edición
+        // Sección del código de edición con link directo al modal de la Home (#editar)
         let editCodeSection = '';
         if (edit_code) {
             if (plan === 'business' || plan === 'catalogo') {
@@ -128,10 +128,18 @@ export async function POST(req: NextRequest) {
                         <p style="font-size: 16px; color: #64748b; margin-top: 8px;">Tu <strong>${productName}</strong> profesional ha sido aprobado y generado exitosamente.</p>
                     </div>
 
-                    <div style="background: #f8fafc; border-radius: 20px; padding: 30px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="background: #f8fafc; border-radius: 20px; padding: 30px; border: 1px solid #e2e8f0; text-align: center; margin-bottom: 24px;">
                         <p style="margin-bottom: 24px;">Adjunto a este correo encontrarás tu <strong>Código QR</strong> oficial para compartir de inmediato.</p>
                         
-                        <a href="${vcardUrl}" style="background-color: #FF6B00; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(255,107,0,0.25);">Descargar Contacto (.vcf)</a>
+                        <a href="${vcardUrl}" style="background-color: #FF6B00; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(255,107,0,0.25); margin-bottom: 24px;">Descargar Contacto (.vcf)</a>
+
+                        <div style="border-top: 1px solid #e2e8f0; padding-top: 24px; margin-top: 24px;">
+                            <p style="font-size: 14px; font-weight: bold; color: #050b1c; margin-bottom: 12px; text-transform: uppercase;">💬 Comparte tu QR de WhatsApp</p>
+                            <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">
+                                Al escanear este código, tus clientes abrirán un chat de WhatsApp y recibirán tu información (.vcf) de forma automática.
+                            </p>
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://wa.me/593963425323?text=${encodeURIComponent(`Contacto:${slug}`)}`)}" style="width: 180px; height: 180px; border: 1px solid #e2e8f0; padding: 8px; border-radius: 12px; background: white;" alt="QR de WhatsApp" />
+                        </div>
                     </div>
                     
                     ${extraLinkSection}
@@ -148,6 +156,7 @@ export async function POST(req: NextRequest) {
         });
 
         return NextResponse.json({ success: true, messageId: info.messageId });
+
 
     } catch (error: any) {
         console.error('[send-vcard] Error al enviar correo:', error);

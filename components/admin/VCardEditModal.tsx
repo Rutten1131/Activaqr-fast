@@ -2016,7 +2016,7 @@ export default function VCardEditModal({
                                     <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
                                         <QrCode size={16} /> GESTIÓN DE CÓDIGOS QR
                                     </h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                         <div className="bg-white/5 p-6 rounded-3xl border border-white/10 flex items-center gap-6">
                                             <div className="bg-white p-2 rounded-xl">
                                                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/api/vcard/${editingRegistro.slug || editingRegistro.id}`)}`} className="w-20 h-20" />
@@ -2035,6 +2035,16 @@ export default function VCardEditModal({
                                                 <p className="text-[10px] font-black text-white uppercase">QR Perfil Digital</p>
                                                 <p className="text-[9px] text-white/40 leading-tight">Muestra tu perfil completo en la web antes de guardar.</p>
                                                 <a href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/card/${editingRegistro.slug || editingRegistro.id}`)}`} target="_blank" className="text-primary text-[9px] font-black uppercase hover:underline inline-flex items-center gap-1 mt-2">Descargar QR</a>
+                                            </div>
+                                        </div>
+                                        <div className="bg-green-500/10 p-6 rounded-3xl border border-green-500/20 flex items-center gap-6">
+                                            <div className="bg-white p-2 rounded-xl">
+                                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://wa.me/593963425323?text=${encodeURIComponent(`Contacto:${editingRegistro.slug || editingRegistro.id}`)}`)}`} className="w-20 h-20" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-green-400 uppercase">QR WhatsApp</p>
+                                                <p className="text-[9px] text-white/40 leading-tight">El cliente recibe su VCF automáticamente por WhatsApp al escanear.</p>
+                                                <a href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(`https://wa.me/593963425323?text=${encodeURIComponent(`Contacto:${editingRegistro.slug || editingRegistro.id}`)}`)}`} target="_blank" className="text-green-400 text-[9px] font-black uppercase hover:underline inline-flex items-center gap-1 mt-2">Descargar QR</a>
                                             </div>
                                         </div>
                                     </div>

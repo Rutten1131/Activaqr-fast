@@ -1955,6 +1955,10 @@ return (
                                                 <label className="block text-[10px] font-black text-navy uppercase tracking-widest mb-3 ml-1">Tu Bio o Descripción</label>
                                                 <textarea value={formData.bio} onChange={(e) => updateForm('bio', e.target.value)} placeholder="Cuéntales qué ofreces..." rows={3} className="w-full bg-white border border-black/5 rounded-2xl px-6 py-4 outline-none font-bold text-navy focus:border-primary/50 transition-all shadow-sm resize-none" />
                                             </div>
+                                            <div className="md:col-span-2">
+                                                <label className="block text-[10px] font-black text-navy uppercase tracking-widest mb-3 ml-1">Soluciones o Servicios</label>
+                                                <textarea value={formData.productos_servicios} onChange={(e) => updateForm('productos_servicios', e.target.value)} placeholder="Ej: Reparación de techos, Albañilería, Pintura..." rows={2} className="w-full bg-white border border-black/5 rounded-2xl px-6 py-4 outline-none font-bold text-navy focus:border-primary/50 transition-all shadow-sm resize-none" />
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -1979,6 +1983,9 @@ return (
                                             <div className="group"><input type="url" value={formData.tiktok} onChange={(e) => updateForm('tiktok', e.target.value)} placeholder="TikTok URL" className="w-full bg-white border border-black/5 rounded-xl px-4 py-3 text-sm text-navy" /></div>
                                             <div className="group"><input type="url" value={formData.facebook} onChange={(e) => updateForm('facebook', e.target.value)} placeholder="Facebook URL" className="w-full bg-white border border-black/5 rounded-xl px-4 py-3 text-sm text-navy" /></div>
                                             <div className="group"><input type="url" value={formData.linkedin} onChange={(e) => updateForm('linkedin', e.target.value)} placeholder="LinkedIn URL" className="w-full bg-white border border-black/5 rounded-xl px-4 py-3 text-sm text-navy" /></div>
+                                            <div className="group"><input type="url" value={formData.youtube} onChange={(e) => updateForm('youtube', e.target.value)} placeholder="YouTube URL" className="w-full bg-white border border-black/5 rounded-xl px-4 py-3 text-sm text-navy" /></div>
+                                            <div className="group"><input type="url" value={formData.x} onChange={(e) => updateForm('x', e.target.value)} placeholder="X / Twitter URL" className="w-full bg-white border border-black/5 rounded-xl px-4 py-3 text-sm text-navy" /></div>
+                                            <div className="group md:col-span-2"><input type="url" value={formData.web} onChange={(e) => updateForm('web', e.target.value)} placeholder="Página Web URL" className="w-full bg-white border border-black/5 rounded-xl px-4 py-3 text-sm text-navy" /></div>
                                         </div>
                                     )}
                                 </div>
@@ -1993,7 +2000,7 @@ return (
                                             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
                                                 <MapPin size={20} className="text-primary" />
                                             </div>
-                                            <span className="font-black uppercase tracking-widest text-xs text-navy">Ubicación y Búsqueda</span>
+                                            <span className="font-black uppercase tracking-widest text-xs text-navy">Ubicación, Búsqueda y Más</span>
                                         </div>
                                         <ChevronDown size={20} className={cn("text-navy/20 transition-transform", openAccordion === 'extra' && "rotate-180")} />
                                     </button>
@@ -2002,6 +2009,14 @@ return (
                                             <div className="group">
                                                 <label className="block text-[10px] font-black text-navy uppercase tracking-widest mb-3 ml-1">Dirección</label>
                                                 <input type="text" value={formData.address} onChange={(e) => updateForm('address', e.target.value)} placeholder="Calle y Ciudad" className="w-full bg-white border border-black/5 rounded-2xl px-6 py-4 text-navy" />
+                                            </div>
+                                            <div className="group">
+                                                <label className="block text-[10px] font-black text-navy uppercase tracking-widest mb-3 ml-1">Link de Google Maps</label>
+                                                <input type="url" value={formData.google_business} onChange={(e) => updateForm('google_business', e.target.value)} placeholder="https://maps.app.goo.gl/..." className="w-full bg-white border border-black/5 rounded-2xl px-6 py-4 text-navy" />
+                                            </div>
+                                            <div className="group">
+                                                <label className="block text-[10px] font-black text-navy uppercase tracking-widest mb-3 ml-1">Menú Digital / Catálogo PDF</label>
+                                                <input type="url" value={formData.menu_digital} onChange={(e) => updateForm('menu_digital', e.target.value)} placeholder="https://link-a-tu-menu.com/pdf" className="w-full bg-white border border-black/5 rounded-2xl px-6 py-4 text-navy" />
                                             </div>
                                             <div className="group">
                                                 <label className="block text-[10px] font-black text-navy uppercase tracking-widest mb-3 ml-1">Etiquetas SEO (Comas)</label>

@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
                 r.expires_reminder_30d_sent, r.expires_reminder_7d_sent, r.expires_reminder_0d_sent,
                 r.hero_action, r.hero_file_url, r.hero_external_link, r.hero_wifi_steps,
                 r.hero_section_title, r.hero_step1_title, r.hero_step1_text, r.hero_step2_title, r.hero_step2_text, r.hero_step3_title, r.hero_step3_text,
-                r.google_rating, r.google_reviews_count, r.youtube_video_url, r.hero_slides_json,
+                r.google_rating, r.google_reviews_count, r.youtube_video_url, r.hero_slides_json, r.edit_code,
                 -- Explicitly omitting: catalogo_json, galeria_urls to save massive bandwidth
                 s.nombre as sold_by_name, 
                 s.codigo as sold_by_code,
