@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
                 web, google_business, instagram, linkedin, facebook, tiktok, youtube, x,
                 productos_servicios, plan, foto_url, etiquetas, edit_code,
                 tipo_perfil, nombres, apellidos, nombre_negocio, contacto_nombre, contacto_apellido,
-                menu_digital, template_id, status
+                menu_digital, template_id, status, mensaje
             FROM registraya_vcard_registros 
             WHERE slug = ? 
             AND status IN ('pagado', 'entregado')
@@ -90,6 +90,7 @@ export async function GET(req: NextRequest) {
             },
             vcf_url: vcfUrl,
             card_url: `https://activaqr.com/card/${record.slug}`,
+            mensaje: record.mensaje || null,
         });
 
     } catch (err: any) {

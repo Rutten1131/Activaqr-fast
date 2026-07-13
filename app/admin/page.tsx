@@ -43,7 +43,8 @@ import {
     Bell,
     CalendarCheck,
     Copy,
-    BarChart2
+    BarChart2,
+    Send
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -55,6 +56,9 @@ import { formatPhoneEcuador } from "@/lib/utils";
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
+
+import BroadcastPanel from "@/components/admin/BroadcastPanel";
+
 
 // Utilidad para detectar URLs de marcador de posición o no válidas
 const isPlaceholderUrl = (url: string | null | undefined) => {
@@ -104,6 +108,8 @@ export default function AdminDashboard() {
     const [isEditSellerModalOpen, setIsEditSellerModalOpen] = useState(false);
     const [editingSeller, setEditingSeller] = useState<any>(null);
     const [isSavingSeller, setIsSavingSeller] = useState(false);
+    const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
+
 
     // Estados para migración de equipo
     const [isMigrateModalOpen, setIsMigrateModalOpen] = useState(false);
@@ -833,6 +839,7 @@ export default function AdminDashboard() {
                             ? editingRegistro.hero_slides_json 
                             : JSON.stringify(editingRegistro.hero_slides_json)
                     ) : null,
+                    mensaje: editingRegistro.mensaje || null,
                 })
             });
             const result = await res.json();
@@ -1604,6 +1611,14 @@ export default function AdminDashboard() {
                             <BarChart3 size={16} />
                             Marketing & Enablement
                         </Link>
+                        <button
+                            onClick={() => setIsBroadcastOpen(true)}
+                            className="bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/30 hover:bg-[#00F0FF]/20 hover:scale-105 px-4 py-3 md:px-6 md:py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(0,240,255,0.1)]"
+                        >
+                            <Send size={16} />
+                            Envío Masivo (WhatsApp)
+                        </button>
+
                         <button
                             onClick={() => setIsLive(!isLive)}
                             className={cn(
@@ -3506,6 +3521,12 @@ export default function AdminDashboard() {
                             </div>
                         </motion.div>
                     </div>
+                )}
+                {isBroadcastOpen && (
+                    <BroadcastPanel
+                        onClose={() => setIsBroadcastOpen(false)}
+                        adminKey={getAdminKey()}
+                    />
                 )}
             </AnimatePresence>
         </div>

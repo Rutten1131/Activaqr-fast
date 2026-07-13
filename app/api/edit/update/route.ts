@@ -191,6 +191,7 @@ export async function POST(req: NextRequest) {
                     google_reviews_count = ?,
                     template_id = ?,
                     json_override = ?,
+                    mensaje = ?,
                     last_edited_at = NOW()
             `;
 
@@ -241,7 +242,8 @@ export async function POST(req: NextRequest) {
                 data.google_rating || null,
                 data.google_reviews_count || null,
                 data.template_id || 'classic',
-                data.json_override ? (typeof data.json_override === 'string' ? data.json_override : JSON.stringify(data.json_override)) : null
+                data.json_override ? (typeof data.json_override === 'string' ? data.json_override : JSON.stringify(data.json_override)) : null,
+                data.mensaje || null
             ];
 
             // If foto_url is provided (base64 from frontend), update it

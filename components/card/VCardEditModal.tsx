@@ -357,7 +357,8 @@ export default function VCardEditModal({
             offerCtaText?: string
         }>,
         catalogo_json: { categories: [], products: [] } as { categories: string[], products: any[] },
-        json_override: {} as any
+        json_override: {} as any,
+        mensaje: ''
     });
 
     // ℹ️ NOTA: El antiguo useEffect que sincronizaba productos_servicios → catalogo_json.categories
@@ -427,6 +428,7 @@ export default function VCardEditModal({
                     google_rating: data.data.google_rating || '',
                     google_reviews_count: data.data.google_reviews_count || '',
                     template_id: data.data.template_id || 'classic',
+                    mensaje: data.data.mensaje || '',
                     hero_slides_json: (() => {
                         const raw = data.data.hero_slides_json ? (typeof data.data.hero_slides_json === 'string' ? JSON.parse(data.data.hero_slides_json) : data.data.hero_slides_json) : null;
                         if (!raw || !Array.isArray(raw) || raw.length === 0) {
@@ -2032,6 +2034,20 @@ export default function VCardEditModal({
                                                             <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Email</label>
                                                             <input className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="email@ejemplo.com" />
                                                         </div>
+                                                        <div className="col-span-full space-y-1">
+                                                            <div className="flex justify-between items-center mb-1 w-full">
+                                                                <label className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">💬 Mensaje personalizado al escanear QR</label>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setFormData(prev => ({ ...prev, mensaje: (prev.mensaje || '') + ' {nombre}' }))}
+                                                                    className="text-[9px] font-bold bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-2 py-0.5 rounded transition-colors"
+                                                                >
+                                                                    + Insertar {"{nombre}"}
+                                                                </button>
+                                                            </div>
+                                                            <textarea className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50 border-emerald-200 h-20 resize-none" maxLength={500} value={formData.mensaje} onChange={(e) => setFormData({ ...formData, mensaje: e.target.value })} placeholder="Ej: Hola {nombre}, gracias por escanear mi contacto. Somos..." />
+                                                            <p className="text-[9px] text-gray-400">Usa <b>{"{nombre}"}</b> para indicar dónde debe ir el nombre de quien escanea. Límite recomendado ~400 caracteres.</p>
+                                                        </div>
                                                         <div className="space-y-1">
                                                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Instagram (Link)</label>
                                                             <input className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50" value={formData.instagram} onChange={(e) => setFormData({ ...formData, instagram: e.target.value })} placeholder="https://..." />
@@ -2769,6 +2785,20 @@ export default function VCardEditModal({
                                                         <div className="space-y-1">
                                                             <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Email</label>
                                                             <input className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="email@ejemplo.com" />
+                                                        </div>
+                                                        <div className="col-span-full space-y-1">
+                                                            <div className="flex justify-between items-center mb-1 w-full">
+                                                                <label className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">💬 Mensaje personalizado al escanear QR</label>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setFormData(prev => ({ ...prev, mensaje: (prev.mensaje || '') + ' {nombre}' }))}
+                                                                    className="text-[9px] font-bold bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-2 py-0.5 rounded transition-colors"
+                                                                >
+                                                                    + Insertar {"{nombre}"}
+                                                                </button>
+                                                            </div>
+                                                            <textarea className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50 border-emerald-200 h-20 resize-none" maxLength={500} value={formData.mensaje} onChange={(e) => setFormData({ ...formData, mensaje: e.target.value })} placeholder="Ej: Hola {nombre}, gracias por escanear mi contacto. Somos..." />
+                                                            <p className="text-[9px] text-gray-400">Usa <b>{"{nombre}"}</b> para indicar dónde debe ir el nombre de quien escanea. Límite recomendado ~400 caracteres.</p>
                                                         </div>
                                                         <div className="space-y-1">
                                                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Instagram (Link)</label>

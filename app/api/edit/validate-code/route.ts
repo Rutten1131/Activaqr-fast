@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
                     menu_digital, wifi_ssid, wifi_password, portada_desktop, portada_movil, hero_button_text,
                     hero_action, hero_file_url, hero_external_link, hero_wifi_steps,
                     hero_section_title, hero_step1_title, hero_step2_title, hero_step2_text, hero_step3_title, hero_step3_text,
-                    catalogo_json, youtube_video_url, google_rating, google_reviews_count, seller_id as sellerCode, hero_slides_json, template_id, json_override
+                    catalogo_json, youtube_video_url, google_rating, google_reviews_count, seller_id as sellerCode, hero_slides_json, template_id, json_override, mensaje
                  FROM registraya_vcard_registros 
                  WHERE UPPER(edit_code) = UPPER(?)`;
             

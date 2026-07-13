@@ -1060,6 +1060,29 @@ export default function VCardEditModal({
                                                     onChange={e => setEditingRegistro({ ...editingRegistro, email: e.target.value })}
                                                 />
                                             </div>
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-white/20 block ml-1">Mensaje personalizado al escanear QR (WhatsApp)</label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const text = editingRegistro.mensaje || '';
+                                                            setEditingRegistro({ ...editingRegistro, mensaje: text + ' {nombre}' });
+                                                        }}
+                                                        className="text-[9px] font-black bg-primary/20 hover:bg-primary/30 text-primary px-2.5 py-1 rounded-lg uppercase tracking-wider transition-colors"
+                                                    >
+                                                        + Insertar {"{nombre}"}
+                                                    </button>
+                                                </div>
+                                                <textarea
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 font-bold text-white outline-none focus:border-primary/40 transition-all text-sm h-24 resize-none"
+                                                    maxLength={500}
+                                                    placeholder="Ej: Hola {nombre}, gracias por escanear mi contacto. Somos..."
+                                                    value={editingRegistro.mensaje || ''}
+                                                    onChange={e => setEditingRegistro({ ...editingRegistro, mensaje: e.target.value })}
+                                                />
+                                                <p className="text-[9px] text-white/40 mt-1">Usa el botón de arriba para colocar la variable del nombre. Límite recomendado ~400 caracteres.</p>
+                                            </div>
                                         </div>
                                     </div>
                                     {/* Columna Derecha: Redes y Links */}
