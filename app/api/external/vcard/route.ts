@@ -90,7 +90,26 @@ export async function GET(req: NextRequest) {
             },
             vcf_url: vcfUrl,
             card_url: `https://activaqr.com/card/${record.slug}`,
-            mensaje: record.mensaje || null,
+            mensaje: (() => {
+                if (record.mensaje && record.mensaje.trim()) {
+                    return record.mensaje.trim();
+                }
+                
+                // Fallback dinámico si el usuario no ha personalizado su mensaje
+                if (record.tipo_perfil === 'negocio') {
+                    const name = record.nombre_negocio || record.nombre || 'nuestro negocio';
+                    const services = record.productos_servicios 
+                        ? `, especialistas en: ${record.productos_servicios}`
+                        : '';
+                    return `Hola {nombre}, gracias por escanear nuestro contacto. Somos ${name}${services}. Guarda nuestro contacto digital aquí abajo 👇`;
+                } else {
+                    const name = record.nombre || 'mi contacto';
+                    const prof = record.profesion || '';
+                    const emp = record.empresa ? ` en ${record.empresa}` : '';
+                    const jobTitle = prof ? `, ${prof}${emp}` : '';
+                    return `Hola {nombre}, gracias por escanear mi contacto. Soy ${name}${jobTitle}. Guarda mi contacto digital aquí abajo 👇`;
+                }
+            })(),
         });
 
     } catch (err: any) {
