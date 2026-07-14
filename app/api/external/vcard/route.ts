@@ -98,16 +98,36 @@ export async function GET(req: NextRequest) {
                 // Fallback dinámico si el usuario no ha personalizado su mensaje
                 if (record.tipo_perfil === 'negocio') {
                     const name = record.nombre_negocio || record.nombre || 'nuestro negocio';
-                    const services = record.productos_servicios 
-                        ? `, especialistas en: ${record.productos_servicios}`
-                        : '';
-                    return `Hola {nombre}, gracias por escanear nuestro contacto. Somos ${name}${services}. Guarda nuestro contacto digital aquí abajo 👇`;
+                    
+                    // Extraer descripción corta del negocio (prioriza bio, luego productos_servicios)
+                    let desc = '';
+                    const rawDesc = record.bio || record.productos_servicios;
+                    if (rawDesc && rawDesc.trim()) {
+                        let cleanDesc = rawDesc.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+                        if (cleanDesc.length > 80) {
+                            cleanDesc = cleanDesc.substring(0, 77) + '...';
+                        }
+                        desc = ` (${cleanDesc})`;
+                    }
+
+                    return `¡Hola {nombre}! Te comparto el contacto digital de ${name}${desc}. 🤝\n\nGuarda su contacto digital aquí abajo 👇`;
                 } else {
                     const name = record.nombre || 'mi contacto';
-                    const prof = record.profesion || '';
-                    const emp = record.empresa ? ` en ${record.empresa}` : '';
-                    const jobTitle = prof ? `, ${prof}${emp}` : '';
-                    return `Hola {nombre}, gracias por escanear mi contacto. Soy ${name}${jobTitle}. Guarda mi contacto digital aquí abajo 👇`;
+                    
+                    // Extraer descripción corta de la persona (prioriza profesión + empresa, luego bio)
+                    let desc = '';
+                    if (record.profesion && record.profesion.trim()) {
+                        const companyStr = (record.empresa && record.empresa.trim()) ? ` en ${record.empresa.trim()}` : '';
+                        desc = ` (${record.profesion.trim()}${companyStr})`;
+                    } else if (record.bio && record.bio.trim()) {
+                        let cleanBio = record.bio.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+                        if (cleanBio.length > 80) {
+                            cleanBio = cleanBio.substring(0, 77) + '...';
+                        }
+                        desc = ` (${cleanBio})`;
+                    }
+
+                    return `¡Hola {nombre}! Te comparto el contacto digital de ${name}${desc}. 🤝\n\nGuarda su contacto digital aquí abajo 👇`;
                 }
             })(),
         });
