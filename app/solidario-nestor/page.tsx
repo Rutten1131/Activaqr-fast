@@ -3,8 +3,30 @@ import { Suspense } from "react";
 import SolidarioNestorClient from "./SolidarioNestorClient";
 
 export const metadata: Metadata = {
-    title: "Ayuda Solidaria para Néstor - ActivaQR",
-    description: "Únete a la campaña solidaria para Néstor. Colabora y recibe tu Contacto Digital profesional de agradecimiento.",
+    title: "Juntos por Néstor - Campaña Solidaria ActivaQR",
+    description: "Apoya a Néstor Javier Morales Espinosa en su rehabilitación física. Con tu aporte solidario de $35 obtienes tu Contacto Profesional y ayudas directamente a su recuperación.",
+    openGraph: {
+        title: "Juntos por Néstor - Campaña Solidaria ActivaQR",
+        description: "Apoya a Néstor Javier Morales Espinosa en su rehabilitación física. Con tu aporte solidario de $35 obtienes tu Contacto Profesional y ayudas directamente a su recuperación.",
+        url: "https://www.activaqr.com/solidario-nestor",
+        siteName: "ActivaQR",
+        images: [
+            {
+                url: "/images/nestor-solidario-2.jpg",
+                width: 768,
+                height: 1024,
+                alt: "Campaña Solidaria por Néstor",
+            }
+        ],
+        locale: "es_EC",
+        type: "website",
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Juntos por Néstor - Campaña Solidaria ActivaQR",
+        description: "Apoya a Néstor Javier Morales Espinosa en su rehabilitación física. Con tu aporte solidario de $35 obtienes tu Contacto Profesional.",
+        images: ["/images/nestor-solidario-2.jpg"],
+    }
 };
 
 export default function SolidarioNestorPage() {
