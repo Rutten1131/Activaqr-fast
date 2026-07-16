@@ -352,6 +352,15 @@ export default function SolidarioNestorClient() {
         <div className="max-w-6xl mx-auto px-4 py-16 md:py-24">
             {/* Cabecera / Banner Solidario */}
             <div className="max-w-5xl mx-auto mb-16 text-center">
+                {/* Logo de Solidaridad */}
+                <div className="mb-6 flex justify-center">
+                    <img 
+                        src="/images/logo-solidaridad-nestor.png" 
+                        alt="Ayuda para Néstor Javier" 
+                        className="w-32 h-32 md:w-40 md:h-40 object-contain rounded-full border-2 border-[#f66739]/20 p-1 bg-white/5"
+                    />
+                </div>
+
                 <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 border border-rose-500/20 mb-6">
                     <Heart className="w-3.5 h-3.5 fill-current" /> Campaña Solidaria Activa
                 </span>
