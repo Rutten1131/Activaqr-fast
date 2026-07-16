@@ -6,7 +6,7 @@ import Script from "next/script";
 import PWARegistration from "@/components/PWARegistration";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { HeaderWrapper, FooterWrapper } from "@/components/LayoutWrapper";
+import { HeaderWrapper, FooterWrapper, WhatsAppWidgetWrapper } from "@/components/LayoutWrapper";
 
 export const viewport: Viewport = {
   themeColor: '#002B49',
@@ -124,17 +124,7 @@ export default function RootLayout({
         {children}
         <FooterWrapper />
 
-        {/* ─── ActivaQR WhatsApp Widget ────────────────────────── */}
-        <Script
-          src="/widget.js"
-          data-phone="593963425323"
-          data-message="Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20ActivaQR"
-          data-position="right"
-          data-color="#25D366"
-          data-brand="ActivaQR"
-          data-api={process.env.NEXT_PUBLIC_WIDGET_API_URL || "https://www.activaqr.com/api/widget"}
-          strategy="lazyOnload"
-        />
+        <WhatsAppWidgetWrapper />
       </body>
     </html>
   );

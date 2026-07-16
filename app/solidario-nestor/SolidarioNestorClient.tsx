@@ -361,7 +361,7 @@ export default function SolidarioNestorClient() {
                     />
                 </div>
 
-                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 border border-rose-500/20 mb-6">
+                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest bg-[#66bf19]/10 text-[#66bf19] border border-[#66bf19]/20 mb-6">
                     <Heart className="w-3.5 h-3.5 fill-current" /> Campaña Solidaria Activa
                 </span>
                 <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic mb-6">
