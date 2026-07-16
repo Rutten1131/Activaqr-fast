@@ -1,7 +1,8 @@
 # ActivaQR Technical Backlog
 
 > [!IMPORTANT]
-> **[CONSULTAR SKILL MADRE (MASTER CORTEX)](file:///c:/Users/Cesar/Documents/GRUPO%20EMPRESARIAL%20REYES/PROYECTOS/Contacto-QR/.agent/skills/master-cortex/SKILL.md)** antes de iniciar cualquier tarea.
+> **[CONSULTAR FABLE PROTOCOL](.agent/skills/fable-protocol/SKILL.md)** — Punto 0 obligatorio antes de cualquier tarea no-trivial.
+> **[CONSULTAR SKILL MADRE (MASTER CORTEX)](file:///c:/Users/Cesar/Documents/GRUPO%20EMPRESARIAL%20REYES/PROYECTOS/Contacto-QR/.agent/skills/master-cortex/SKILL.md)** antes de modificar lógica de negocio.
 
 
 ## 🚀 Sesión 4 Mayo 2026 — Reingeniería de Seguridad y Bridge

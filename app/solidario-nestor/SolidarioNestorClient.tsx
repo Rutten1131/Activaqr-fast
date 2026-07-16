@@ -24,7 +24,8 @@ import {
     FileText,
     ChevronLeft,
     ChevronRight,
-    Zap
+    Zap,
+    X
 } from "lucide-react";
 import { formatPhoneEcuador } from "@/lib/utils";
 
@@ -54,6 +55,8 @@ export default function SolidarioNestorClient() {
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [generatedSlug, setGeneratedSlug] = useState("");
+    const [activeImage, setActiveImage] = useState<string | null>(null);
+    const [isExpanded, setIsExpanded] = useState(false);
 
     // Formulario estructurado idéntico a la especificación con TODOS los campos del producto de $35
     const [formData, setFormData] = useState({
@@ -348,7 +351,7 @@ export default function SolidarioNestorClient() {
     return (
         <div className="max-w-6xl mx-auto px-4 py-16 md:py-24">
             {/* Cabecera / Banner Solidario */}
-            <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="max-w-5xl mx-auto mb-16 text-center">
                 <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 border border-rose-500/20 mb-6">
                     <Heart className="w-3.5 h-3.5 fill-current" /> Campaña Solidaria Activa
                 </span>
@@ -356,14 +359,88 @@ export default function SolidarioNestorClient() {
                     Juntos por <span className="text-[#f66739]">Néstor</span>
                 </h1>
                 
-                {/* HISTORIA PLACEHOLDER */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-left space-y-4 mb-8">
-                    <p className="text-white/80 leading-relaxed font-medium">
-                        <strong>[HISTORIA DE NÉSTOR]:</strong> Hola, en esta sección podrás explicar la situación de Néstor, qué le ocurrió y por qué estamos organizando esta colecta. Esta descripción es completamente editable y sirve para conectar con el corazón de tus donantes.
-                    </p>
-                    <p className="text-white/80 leading-relaxed font-medium">
-                        Como agradecimiento especial por tu solidaridad y apoyo, al registrarte aquí te obsequiamos tu <strong>Contacto Digital (VCard Profesional valorado en $35)</strong> totalmente gratis para tu perfil profesional o comercial.
-                    </p>
+                {/* HISTORIA DE NÉSTOR */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-left mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+                        {/* Texto */}
+                        <div className="md:col-span-7 space-y-4">
+                            {/* En móvil: versión truncada / expandible */}
+                            <div className="block md:hidden space-y-4">
+                                <p className="text-white/80 leading-relaxed font-medium">
+                                    Tras haber enfrentado una trombosis pulmonar, sepsis generalizada y falla multiorgánica, Néstor Javier
+                                    {!isExpanded ? (
+                                        <span>...</span>
+                                    ) : (
+                                        <span>
+                                            <strong> Morales Espinosa</strong> sigue luchando por su completa recuperación. Aunque logró superar esta grave crisis de salud, las secuelas persisten y requiere urgentemente de <strong>rehabilitación física</strong> para recuperar su independencia y autonomía en la vida diaria.
+                                        </span>
+                                    )}
+                                </p>
+                                {isExpanded && (
+                                    <>
+                                        <p className="text-white/80 leading-relaxed font-medium">
+                                            Para lograr que sus músculos vuelvan a ser capaces de soportar su peso, se estima que necesitará aproximadamente dos o tres meses de terapia diaria con un rehabilitador físico. ¡Hoy necesitamos tu ayuda para apoyar su recuperación!
+                                        </p>
+                                        <p className="text-white/80 leading-relaxed font-medium">
+                                            Con tu aporte solidario de $35, obtienes tu <strong>Contacto Profesional</strong> para tu perfil profesional o comercial, apoyando directamente al financiamiento de la terapia de Néstor.
+                                        </p>
+                                    </>
+                                )}
+                                <div className="pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsExpanded(!isExpanded)}
+                                        className="text-[#f66739] hover:text-[#FF8A33] font-bold text-xs uppercase tracking-wider focus:outline-none transition-colors border border-[#f66739]/30 rounded-lg px-3 py-1.5 bg-[#f66739]/10"
+                                    >
+                                        {isExpanded ? "Ocultar" : "Seguir leyendo"}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* En desktop: Siempre completo */}
+                            <div className="hidden md:block space-y-4">
+                                <p className="text-white/80 leading-relaxed font-medium">
+                                    Tras haber enfrentado una trombosis pulmonar, sepsis generalizada y falla multiorgánica, <strong>Néstor Javier Morales Espinosa</strong> sigue luchando por su completa recuperación. Aunque logró superar esta grave crisis de salud, las secuelas persisten y requiere urgentemente de <strong>rehabilitación física</strong> para recuperar su independencia y autonomía en la vida diaria.
+                                </p>
+                                <p className="text-white/80 leading-relaxed font-medium">
+                                    Para lograr que sus músculos vuelvan a ser capaces de soportar su peso, se estima que necesitará aproximadamente dos o tres meses de terapia diaria con un rehabilitador físico. ¡Hoy necesitamos tu ayuda para apoyar su recuperación!
+                                </p>
+                                <p className="text-white/80 leading-relaxed font-medium">
+                                    Con tu aporte solidario de $35, obtienes tu <strong>Contacto Profesional</strong> para tu perfil profesional o comercial, apoyando directamente al financiamiento de la terapia de Néstor.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        {/* Imágenes */}
+                        <div className="md:col-span-5 grid grid-cols-2 gap-4">
+                            <div 
+                                onClick={() => setActiveImage("/images/nestor-solidario-2.jpg")}
+                                className="relative aspect-[3/4] rounded-xl overflow-hidden border border-white/10 shadow-lg cursor-zoom-in group"
+                            >
+                                <img 
+                                    src="/images/nestor-solidario-2.jpg" 
+                                    alt="Néstor Javier Morales Espinosa en recuperación" 
+                                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                                />
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="bg-black/60 px-3 py-1 rounded-full text-xs text-white font-black uppercase tracking-wider">Ampliar</span>
+                                </div>
+                            </div>
+                            <div 
+                                onClick={() => setActiveImage("/images/nestor-solidario-1.png")}
+                                className="relative aspect-[3/4] rounded-xl overflow-hidden border border-white/10 shadow-lg cursor-zoom-in group"
+                            >
+                                <img 
+                                    src="/images/nestor-solidario-1.png" 
+                                    alt="Néstor Javier Morales Espinosa en silla de ruedas" 
+                                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                                />
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="bg-black/60 px-3 py-1 rounded-full text-xs text-white font-black uppercase tracking-wider">Ampliar</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -373,11 +450,11 @@ export default function SolidarioNestorClient() {
                 {/* Beneficios del Contacto Digital */}
                 <div className="lg:col-span-4 bg-[#0d1527] border border-white/5 rounded-3xl p-8 space-y-6 lg:sticky lg:top-8">
                     <h3 className="text-lg font-black uppercase tracking-widest text-[#f66739]">¿Qué incluye tu Contacto Digital?</h3>
-                    <div className="text-4xl font-black">$35<span className="text-xs text-white/50 font-normal"> / Gratis por tu apoyo</span></div>
+                    <div className="text-4xl font-black">$35<span className="text-xs text-white/50 font-normal"> / Aporte solidario</span></div>
                     
                     <ul className="space-y-4">
                         {[
-                            "Tarjeta VCard Profesional en línea",
+                            "Tarjeta de Contacto Profesional en línea",
                             "Foto de perfil y bio adaptada",
                             "Enlace directo a WhatsApp y redes",
                             "Botón de descarga para contactos en un click",
@@ -880,6 +957,35 @@ export default function SolidarioNestorClient() {
                     </form>
                 </div>
             </div>
+
+            {/* Lightbox para imágenes */}
+            <AnimatePresence>
+                {activeImage && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setActiveImage(null)}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 cursor-zoom-out"
+                    >
+                        <button 
+                            onClick={() => setActiveImage(null)}
+                            className="absolute top-6 right-6 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-[101]"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                        <motion.img
+                            initial={{ scale: 0.95 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.95 }}
+                            src={activeImage}
+                            alt="Vista ampliada"
+                            className="max-w-full max-h-[90vh] rounded-xl object-contain shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

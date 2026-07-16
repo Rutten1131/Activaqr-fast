@@ -12,6 +12,7 @@ La **Skill Madre** contiene la visión estratégica, terminología oficial y el 
 
 | Habilidad | Ubicación | Función |
 | :--- | :--- | :--- |
+| **Fable Protocol** | [.agent/skills/fable-protocol/](file:///d:/Abel%20paginas/Generador%20QR%20contacto/Mayo/Contacto-QR-main/.agent/skills/fable-protocol/) | Método de trabajo. Punto 0 obligatorio para tareas no-trivial. |
 | **ADN ActivaQR** | [.agent/skills/dna/](file:///c:/Users/Cesar/Documents/GRUPO%20EMPRESARIAL%20REYES/PROYECTOS/Contacto-QR/.agent/skills/dna/) | Precios, escalera de valor y psicología v3. |
 | **Branding & UI** | [.agent/skills/branding/](file:///c:/Users/Cesar/Documents/GRUPO%20EMPRESARIAL%20REYES/PROYECTOS/Contacto-QR/.agent/skills/branding/) | Paleta Tomato/Navy y reglas de estilo. |
 | **Hero Standard** | [.agent/skills/hero-ui-standard/](file:///c:/Users/Cesar/Documents/GRUPO%20EMPRESARIAL%20REYES/PROYECTOS/Contacto-QR/.agent/skills/hero-ui-standard/) | Estándar de proporciones UX para cabeceras. |
@@ -21,7 +22,8 @@ La **Skill Madre** contiene la visión estratégica, terminología oficial y el 
 
 ## 🚀 Protocolo de Ejecución ActivaQR
 
-1.  **Fase 0 (Consulta):** Antes de modificar lógica de negocio, invocar el **Master Cortex** (Nivel 2 BeSync).
+0.  **Fase 0 (Método Fable):** Antes de cualquier tarea no-trivial, aplicar el **[Fable Protocol](.agent/skills/fable-protocol/SKILL.md)**. Es el punto de partida obligatorio.
+1.  **Fase 1 (Consulta):** Antes de modificar lógica de negocio, invocar el **Master Cortex** (Nivel 2 BeSync).
 2.  **Consistencia de Marca:** Toda nueva UI debe validar contra `hero-ui-standard` y `branding`.
 3.  **No Contaminación:** Prohibido usar terminología de otros proyectos (ej: Aquatech) en este repositorio.
 4.  **Prioridad Local:** Las skills en `.agent/skills/` sobrescriben cualquier comportamiento global equivalente.
