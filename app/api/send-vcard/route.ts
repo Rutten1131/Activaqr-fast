@@ -43,6 +43,15 @@ export async function POST(req: NextRequest) {
         if (qrUrl) {
             attachments.push({ filename: 'qr-code.png', path: qrUrl });
         }
+
+        // QR de WhatsApp como archivo adjunto en línea (CID) para que no salga roto en producción
+        const whatsappQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://wa.me/593963425323?text=${encodeURIComponent(`Contacto:${slug}`)}`)}`;
+        attachments.push({
+            filename: 'qr-whatsapp.png',
+            path: whatsappQrUrl,
+            cid: 'whatsapp_qr'
+        });
+
         if (backupData) {
             attachments.push({
                 filename: `backup_${recipientName.replace(/\s+/g, '_')}_${Date.now()}.json`,
@@ -133,14 +142,14 @@ export async function POST(req: NextRequest) {
                         
                         <a href="${vcardUrl}" style="background-color: #FF6B00; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(255,107,0,0.25); margin-bottom: 24px;">Descargar Contacto (.vcf)</a>
 
-                        <div style="border-top: 1px solid #e2e8f0; padding-top: 24px; margin-top: 24px;">
-                            <p style="font-size: 14px; font-weight: bold; color: #050b1c; margin-bottom: 12px; text-transform: uppercase;">💬 Comparte tu QR de WhatsApp</p>
-                            <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">
-                                Al escanear este código, tus clientes abrirán un chat de WhatsApp y recibirán tu información (.vcf) de forma automática.
-                            </p>
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://wa.me/593963425323?text=${encodeURIComponent(`Contacto:${slug}`)}`)}" style="width: 180px; height: 180px; border: 1px solid #e2e8f0; padding: 8px; border-radius: 12px; background: white;" alt="QR de WhatsApp" />
-                        </div>
+                    <div style="border-top: 1px solid #e2e8f0; padding-top: 24px; margin-top: 24px;">
+                        <p style="font-size: 14px; font-weight: bold; color: #050b1c; margin-bottom: 12px; text-transform: uppercase;">💬 Comparte tu QR de WhatsApp</p>
+                        <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">
+                            Al escanear este código, tus clientes abrirán un chat de WhatsApp y recibirán tu información (.vcf) de forma automática.
+                        </p>
+                        <img src="cid:whatsapp_qr" style="width: 180px; height: 180px; border: 1px solid #e2e8f0; padding: 8px; border-radius: 12px; background: white;" alt="QR de WhatsApp" />
                     </div>
+                </div>
                     
                     ${extraLinkSection}
                     ${editCodeSection}
