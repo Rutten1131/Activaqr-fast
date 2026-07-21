@@ -2062,12 +2062,12 @@ export default function VCardEditModal({
                                         </div>
                                         <div className="bg-green-500/10 p-6 rounded-3xl border border-green-500/20 flex items-center gap-6">
                                             <div className="bg-white p-2 rounded-xl">
-                                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://wa.me/593963425323?text=${encodeURIComponent(`Contacto:${editingRegistro.slug || editingRegistro.id}`)}`)}`} className="w-20 h-20" />
+                                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://wa.me/${(editingRegistro.whatsapp || '').replace(/\D/g, '') || '593963425323'}?text=${encodeURIComponent(`Contacto:${editingRegistro.slug || editingRegistro.id}`)}`)}`} className="w-20 h-20" />
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-[10px] font-black text-green-400 uppercase">QR WhatsApp</p>
                                                 <p className="text-[9px] text-white/40 leading-tight">El cliente recibe su VCF automáticamente por WhatsApp al escanear.</p>
-                                                <a href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(`https://wa.me/593963425323?text=${encodeURIComponent(`Contacto:${editingRegistro.slug || editingRegistro.id}`)}`)}`} target="_blank" className="text-green-400 text-[9px] font-black uppercase hover:underline inline-flex items-center gap-1 mt-2">Descargar QR</a>
+                                                <a href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(`https://wa.me/${(editingRegistro.whatsapp || '').replace(/\D/g, '') || '593963425323'}?text=${encodeURIComponent(`Contacto:${editingRegistro.slug || editingRegistro.id}`)}`)}`} target="_blank" className="text-green-400 text-[9px] font-black uppercase hover:underline inline-flex items-center gap-1 mt-2">Descargar QR</a>
                                             </div>
                                         </div>
                                     </div>
