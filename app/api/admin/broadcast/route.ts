@@ -234,8 +234,7 @@ export async function POST(req: NextRequest) {
                 let finalMediaType = mediaType;
 
                 if (dynamicQr && r.slug) {
-                    const cleanWa = (r.whatsapp || '').replace(/\D/g, '') || '593963425323';
-                    finalMediaUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(`https://wa.me/${cleanWa}?text=${encodeURIComponent(`Contacto:${r.slug}`)}`)}`;
+                    finalMediaUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(`https://wa.me/593963425323?text=${encodeURIComponent(`Contacto:${r.slug}`)}`)}`;
                     finalMediaType = 'image';
                 }
 

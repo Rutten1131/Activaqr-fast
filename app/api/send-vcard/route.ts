@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { email, name, nombre, vcardUrl, qrUrl, backupData, edit_code, plan, slug, whatsapp, telefono } = body;
+        const { email, name, nombre, vcardUrl, qrUrl, backupData, edit_code, plan, slug } = body;
 
         const recipientEmail = email;
         const recipientName = name || nombre;
@@ -45,8 +45,7 @@ export async function POST(req: NextRequest) {
         }
 
         // QR de WhatsApp como archivo adjunto en línea (CID) para que no salga roto en producción
-        const cleanWa = ((whatsapp || telefono || '') as string).replace(/\D/g, '') || '593963425323';
-        const whatsappQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://wa.me/${cleanWa}?text=${encodeURIComponent(`Contacto:${slug}`)}`)}`;
+        const whatsappQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://wa.me/593963425323?text=${encodeURIComponent(`Contacto:${slug}`)}`)}`;
         attachments.push({
             filename: 'qr-whatsapp.png',
             path: whatsappQrUrl,
