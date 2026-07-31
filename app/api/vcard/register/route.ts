@@ -228,10 +228,13 @@ export async function POST(req: NextRequest) {
 
                         const [codeRows]: any = await pool.execute(`
                             SELECT id FROM registraya_vcard_sellers 
-                            WHERE (LOWER(codigo) = LOWER(?) OR LOWER(codigo) = LOWER(?) OR LOWER(REPLACE(codigo, "#", "")) = LOWER(?))
+                            WHERE (
+                                LOWER(code) = LOWER(?) OR LOWER(code) = LOWER(?) OR LOWER(REPLACE(code, "#", "")) = LOWER(?) OR
+                                LOWER(codigo) = LOWER(?) OR LOWER(codigo) = LOWER(?) OR LOWER(REPLACE(codigo, "#", "")) = LOWER(?)
+                            )
                               AND (activo = 1 OR activo IS NULL)
                             LIMIT 1
-                        `, [codeStr, withHash, cleanCode]);
+                        `, [codeStr, withHash, cleanCode, codeStr, withHash, cleanCode]);
 
                         if (codeRows.length > 0) {
                             finalSellerId = codeRows[0].id;
