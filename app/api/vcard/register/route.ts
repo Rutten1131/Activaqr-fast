@@ -216,26 +216,46 @@ export async function POST(req: NextRequest) {
                     finalSlug = `${cleanName}-${Math.random().toString(36).substring(2, 6)}`;
                 }
 
-                // --- FOOTPRINT ATTRIBUTION LOGIC ---
+                // --- RESOLVE SELLER ID FROM CODE IF PROVIDED ---
                 let finalSellerId = seller_id || null;
+                const rawSellerCode = body.seller_code || body.seller_id;
+                
+                if ((!finalSellerId || typeof finalSellerId === 'string') && rawSellerCode) {
+                    try {
+                        const [codeRows]: any = await pool.execute(
+                            'SELECT id FROM registraya_vcard_sellers WHERE codigo = ? AND activo = 1 LIMIT 1',
+                            [String(rawSellerCode).trim()]
+                        );
+                        if (codeRows.length > 0) {
+                            finalSellerId = codeRows[0].id;
+                            console.log(`[REGISTER] Resolved seller_code '${rawSellerCode}' to seller_id ${finalSellerId}`);
+                        }
+                    } catch (codeErr) {
+                        console.error('Error resolving seller_code in register:', codeErr);
+                    }
+                }
+
+                // --- FOOTPRINT ATTRIBUTION LOGIC ---
                 let isFootprintAttributed = 0;
 
                 try {
-                    // Search for a visit in the last 30 days with a matching phone or email
-                    // Priority: Footprint overrides manual seller_id
-                    const [footprintRows]: any = await pool.execute(`
-                        SELECT seller_id 
-                        FROM registraya_vcard_field_visits 
-                        WHERE (contact_phone = ? OR (contact_email IS NOT NULL AND contact_email = ?))
-                          AND created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
-                        ORDER BY created_at DESC 
-                        LIMIT 1
-                    `, [whatsapp, email]);
+                    // Search for a visit in the last 90 days with a matching phone or email
+                    // Footprint only applies if no manual seller_id was provided
+                    if (!finalSellerId) {
+                        const [footprintRows]: any = await pool.execute(`
+                            SELECT seller_id 
+                            FROM registraya_vcard_field_visits 
+                            WHERE (contact_phone = ? OR (contact_email IS NOT NULL AND contact_email = ?))
+                              AND created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
+                            ORDER BY created_at DESC 
+                            LIMIT 1
+                        `, [whatsapp, email]);
 
-                    if (footprintRows.length > 0) {
-                        finalSellerId = footprintRows[0].seller_id;
-                        isFootprintAttributed = 1;
-                        console.log(`ATTRIBUTION: Footprint found for ${email}. Attributed to seller ${finalSellerId}`);
+                        if (footprintRows.length > 0) {
+                            finalSellerId = footprintRows[0].seller_id;
+                            isFootprintAttributed = 1;
+                            console.log(`ATTRIBUTION: Footprint found for ${email}. Attributed to seller ${finalSellerId}`);
+                        }
                     }
                 } catch (attributionErr) {
                     console.error("Error checking footprint attribution:", attributionErr);

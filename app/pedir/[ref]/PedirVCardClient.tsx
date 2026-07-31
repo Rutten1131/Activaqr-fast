@@ -340,7 +340,8 @@ export default function PedirVCardClient({ refCode }: PedirVCardClientProps) {
                 template_id: "classic",
                 foto_url: photoUrl,
                 slug: slug,
-                seller_id: resolvedSellerId || null,  // ← del ref de la URL
+                seller_id: resolvedSellerId || null,  // ← del ref de la URL o input resuelto
+                seller_code: sellerCodeInput.trim() || null, // ← envía el código escrito explícito
             };
 
             const response = await fetch("/api/vcard/register", {
