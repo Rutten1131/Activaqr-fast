@@ -72,7 +72,11 @@ export default function PedirVCardClient({ refCode }: PedirVCardClientProps) {
     const [isSuccess, setIsSuccess] = useState(false);
     const [generatedSlug, setGeneratedSlug] = useState("");
 
-    // Resolución de seller desde refCode
+    // Estado para código de vendedor ingresado manualmente o vía URL
+    const [sellerCodeInput, setSellerCodeInput] = useState<string>(
+        refCode && refCode !== "general" ? refCode : ""
+    );
+    const [isValidatingSeller, setIsValidatingSeller] = useState(false);
     const [resolvedSellerId, setResolvedSellerId] = useState<number | null>(null);
     const [sellerName, setSellerName] = useState<string | null>(null);
     const [sellerResolved, setSellerResolved] = useState(false);
@@ -125,21 +129,42 @@ export default function PedirVCardClient({ refCode }: PedirVCardClientProps) {
         return `https://${cleanUser}`;
     };
 
-    // ── Resolver seller desde ref ───────────────────────────────────────────
+    // ── Resolver seller dinámicamente desde el código escrito o URL ──────────
     useEffect(() => {
-        const codeToValidate = (!refCode || refCode === "general") ? "007" : refCode;
-        
-        fetch(`/api/vcard/validate-seller?code=${encodeURIComponent(codeToValidate)}`)
-            .then((r) => r.json())
-            .then((data) => {
-                if (data.success) {
-                    setResolvedSellerId(data.id);
-                    setSellerName(data.nombre);
-                }
-            })
-            .catch(() => {})
-            .finally(() => setSellerResolved(true));
-    }, [refCode]);
+        const codeToValidate = sellerCodeInput.trim();
+        if (!codeToValidate) {
+            setResolvedSellerId(null);
+            setSellerName(null);
+            setSellerResolved(true);
+            setIsValidatingSeller(false);
+            return;
+        }
+
+        setIsValidatingSeller(true);
+        const timer = setTimeout(() => {
+            fetch(`/api/vcard/validate-seller?code=${encodeURIComponent(codeToValidate)}`)
+                .then((r) => r.json())
+                .then((data) => {
+                    if (data.success) {
+                        setResolvedSellerId(data.id);
+                        setSellerName(data.nombre);
+                    } else {
+                        setResolvedSellerId(null);
+                        setSellerName(null);
+                    }
+                })
+                .catch(() => {
+                    setResolvedSellerId(null);
+                    setSellerName(null);
+                })
+                .finally(() => {
+                    setSellerResolved(true);
+                    setIsValidatingSeller(false);
+                });
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [sellerCodeInput]);
 
     // ── Auto-etiquetas por profesión ────────────────────────────────────────
     useEffect(() => {
@@ -487,6 +512,55 @@ export default function PedirVCardClient({ refCode }: PedirVCardClientProps) {
                                 <div>
                                     <h2 className="text-xl font-black mb-1">Datos de contacto</h2>
                                     <p className="text-white/50 text-sm">Tu información básica para el contacto digital.</p>
+                                </div>
+
+                                {/* ─── Campo Código de Asesor/Vendedor ─── */}
+                                <div>
+                                    <label className="block text-xs font-bold text-white/60 uppercase tracking-wider mb-1.5">
+                                        Código de Asesor / Vendedor
+                                        <span className="text-white/30 normal-case font-normal ml-1">(opcional)</span>
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={sellerCodeInput}
+                                            onChange={(e) => setSellerCodeInput(e.target.value.toUpperCase())}
+                                            placeholder="Ej: 007, 001, JUAN..."
+                                            maxLength={20}
+                                            className={`w-full bg-white/5 border rounded-xl px-4 py-3 pr-12 text-white placeholder-white/25 focus:outline-none transition-colors font-mono tracking-widest ${
+                                                sellerCodeInput && sellerResolved
+                                                    ? resolvedSellerId
+                                                        ? "border-green-500/50 focus:border-green-500/70"
+                                                        : "border-red-500/40 focus:border-red-500/60"
+                                                    : "border-white/10 focus:border-[#f66739]/50"
+                                            }`}
+                                        />
+                                        {/* Indicador de estado */}
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            {isValidatingSeller ? (
+                                                <Loader2 className="w-4 h-4 text-white/40 animate-spin" />
+                                            ) : sellerCodeInput && sellerResolved ? (
+                                                resolvedSellerId ? (
+                                                    <BadgeCheck className="w-5 h-5 text-green-400" />
+                                                ) : (
+                                                    <X className="w-4 h-4 text-red-400" />
+                                                )
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                    {/* Feedback del vendedor */}
+                                    {sellerCodeInput && sellerResolved && !isValidatingSeller && (
+                                        <p className={`text-xs mt-1.5 font-semibold ${resolvedSellerId ? "text-green-400" : "text-white/40"}`}>
+                                            {resolvedSellerId
+                                                ? `✓ Asesor confirmado: ${sellerName}`
+                                                : "Código no encontrado — se registrará como Venta Directa"}
+                                        </p>
+                                    )}
+                                    {!sellerCodeInput && (
+                                        <p className="text-white/30 text-xs mt-1">
+                                            Si tu asesor te dio un código, ingrésalo aquí para que quede registrado a su nombre.
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Tipo de perfil */}
@@ -876,6 +950,11 @@ export default function PedirVCardClient({ refCode }: PedirVCardClientProps) {
                                 {/* Resumen */}
                                 <div className="space-y-3">
                                     {[
+                                        {
+                                            label: "Asesor / Vendedor",
+                                            value: resolvedSellerId ? `${sellerName} (${sellerCodeInput})` : (sellerCodeInput ? `Directo (${sellerCodeInput} no encontrado)` : "Venta Directa"),
+                                            icon: BadgeCheck,
+                                        },
                                         {
                                             label: "Nombre",
                                             value:
