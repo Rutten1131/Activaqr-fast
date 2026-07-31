@@ -220,12 +220,19 @@ export async function POST(req: NextRequest) {
                 let finalSellerId = seller_id || null;
                 const rawSellerCode = body.seller_code || body.seller_id;
                 
-                if ((!finalSellerId || typeof finalSellerId === 'string') && rawSellerCode) {
+                if ((!finalSellerId || typeof finalSellerId === 'string' || isNaN(Number(finalSellerId))) && rawSellerCode) {
                     try {
-                        const [codeRows]: any = await pool.execute(
-                            'SELECT id FROM registraya_vcard_sellers WHERE codigo = ? AND activo = 1 LIMIT 1',
-                            [String(rawSellerCode).trim()]
-                        );
+                        const codeStr = String(rawSellerCode).trim();
+                        const cleanCode = codeStr.replace(/[^a-zA-Z0-9]/g, '');
+                        const withHash = `#${cleanCode}`;
+
+                        const [codeRows]: any = await pool.execute(`
+                            SELECT id FROM registraya_vcard_sellers 
+                            WHERE (LOWER(codigo) = LOWER(?) OR LOWER(codigo) = LOWER(?) OR LOWER(REPLACE(codigo, "#", "")) = LOWER(?))
+                              AND (activo = 1 OR activo IS NULL)
+                            LIMIT 1
+                        `, [codeStr, withHash, cleanCode]);
+
                         if (codeRows.length > 0) {
                             finalSellerId = codeRows[0].id;
                             console.log(`[REGISTER] Resolved seller_code '${rawSellerCode}' to seller_id ${finalSellerId}`);

@@ -5,33 +5,37 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
-    const code = searchParams.get('code');
+    const rawCode = searchParams.get('code');
     const id = searchParams.get('id');
 
-    if (!code && !id) {
+    if (!rawCode && !id) {
         return NextResponse.json({ error: 'Código o ID es requerido' }, { status: 400 });
     }
 
     try {
-        let query = 'SELECT id, nombre FROM registraya_vcard_sellers WHERE activo = 1';
+        let query = 'SELECT id, nombre, codigo FROM registraya_vcard_sellers WHERE (activo = 1 OR activo IS NULL)';
         let params: any[] = [];
 
-        if (code) {
-            query += ' AND codigo = ?';
-            params.push(code);
+        if (rawCode) {
+            const cleanCode = rawCode.replace(/[^a-zA-Z0-9]/g, '').trim();
+            const withHash = `#${cleanCode}`;
+
+            query += ' AND (LOWER(codigo) = LOWER(?) OR LOWER(codigo) = LOWER(?) OR LOWER(REPLACE(codigo, "#", "")) = LOWER(?))';
+            params.push(rawCode.trim(), withHash, cleanCode);
         } else if (id) {
             query += ' AND id = ?';
             params.push(id);
         }
 
         const [rows] = await pool.execute(query, params);
-
         const sellers = rows as any[];
+
         if (sellers.length > 0) {
             return NextResponse.json({
                 success: true,
                 id: sellers[0].id,
-                nombre: sellers[0].nombre
+                nombre: sellers[0].nombre,
+                codigo: sellers[0].codigo
             });
         } else {
             return NextResponse.json({
