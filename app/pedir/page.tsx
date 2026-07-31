@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-// /pedir → redirige al formulario sin código de referido
-export default function PedirPage() {
-    redirect("/pedir/general");
+// Redirección de compatibilidad: /pedir → /mi-qr/general
+export default function PedirRedirectPage() {
+    redirect("/mi-qr/general");
 }
