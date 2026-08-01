@@ -44,12 +44,11 @@ Formato: Devuelve SOLO las etiquetas separadas por comas, sin numeración, sin t
 
         let generatedTags: string | null = null;
 
-        // Lista de llaves de Groq desde variables de entorno
-        const groqKeys = [
-            process.env.GROQ_API_KEY_1,
-            process.env.GROQ_API_KEY_2,
-            process.env.GROQ_API_KEY
-        ].filter(Boolean) as string[];
+        // Lista de llaves de Groq desde variables de entorno (dinámica para cualquier cantidad de llaves)
+        const groqKeys = Object.keys(process.env)
+            .filter((k) => k.startsWith("GROQ_API_KEY"))
+            .map((k) => process.env[k])
+            .filter(Boolean) as string[];
 
         // ── 1. CASCADA GROQ ───────────────────────────────────────────
         for (let i = 0; i < groqKeys.length; i++) {
