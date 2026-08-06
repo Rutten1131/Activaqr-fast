@@ -66,30 +66,16 @@ export const getInstagramID = (url: string): string | null => {
 
 export const getFacebookURL = (url: string): string | null => {
     if (!url) return null;
-    if (url.includes('facebook.com') || url.includes('fb.watch')) {
-        // Si ya es un reel real con ID numérico en la ruta, retornar la URL base limpia
-        const canonicalReelMatch = url.match(/facebook\.com\/reel\/(\d+)/);
-        if (canonicalReelMatch) {
-            return `https://www.facebook.com/reel/${canonicalReelMatch[1]}`;
+    const cleanUrl = url.trim();
+    if (cleanUrl.includes('facebook.com') || cleanUrl.includes('fb.watch') || cleanUrl.includes('fb.com')) {
+        // Limpiar parámetros de tracking adicionales si los hay (como ?mibextid=... o &ref=...) conservando la URL base
+        try {
+            const parsed = new URL(cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`);
+            // Si es fb.watch o link corto, devolver la URL original tal cual
+            return parsed.toString();
+        } catch {
+            return cleanUrl;
         }
-        const canonicalVideoMatch = url.match(/facebook\.com\/watch\/\?v=(\d+)/) || url.match(/facebook\.com\/video\.php\?v=(\d+)/) || url.match(/facebook\.com\/[^\/]+\/videos\/(\d+)/);
-        if (canonicalVideoMatch) {
-            return `https://www.facebook.com/video.php?v=${canonicalVideoMatch[1]}`;
-        }
-
-        // Transformar links de redirección móvil /share/r/ a links nativos de Reel
-        const shareReelMatch = url.match(/\/share\/r\/([A-Za-z0-9_-]+)/);
-        if (shareReelMatch) {
-            // Usar URL original porque el short code NO es un ID de reel válido para el embed
-            return url;
-        }
-        // Transformar links de redirección móvil /share/v/ a links nativos de Video
-        const shareVideoMatch = url.match(/\/share\/v\/([A-Za-z0-9_-]+)/);
-        if (shareVideoMatch) {
-            // Usar URL original porque el short code NO es un ID de video válido para el embed
-            return url;
-        }
-        return url;
     }
     return null;
 };

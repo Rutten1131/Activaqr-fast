@@ -41,20 +41,21 @@ export default function SocialVideoEmbed({ url, isVertical, className }: SocialV
         // Facebook
         const fbUrl = getFacebookURL(url);
         if (fbUrl) {
-            const embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(fbUrl)}&show_text=0&autoplay=0`;
+            const embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(fbUrl)}&show_text=0&autoplay=1`;
             return (
-                <div className="w-full h-full flex items-center justify-center p-1">
+                <div className="w-full h-full flex items-center justify-center p-1 md:p-2 bg-black/40 rounded-2xl relative overflow-hidden">
                     <iframe
                         src={embedUrl}
                         className={cn(
-                            "rounded-xl md:rounded-2xl shadow-2xl mx-auto w-full h-full",
+                            "rounded-xl md:rounded-2xl shadow-2xl mx-auto w-full h-full border-0",
                             isVertical 
-                                ? "max-w-[320px] md:max-w-[340px] aspect-[9/17.5] max-h-[85vh]" 
-                                : "aspect-video"
+                                ? "max-w-[340px] md:max-w-[380px] aspect-[9/16] min-h-[420px] max-h-[80vh]" 
+                                : "w-full aspect-video min-h-[250px]"
                         )}
                         allowFullScreen
-                        allow="autoplay; encrypted-media; picture-in-picture"
+                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; webshare"
                         scrolling="no"
+                        frameBorder="0"
                     />
                 </div>
             );
