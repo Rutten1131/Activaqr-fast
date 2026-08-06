@@ -91,20 +91,20 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
                     nombre_negocio: data.data.nombre_negocio || '',
                     contacto_nombre: data.data.contacto_nombre || '',
                     contacto_apellido: data.data.contacto_apellido || '',
-                    profession: data.data.profession || '',
-                    company: data.data.company || '',
+                    profession: data.data.profession || data.data.profesion || '',
+                    company: data.data.company || data.data.empresa || '',
                     whatsapp: data.data.whatsapp || '',
                     email: data.data.email || '',
                     bio: data.data.bio || '',
-                    address: data.data.address || '',
+                    address: data.data.address || data.data.direccion || '',
                     web: data.data.web || '',
                     google_business: data.data.google_business || '',
                     instagram: data.data.instagram || '',
                     linkedin: data.data.linkedin || '',
                     facebook: data.data.facebook || '',
                     tiktok: data.data.tiktok || '',
-                    products: data.data.products || '',
-                    categories: data.data.categories || '',
+                    products: data.data.productos_servicios || data.data.products || '',
+                    categories: data.data.etiquetas || data.data.categories || '',
                     menu_digital: data.data.menu_digital || '',
                     youtube: data.data.youtube || '',
                     x: data.data.x || '',
@@ -115,7 +115,7 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
                     portada_movil: data.data.portada_movil || '',
                     hero_button_text: data.data.hero_button_text || '',
                     hero_slides_json: data.data.hero_slides_json || '',
-                    sellerCode: data.data.sellerCode || ''
+                    sellerCode: data.data.sellerCode || data.data.seller_id || ''
                 });
                 
                 // Parse and set hero slides
@@ -177,6 +177,8 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
         // Auto-format WhatsApp before saving using global utility
         const formattedData = {
             ...formData,
+            productos_servicios: formData.products || '',
+            etiquetas: formData.categories || '',
             whatsapp: formatPhoneEcuador(formData.whatsapp),
             hero_slides_json: JSON.stringify(heroSlides)
         };
