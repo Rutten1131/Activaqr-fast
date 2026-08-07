@@ -95,7 +95,8 @@ export default function AdminDashboard() {
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [totalCount, setTotalCount] = useState(0);
-    const [statsTotal, setStatsTotal] = useState({ count: 0, income: 0, utility: 0, pending: 0, pendingCommission: 0, paidCommission: 0, cola: 0, comisionesPendientes: 0 });
+    const [statsTotal, setStatsTotal] = useState({ count: 0, income: 0, utility: 0, pending: 0, pendingValue: 0, pendingCommission: 0, paidCommission: 0, cola: 0, comisionesPendientes: 0 });
+    const [globalDownloadStats, setGlobalDownloadStats] = useState({ total: 0, weekly: 0, monthly: 0, today: 0 });
 
     // Estados para creación de vendedor
     const [isCreateSellerModalOpen, setIsCreateSellerModalOpen] = useState(false);
@@ -254,14 +255,12 @@ export default function AdminDashboard() {
         setIsAuthorized(false);
     };
 
-    const fetchRegistros = async (page = 1, append = false, search = '') => {
-        setLoading(page === 1 && !append);
-        setLoadingMore(append);
+    const fetchRegistros = async () => {
+        setLoading(true);
         try {
             const adminKey = localStorage.getItem('admin_access_key') || '';
-            let url = `/api/admin/registros?page=${page}&limit=50`;
-            if (search) url += `&search=${encodeURIComponent(search)}`;
-            
+            // Load ALL records client-side for stable search/filtering
+            const url = `/api/admin/registros?page=1&limit=10000`;
             const res = await fetch(url, {
                 headers: { 'x-admin-key': adminKey }
             });
@@ -273,26 +272,42 @@ export default function AdminDashboard() {
             }
             const result = await res.json();
             if (result.data) {
-                if (append) {
-                    setRegistros(prev => [...prev, ...result.data]);
-                } else {
-                    setRegistros(result.data);
-                }
-                setCurrentPage(page);
-                setHasMore(result.data.length === 50);
+                setRegistros(result.data);
+                setTotalCount(result.data.length);
+                setHasMore(false);
             }
         } catch (err: any) {
             console.error('Error fetching registros:', err);
             alert(`Error de conexión: ${err.message}`);
         }
         setLoading(false);
-        setLoadingMore(false);
     };
 
     const loadMoreRegistros = () => {
-        if (hasMore && !loadingMore) {
-            fetchRegistros(currentPage + 1, true, searchTerm);
-        }
+        // All records are loaded upfront; no pagination needed
+    };
+
+    // Helper to calculate plan prices
+    const getPlanPrice = (plan: string): number => {
+        if (!plan) return 35;
+        const p = String(plan).toLowerCase().trim();
+        if (p.includes('catalog') || p.includes('catálogo')) return 200;
+        if (p.includes('business')) return 100;
+        if (p.includes('web') || p.includes('sitio')) return 1000;
+        return 35;
+    };
+
+    // Helper to identify third-party sellers eligible for commission (excluding César Reyes / Admin / 0% sellers)
+    const isThirdPartySeller = (sellerId: any, sellersList: any[]): boolean => {
+        if (!sellerId) return false;
+        const s = sellersList.find((seller: any) => String(seller.id) === String(sellerId));
+        if (!s) return false;
+        const name = (s.nombre || '').toLowerCase();
+        const code = String(s.codigo || s.code || '');
+        const pct = parseFloat(s.comision_porcentaje || '0');
+        if (pct <= 0) return false;
+        if (name.includes('cesar') || name.includes('césar') || name.includes('admin') || code === '001' || code === '000') return false;
+        return true;
     };
 
     // Fetch stats from ALL records (not paginated)
@@ -305,32 +320,81 @@ export default function AdminDashboard() {
             if (res.ok) {
                 const result = await res.json();
                 const all = result.data || [];
+
+                let currentSellers = sellers;
+                if (currentSellers.length === 0) {
+                    const sRes = await fetch('/api/admin/sellers', { headers: { 'x-admin-key': adminKey } });
+                    if (sRes.ok) {
+                        const sData = await sRes.json();
+                        currentSellers = sData.data || [];
+                        setSellers(currentSellers);
+                    }
+                }
                 
                 const totalIngreso = all.reduce((acc: number, r: any) => 
-                    (r.status === 'pagado' || r.status === 'entregado') ? acc + (r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35) : acc, 0);
-                const totalComisiones = all.reduce((acc: number, r: any) => {
+                    (r.status === 'pagado' || r.status === 'entregado') ? acc + getPlanPrice(r.plan) : acc, 0);
+
+                const totalComisionesVendedores = all.reduce((acc: number, r: any) => {
                     if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id) {
-                        const seller = sellers.find((s: any) => s.id === r.seller_id);
-                        const percentage = seller ? parseFloat(seller.comision_porcentaje) : 0;
-                        const price = r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35;
-                        return acc + (price * percentage / 100);
+                        if (isThirdPartySeller(r.seller_id, currentSellers)) {
+                            const seller = currentSellers.find((s: any) => String(s.id) === String(r.seller_id));
+                            const percentage = seller ? parseFloat(seller.comision_porcentaje || '0') : 0;
+                            const price = getPlanPrice(r.plan);
+                            return acc + (price * percentage / 100);
+                        }
                     }
                     return acc;
                 }, 0);
-                const clientesPendientes = all.filter((r: any) => r.status === 'pendiente').length;
-                const valorPendiente = all.filter((r: any) => r.status === 'pendiente').reduce((acc: number, r: any) => 
-                    acc + (r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35), 0);
+
+                const clientesPendientesCount = all.filter((r: any) => r.status === 'pendiente').length;
+                const valorClientesPendientes = all.filter((r: any) => r.status === 'pendiente').reduce((acc: number, r: any) => 
+                    acc + getPlanPrice(r.plan), 0);
+
+                const comisionesXPagarMonto = all.reduce((acc: number, r: any) => {
+                    if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id) {
+                        if (isThirdPartySeller(r.seller_id, currentSellers)) {
+                            if (r.commission_status === 'pending' || r.commission_status === 'paid_to_leader' || !r.commission_status) {
+                                const seller = currentSellers.find((s: any) => String(s.id) === String(r.seller_id));
+                                const percentage = seller ? parseFloat(seller.comision_porcentaje || '0') : 0;
+                                const price = getPlanPrice(r.plan);
+                                return acc + (price * percentage / 100);
+                            }
+                        }
+                    }
+                    return acc;
+                }, 0);
+
                 const comisionesPendientesCount = all.filter((r: any) => 
-                    r.seller_id && (r.commission_status === 'pending' || r.commission_status === 'paid_to_leader') && (r.status === 'pagado' || r.status === 'entregado')).length;
+                    r.seller_id && 
+                    isThirdPartySeller(r.seller_id, currentSellers) &&
+                    (r.commission_status === 'pending' || r.commission_status === 'paid_to_leader' || !r.commission_status) && 
+                    (r.status === 'pagado' || r.status === 'entregado')
+                ).length;
+
+                const comisionesPagadasMonto = all.reduce((acc: number, r: any) => {
+                    if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id) {
+                        if (isThirdPartySeller(r.seller_id, currentSellers)) {
+                            if (r.commission_status === 'completed') {
+                                const seller = currentSellers.find((s: any) => String(s.id) === String(r.seller_id));
+                                const percentage = seller ? parseFloat(seller.comision_porcentaje || '0') : 0;
+                                const price = getPlanPrice(r.plan);
+                                return acc + (price * percentage / 100);
+                            }
+                        }
+                    }
+                    return acc;
+                }, 0);
+
                 const colaCorreos = all.filter((r: any) => r.status === 'pagado' && !r.auto_email_sent).length;
                 
                 setStatsTotal({
                     count: all.length,
                     income: totalIngreso,
-                    utility: totalIngreso - totalComisiones,
-                    pending: clientesPendientes,
-                    pendingCommission: valorPendiente,
-                    paidCommission: 0,
+                    utility: totalIngreso - totalComisionesVendedores,
+                    pending: clientesPendientesCount,
+                    pendingValue: valorClientesPendientes,
+                    pendingCommission: comisionesXPagarMonto,
+                    paidCommission: comisionesPagadasMonto,
                     cola: colaCorreos,
                     comisionesPendientes: comisionesPendientesCount
                 });
@@ -341,14 +405,27 @@ export default function AdminDashboard() {
         }
     };
 
-    // Debounced search + stats refresh
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchRegistros(1, false, searchTerm);
-            fetchStatsTotal();
-        }, 500);
-        return () => clearTimeout(timer);
-    }, [searchTerm]);
+    const fetchGlobalDownloadStats = async () => {
+        try {
+            const adminKey = localStorage.getItem('admin_access_key') || '';
+            const res = await fetch('/api/admin/descargas?type=stats', {
+                headers: { 'x-admin-key': adminKey }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setGlobalDownloadStats({
+                    total: data.total || 0,
+                    weekly: data.weekly || 0,
+                    monthly: data.monthly || 0,
+                    today: data.today || 0
+                });
+            }
+        } catch (err) {
+            console.error('Error fetching global download stats:', err);
+        }
+    };
+
+    // Search is now fully client-side — no re-fetch needed on searchTerm change
 
     const fetchSellers = async () => {
         try {
@@ -1384,28 +1461,44 @@ export default function AdminDashboard() {
         }, 500);
     };
 
-    const filtered = registros.filter(r => {
-        const name = (r.nombre || "").toLowerCase();
-        const email = (r.email || "").toLowerCase();
-        const matchesSearch = name.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
+    const filtered = (() => {
+        const term = searchTerm.toLowerCase().trim();
+        return registros.filter(r => {
+            // --- Smart fuzzy search across all relevant fields ---
+            let matchesSearch = true;
+            if (term) {
+                const fields = [
+                    r.nombre || '',
+                    r.email || '',
+                    r.slug || '',
+                    r.whatsapp || r.telefono || '',
+                    r.plan || '',
+                    r.status || '',
+                    String(r.id || '')
+                ].map(f => f.toLowerCase());
+                // Match if ALL space-separated words appear in any field
+                const words = term.split(/\s+/).filter(Boolean);
+                matchesSearch = words.every(word =>
+                    fields.some(f => f.includes(word))
+                );
+            }
 
-        // Logical filter mapping
-        let matchesStatus = true;
-        if (statusFilter === "clientes_pendientes") {
-            matchesStatus = r.status === "pendiente";
-        } else if (statusFilter === "comisiones_pendientes") {
-            // Pendiente de pago inicial o enviado a líder pero no confirmado
-            matchesStatus = !!(r.seller_id && (r.commission_status === "pending" || r.commission_status === "paid_to_leader") && (r.status === "pagado" || r.status === "entregado"));
-        } else if (statusFilter === "comisiones_pagadas") {
-            // Solo las que el vendedor ya confirmó (Ciclo completo)
-            matchesStatus = !!(r.seller_id && r.commission_status === "completed");
-        } else if (statusFilter !== "todos") {
-            matchesStatus = r.status === statusFilter;
-        }
+            // --- Status filter ---
+            let matchesStatus = true;
+            if (statusFilter === "clientes_pendientes") {
+                matchesStatus = r.status === "pendiente";
+            } else if (statusFilter === "comisiones_pendientes") {
+                matchesStatus = !!(r.seller_id && (r.commission_status === "pending" || r.commission_status === "paid_to_leader") && (r.status === "pagado" || r.status === "entregado"));
+            } else if (statusFilter === "comisiones_pagadas") {
+                matchesStatus = !!(r.seller_id && r.commission_status === "completed");
+            } else if (statusFilter !== "todos") {
+                matchesStatus = r.status === statusFilter;
+            }
 
-        const matchesSeller = !sellerIdFilter || Number(r.seller_id) === Number(sellerIdFilter) || Number(r.parent_id) === Number(sellerIdFilter);
-        return matchesSearch && matchesStatus && matchesSeller;
-    });
+            const matchesSeller = !sellerIdFilter || Number(r.seller_id) === Number(sellerIdFilter) || Number(r.parent_id) === Number(sellerIdFilter);
+            return matchesSearch && matchesStatus && matchesSeller;
+        });
+    })();
 
     // Helper: obtener admin key del localStorage
     const getAdminKey = () => localStorage.getItem('admin_access_key') || '';
@@ -1645,7 +1738,7 @@ export default function AdminDashboard() {
                             Notificar
                         </button>
                         <button
-                            onClick={() => fetchRegistros(1, false, searchTerm)}
+                            onClick={() => { fetchRegistros(); fetchStatsTotal(); fetchGlobalDownloadStats(); }}
                             className="bg-white/5 border border-white/10 p-3 md:p-4 rounded-2xl hover:bg-white/10 transition-all text-white/40 hover:text-white shrink-0"
                         >
                             <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
@@ -1908,6 +2001,81 @@ export default function AdminDashboard() {
                     )}
                 </AnimatePresence>
 
+                {/* Métricas Globales de Descargas VCF del Proyecto */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between mb-4 px-2">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 bg-cyan-500/10 border border-cyan-500/20 rounded-xl">
+                                <Download className="text-cyan-400" size={18} />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-black uppercase italic tracking-wider text-white">
+                                    Descargas VCF del Proyecto
+                                </h3>
+                                <p className="text-[10px] font-bold text-white/40">Suma global acumulada y desglose temporal</p>
+                            </div>
+                        </div>
+                        <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20 font-black uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                            En vivo
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-[#0A1229] border border-cyan-500/20 rounded-[32px] p-6 relative overflow-hidden group shadow-lg shadow-cyan-500/5 hover:border-cyan-500/40 transition-all">
+                            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform text-cyan-400">
+                                <Download size={44} />
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 mb-2">Total Descargas VCF</p>
+                            <p className="text-4xl font-black italic tracking-tighter text-white">
+                                {globalDownloadStats.total.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold text-white/40 mt-2">
+                                Suma de todos los clientes
+                            </p>
+                        </div>
+
+                        <div className="bg-[#0A1229] border border-indigo-500/20 rounded-[32px] p-6 relative overflow-hidden group shadow-lg shadow-indigo-500/5 hover:border-indigo-500/40 transition-all">
+                            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform text-indigo-400">
+                                <CalendarCheck size={44} />
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-2">Descargas Mensuales</p>
+                            <p className="text-4xl font-black italic tracking-tighter text-white">
+                                {globalDownloadStats.monthly.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold text-white/40 mt-2">
+                                Últimos 30 días
+                            </p>
+                        </div>
+
+                        <div className="bg-[#0A1229] border border-emerald-500/20 rounded-[32px] p-6 relative overflow-hidden group shadow-lg shadow-emerald-500/5 hover:border-emerald-500/40 transition-all">
+                            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform text-emerald-400">
+                                <TrendingUp size={44} />
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 mb-2">Descargas Semanales</p>
+                            <p className="text-4xl font-black italic tracking-tighter text-emerald-400">
+                                {globalDownloadStats.weekly.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold text-white/40 mt-2">
+                                Últimos 7 días
+                            </p>
+                        </div>
+
+                        <div className="bg-[#0A1229] border border-amber-500/20 rounded-[32px] p-6 relative overflow-hidden group shadow-lg shadow-amber-500/5 hover:border-amber-500/40 transition-all">
+                            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform text-amber-400">
+                                <Clock size={44} />
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400 mb-2">Descargas Hoy</p>
+                            <p className="text-4xl font-black italic tracking-tighter text-white">
+                                {globalDownloadStats.today.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold text-white/40 mt-2">
+                                Fecha de hoy
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
                     <div
                         onClick={() => setStatusFilter("todos")}
@@ -1961,7 +2129,7 @@ export default function AdminDashboard() {
                             {statsTotal.pending}
                         </p>
                         <p className="text-[10px] font-bold text-primary/60 mt-2">
-                            Val. Pendiente: ${statsTotal.pendingCommission.toFixed(2)}
+                            Val. Pendiente: ${statsTotal.pendingValue.toFixed(2)}
                         </p>
                     </div>
 
@@ -1992,15 +2160,7 @@ export default function AdminDashboard() {
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform text-green-500"><CheckCircle size={48} /></div>
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-green-500 mb-3">Comis. Pagadas</p>
                         <p className="text-4xl font-black italic tracking-tighter text-green-500">
-                            ${registros.reduce((acc, r) => {
-                                if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id && (r.commission_status === 'paid_to_leader' || r.commission_status === 'completed')) {
-                                    const seller = sellers.find(s => s.id === r.seller_id);
-                                    const percentage = seller ? parseFloat(seller.comision_porcentaje) : 0;
-                                    const price = r.plan === 'catalog' ? 200 : r.plan === 'business' ? 100 : 35;
-                                    return acc + (price * percentage / 100);
-                                }
-                                return acc;
-                            }, 0).toFixed(2)}
+                            ${statsTotal.paidCommission.toFixed(2)}
                         </p>
                     </div>
 

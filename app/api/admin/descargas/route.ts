@@ -10,9 +10,25 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const slug = searchParams.get('slug');
+    const type = searchParams.get('type');
 
-    if (!slug) {
-        return NextResponse.json({ error: 'Slug es requerido' }, { status: 400 });
+    if (type === 'stats' || (!slug && !type)) {
+        try {
+            const [[totalRow]]: any = await pool.execute(`SELECT COUNT(*) as count FROM vcard_downloads_log`);
+            const [[weeklyRow]]: any = await pool.execute(`SELECT COUNT(*) as count FROM vcard_downloads_log WHERE created_at >= NOW() - INTERVAL 7 DAY`);
+            const [[monthlyRow]]: any = await pool.execute(`SELECT COUNT(*) as count FROM vcard_downloads_log WHERE created_at >= NOW() - INTERVAL 30 DAY`);
+            const [[todayRow]]: any = await pool.execute(`SELECT COUNT(*) as count FROM vcard_downloads_log WHERE created_at >= CURDATE()`);
+
+            return NextResponse.json({
+                total: totalRow?.count || 0,
+                weekly: weeklyRow?.count || 0,
+                monthly: monthlyRow?.count || 0,
+                today: todayRow?.count || 0
+            });
+        } catch (err: any) {
+            console.error('[ADMIN DESCARGAS STATS] Error:', err);
+            return NextResponse.json({ error: err.message }, { status: 500 });
+        }
     }
 
     try {
@@ -30,3 +46,4 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }
+

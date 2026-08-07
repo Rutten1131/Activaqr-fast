@@ -1778,8 +1778,8 @@ export default function DirectVCardRegistration({
                                                     const p = (document.getElementById('prod-price') as HTMLInputElement).value;
                                                     const d = (document.getElementById('prod-desc') as HTMLInputElement).value;
 
-                                                    if (catalogItems.length >= 20) {
-                                                        alert("Máximo 20 productos permitidos en total.");
+                                                    if (catalogItems.length >= 30) {
+                                                        alert("Máximo 30 productos permitidos en total.");
                                                         return;
                                                     }
 

@@ -619,8 +619,8 @@ export default function VCardEditModal({
     };
 
     const handleCloneProduct = (prod: any) => {
-        if (catalogoJson.products.length >= 20) {
-            alert("Máximo 20 productos permitidos. No se puede clonar.");
+        if (catalogoJson.products.length >= 30) {
+            alert("Máximo 30 productos permitidos. No se puede clonar.");
             return;
         }
         const cloned = {
@@ -2278,8 +2278,8 @@ export default function VCardEditModal({
                                                 <button 
                                                     type="button" 
                                                     onClick={() => {
-                                                        if (catalogoJson.products.length >= 20) {
-                                                            alert("Máximo 20 productos permitidos en total.");
+                                                        if (catalogoJson.products.length >= 30) {
+                                                            alert("Máximo 30 productos permitidos en total.");
                                                             return;
                                                         }
                                                         

@@ -65,7 +65,7 @@ const INCLUDED_TABS = [
         color: 'navy',
         description: 'Control total de tus ventas desde la palma de tu mano',
         features: [
-            { icon: Edit, title: 'Panel Administrativo', desc: 'Gestiona tus 20 productos y categorías sin depender de programadores.', image: 'https://cesarweb.b-cdn.net/contacto-bussines-catalogo/gestion/admin_panel_activaqr.webp' },
+            { icon: Edit, title: 'Panel Administrativo', desc: 'Gestiona tus 30 productos y categorías sin depender de programadores.', image: 'https://cesarweb.b-cdn.net/contacto-bussines-catalogo/gestion/admin_panel_activaqr.webp' },
             { icon: Mic, title: 'Carga Express por Voz', desc: 'Actualiza descripciones o stocks simplemente dictándole a nuestra IA.', image: 'https://cesarweb.b-cdn.net/contacto-bussines-catalogo/gestion/voice_upload_activaqr.webp' },
             { icon: Zap, title: 'Sin Comisiones', desc: 'Toda la venta es tuya. No pagas porcentajes por transacciones.', image: 'https://cesarweb.b-cdn.net/contacto-bussines-catalogo/gestion/no_commissions_activaqr.webp' },
             { icon: Phone, title: 'Soporte VIP Negocios', desc: 'Acompañamiento prioritario para configurar tu catálogo de éxito.', image: 'https://cesarweb.b-cdn.net/contacto-bussines-catalogo/gestion/vip_support_activaqr.webp' },

@@ -62,7 +62,7 @@ export default function ContactoCatalogoMicroFunnel() {
             <span className="text-white/40 italic">vendiendo 24/7.</span>
           </h1>
           <p className="text-white/60 text-base md:text-lg font-bold mb-10 uppercase tracking-[0.2em] max-w-xl">
-            Sube hasta 20 productos y recibe los pedidos directo a tu WhatsApp. Sin comisiones.
+            Sube hasta 30 productos y recibe los pedidos directo a tu WhatsApp. Sin comisiones.
           </p>
           <button 
             onClick={() => setStep(2)}

@@ -1722,6 +1722,10 @@ export default function VCardEditModal({
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => {
+                                                                                if (formData.catalogo_json?.products?.length >= 30) {
+                                                                                    alert("Máximo 30 productos permitidos en total.");
+                                                                                    return;
+                                                                                }
                                                                                 const lines = (formData.productos_servicios || '').split('\n').filter((l: string) => l.trim()).filter((_: string, i: number) => i !== idx);
                                                                                 const raw = formData.json_override;
                                                                                 const parsed = typeof raw === 'string' ? safeParse(raw, {}) : (raw || {});

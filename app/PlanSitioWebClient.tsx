@@ -66,7 +66,7 @@ const INCLUDED_TABS = [
         color: 'navy',
         description: 'Llevas todo el arsenal de ActivaQR en una sola inversión',
         features: [
-            { icon: CheckCircle2, title: 'Plan Catálogo Incluido', desc: 'Tu catálogo de hasta 20 productos está integrado en tu gran ecosistema.', image: 'https://cesarweb.b-cdn.net/sitio-web-completo/todo/activaqr_catalogo.webp' },
+            { icon: CheckCircle2, title: 'Plan Catálogo Incluido', desc: 'Tu catálogo de hasta 30 productos está integrado en tu gran ecosistema.', image: 'https://cesarweb.b-cdn.net/sitio-web-completo/todo/activaqr_catalogo.webp' },
             { icon: CheckCircle2, title: 'Plan Business Incluido', desc: 'WebApp, mapas, video pro y anuncios dinámicos activos.', image: 'https://cesarweb.b-cdn.net/sitio-web-completo/todo/activaqr_business.webp' },
             { icon: CheckCircle2, title: 'Plan Digital Incluido', desc: 'Tu vCard profesional y QR dinámico para todo tu equipo.', image: 'https://cesarweb.b-cdn.net/sitio-web-completo/todo/activaqr_digital.webp' },
             { icon: Phone, title: 'Soporte Directo Fundador', desc: 'Contacto prioritario para asegurar el éxito de tu proyecto.', image: 'https://cesarweb.b-cdn.net/sitio-web-completo/todo/activaqr_soporte.webp' },
