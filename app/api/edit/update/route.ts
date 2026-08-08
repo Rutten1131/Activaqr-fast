@@ -123,6 +123,9 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: 'Código inválido para este perfil' }, { status: 401 });
             }
 
+            // Ediciones ilimitadas para todos los perfiles
+            const remainingUses = 999;
+
 
 
             // Calculate new nombre, but preserve existing if new would be empty

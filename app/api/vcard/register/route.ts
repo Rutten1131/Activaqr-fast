@@ -78,8 +78,13 @@ export async function POST(req: NextRequest) {
             google_rating, google_reviews_count, youtube_video_url,
             hero_action, hero_button_text, hero_file_url, hero_external_link, hero_wifi_steps,
             hero_section_title, hero_step1_title, hero_step1_text, hero_step2_title, hero_step2_text, hero_step3_title, hero_step3_text,
-            hero_slides_json, template_id
+            hero_slides_json, template_id, menu_data
         } = body;
+
+        // Si se envió un menu_data de la IA (objeto), convertirlo a JSON string para menu_digital si no hay menu_digital explícito
+        if (menu_data && menu_data.categories) {
+            menu_digital = JSON.stringify(menu_data.categories);
+        }
 
         // Resolver URL corta de video si existe
         if (youtube_video_url) {

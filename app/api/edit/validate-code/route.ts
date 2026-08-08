@@ -45,10 +45,10 @@ export async function POST(req: NextRequest) {
             const user = users[0];
 
 
-            // Return user data for editing
+            // Return user data for editing (Ediciones ilimitadas)
             return NextResponse.json({
                 success: true,
-                usesRemaining: user.edit_uses_remaining,
+                usesRemaining: 'Ilimitado',
                 data: user
             });
 

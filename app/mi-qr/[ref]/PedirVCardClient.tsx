@@ -29,6 +29,8 @@ import {
     BadgeCheck,
 } from "lucide-react";
 import { formatPhoneEcuador } from "@/lib/utils";
+import { MenuScannerSection, MenuData } from "@/components/MenuScannerSection";
+import { MenuDisplay } from "@/components/MenuDisplay";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 interface PedirVCardClientProps {
@@ -110,6 +112,7 @@ export default function PedirVCardClient({ refCode }: PedirVCardClientProps) {
     });
 
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [menuData, setMenuData] = useState<MenuData | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isGeneratingTags, setIsGeneratingTags] = useState(false);
     const [hasManualTags, setHasManualTags] = useState(false);
@@ -332,6 +335,7 @@ export default function PedirVCardClient({ refCode }: PedirVCardClientProps) {
                 youtube: normalizeSocialLink(formData.youtube, "youtube.com"),
                 x: normalizeSocialLink(formData.x, "x.com"),
                 menu_digital: formData.menu_digital || null,
+                menu_data: menuData || null,
 
                 // Campos forzados para este formulario
                 plan: "digital",
@@ -846,6 +850,28 @@ export default function PedirVCardClient({ refCode }: PedirVCardClientProps) {
                                     />
                                     <p className="text-white/30 text-xs mt-1">Separadas por coma. Ayudan a que te encuentren en Google.</p>
                                 </div>
+
+                                {/* Componente de Escaneo de Menú con IA para Restaurantes */}
+                                <MenuScannerSection
+                                    menuData={menuData}
+                                    onChangeMenuData={(data) => setMenuData(data)}
+                                />
+
+                                {menuData && (
+                                    <div className="mt-4">
+                                        <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-2">
+                                            Vista previa del menú en tu tarjeta digital:
+                                        </h4>
+                                        <MenuDisplay
+                                            menuData={menuData}
+                                            restaurantName={
+                                                formData.tipo_perfil === "negocio"
+                                                    ? formData.nombre_negocio
+                                                    : `${formData.nombres} ${formData.apellidos}`
+                                            }
+                                        />
+                                    </div>
+                                )}
 
                                 {/* Dirección */}
                                 <div>

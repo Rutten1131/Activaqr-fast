@@ -172,7 +172,7 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
     };
 
     const handleSave = async () => {
-        if (!confirm('¿Estás seguro de guardar los cambios? Se descontará 1 uso de edición.')) return;
+        if (!confirm('¿Estás seguro de guardar los cambios en tu perfil digital?')) return;
 
         // Auto-format WhatsApp before saving using global utility
         const formattedData = {
@@ -423,13 +423,12 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
                         {/* STEP 2: EDIT FORM */}
                         {step === 'edit' && userData && (
                             <div>
-                                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6 flex items-start gap-3">
-                                    <AlertCircle className="text-yellow-600 shrink-0 mt-0.5" size={20} />
+                                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+                                    <CheckCircle className="text-emerald-600 shrink-0 mt-0.5" size={20} />
                                     <div>
-                                        <p className="text-sm text-yellow-800 font-bold">Edita con cuidado</p>
-                                        <p className="text-xs text-yellow-700 mt-1">
-                                            Tienes <strong className="text-yellow-900">{usesRemaining} ediciones restantes</strong>.
-                                            Al guardar, se descontará una edición. Tu código QR físico seguirá funcionando igual.
+                                        <p className="text-sm text-emerald-800 font-bold">Ediciones Ilimitadas Activadas</p>
+                                        <p className="text-xs text-emerald-700 mt-1">
+                                            Puedes realizar <strong className="text-emerald-900">cambios ilimitados</strong> en tu información en cualquier momento. Tu código QR físico seguirá funcionando exactamente igual.
                                         </p>
                                     </div>
                                 </div>

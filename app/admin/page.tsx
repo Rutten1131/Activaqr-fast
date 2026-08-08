@@ -547,6 +547,7 @@ export default function AdminDashboard() {
             fetchRegistros();
             fetchSellers();
             fetchStatsTotal();
+            fetchGlobalDownloadStats();
         }
     }, [isAuthorized]);
 
@@ -563,6 +564,8 @@ export default function AdminDashboard() {
                         if (data.data) setRegistros(data.data);
                     })
                     .catch(err => console.error("Live update failed", err));
+
+                fetchGlobalDownloadStats();
             }, 10000); // Every 10 seconds
         }
         return () => clearInterval(interval);
