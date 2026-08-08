@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter, Montserrat } from "next/font/google";
 import { Viewport } from 'next'
 import "./globals.css";
 import Script from "next/script";
@@ -14,16 +13,16 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-const inter = Inter({
+// Definición de variables de fuentes con fallbacks seguros de sistema (evita bloqueos de red en build)
+const inter = {
   variable: "--font-inter",
-  subsets: ["latin"],
-});
+  className: "font-sans",
+};
 
-const montserrat = Montserrat({
+const montserrat = {
   variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: ["800"],
-});
+  className: "font-montserrat",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.activaqr.com'),

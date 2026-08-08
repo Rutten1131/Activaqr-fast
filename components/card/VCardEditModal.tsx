@@ -2839,8 +2839,18 @@ export default function VCardEditModal({
                                                             <input className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50" value={menuTitle} onChange={(e) => updateMenuTitle(e.target.value)} placeholder="Ej. NUESTRA CARTA" />
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Menú Digital (Link)</label>
-                                                            <input className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50" value={formData.menu_digital} onChange={(e) => setFormData({ ...formData, menu_digital: e.target.value })} placeholder="https://..." />
+                                                            <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Menú Digital (Link / PDF)</label>
+                                                            <input
+                                                                className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50"
+                                                                value={typeof formData.menu_digital === 'string' && (formData.menu_digital.startsWith('[') || formData.menu_digital.startsWith('{')) ? '' : (formData.menu_digital || '')}
+                                                                onChange={(e) => setFormData({ ...formData, menu_digital: e.target.value })}
+                                                                placeholder={typeof formData.menu_digital === 'string' && (formData.menu_digital.startsWith('[') || formData.menu_digital.startsWith('{')) ? "✨ Menú Digital IA activo (gestión en Catálogo)" : "https://..."}
+                                                            />
+                                                            {typeof formData.menu_digital === 'string' && (formData.menu_digital.startsWith('[') || formData.menu_digital.startsWith('{')) && (
+                                                                <p className="text-[10px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
+                                                                    <span>✨</span> Tu perfil tiene activo un Menú Digital estructurado por IA.
+                                                                </p>
+                                                            )}
                                                         </div>
                                                         <div className="space-y-1">
                                                             <label className="text-[10px] font-black text-primary uppercase tracking-widest">Sitio Web</label>

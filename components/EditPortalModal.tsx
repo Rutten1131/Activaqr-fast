@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Download, Key, AlertCircle, CheckCircle, Loader2, Edit, ArrowRight, Plus, Trash2, Upload, Zap } from 'lucide-react';
 import { formatPhoneEcuador, cn } from '@/lib/utils';
+import { MenuScannerSection, MenuData } from '@/components/MenuScannerSection';
 
 interface EditPortalModalProps {
     isOpen: boolean;
@@ -22,6 +23,9 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
     // Hero Slides State
     const [heroSlides, setHeroSlides] = useState<any[]>([]);
     const [uploadingHeroSlide, setUploadingHeroSlide] = useState<string | null>(null);
+
+    // Menu Data State
+    const [parsedMenuData, setParsedMenuData] = useState<MenuData | null>(null);
 
     // Load code from localStorage on mount
     useEffect(() => {
@@ -159,6 +163,27 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
                 }
                 
                 setHeroSlides(parsedSlides);
+
+                // Parse menu_digital if structured JSON
+                let parsedMenu: MenuData | null = null;
+                if (data.data.menu_digital) {
+                    try {
+                        let rawMenu = data.data.menu_digital;
+                        if (typeof rawMenu === 'string' && (rawMenu.trim().startsWith('{') || rawMenu.trim().startsWith('['))) {
+                            rawMenu = JSON.parse(rawMenu);
+                        }
+                        if (rawMenu) {
+                            if (Array.isArray(rawMenu)) {
+                                parsedMenu = { categories: rawMenu };
+                            } else if (rawMenu.categories && Array.isArray(rawMenu.categories)) {
+                                parsedMenu = rawMenu;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error parsing menu_digital:', e);
+                    }
+                }
+                setParsedMenuData(parsedMenu);
                 
                 setStep('edit');
             } else {
@@ -175,8 +200,13 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
         if (!confirm('¿Estás seguro de guardar los cambios en tu perfil digital?')) return;
 
         // Auto-format WhatsApp before saving using global utility
+        const menuDigitalFinal = parsedMenuData && parsedMenuData.categories && parsedMenuData.categories.length > 0
+            ? JSON.stringify(parsedMenuData)
+            : formData.menu_digital;
+
         const formattedData = {
             ...formData,
+            menu_digital: menuDigitalFinal,
             productos_servicios: formData.products || '',
             etiquetas: formData.categories || '',
             whatsapp: formatPhoneEcuador(formData.whatsapp),
@@ -713,13 +743,69 @@ export default function EditPortalModal({ isOpen, onClose }: EditPortalModalProp
                                                 onChange={(e) => setFormData({ ...formData, x: e.target.value })}
                                             />
                                         </div>
-                                        <div className="col-span-full form-group">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">🍽️ Menú Digital (Link)</label>
-                                            <input
-                                                className="w-full border rounded-xl p-2.5 font-bold text-navy focus:border-primary outline-none transition-all text-sm"
-                                                value={formData.menu_digital}
-                                                onChange={(e) => setFormData({ ...formData, menu_digital: e.target.value })}
-                                            />
+                                        <div className="col-span-full form-group mt-2 border-t pt-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <label className="text-xs font-black text-navy uppercase tracking-wider flex items-center gap-2">
+                                                    <span>🍽️</span> Menú Digital / Carta del Restaurante
+                                                </label>
+                                                {parsedMenuData && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (confirm('¿Deseas cambiar a modo enlace URL?')) {
+                                                                setParsedMenuData(null);
+                                                            }
+                                                        }}
+                                                        className="text-[10px] font-bold text-gray-500 hover:text-red-500 underline"
+                                                    >
+                                                        Cambiar a Enlace URL
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {parsedMenuData || (typeof formData.menu_digital === 'string' && (formData.menu_digital.trim().startsWith('[') || formData.menu_digital.trim().startsWith('{'))) ? (
+                                                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 shadow-inner">
+                                                    <MenuScannerSection
+                                                        menuData={parsedMenuData || (() => {
+                                                            try {
+                                                                const raw = JSON.parse(formData.menu_digital);
+                                                                return Array.isArray(raw) ? { categories: raw } : raw;
+                                                            } catch (e) {
+                                                                return { categories: [] };
+                                                            }
+                                                        })()}
+                                                        onChangeMenuData={(updated) => {
+                                                            setParsedMenuData(updated);
+                                                            setFormData(prev => ({ ...prev, menu_digital: JSON.stringify(updated) }));
+                                                        }}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <p className="text-xs text-gray-500 mb-2 font-medium">
+                                                        Ingresa un enlace a tu carta (ej: PDF, Drive) o escanea tus fotos con IA:
+                                                    </p>
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            className="w-full border rounded-xl p-2.5 font-bold text-navy focus:border-primary outline-none transition-all text-sm bg-white"
+                                                            value={typeof formData.menu_digital === 'string' && !formData.menu_digital.startsWith('[') && !formData.menu_digital.startsWith('{') ? formData.menu_digital : ''}
+                                                            onChange={(e) => setFormData({ ...formData, menu_digital: e.target.value })}
+                                                            placeholder="https://midominio.com/menu.pdf"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const initialMenu = { categories: [{ name: "Platos Principales", items: [] }] };
+                                                                setParsedMenuData(initialMenu);
+                                                                setFormData(prev => ({ ...prev, menu_digital: JSON.stringify(initialMenu) }));
+                                                            }}
+                                                            className="bg-primary text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shrink-0 hover:bg-primary/90 transition-all shadow-sm"
+                                                        >
+                                                            <span>✨</span> Escanear Fotos
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
