@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Trash2, Download, Save, RefreshCw, QrCode, ExternalLink, Clock, X as CloseIcon, Video, Store, Library, Plus, Edit, Zap, ChevronDown, Star, Info, LogOut, CheckCircle, FileText, Loader2, ShieldCheck, User, Image as ImageIcon, AlertCircle, Copy, Layers, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/lib/upload';
+import { MenuScannerSection, MenuData } from '@/components/MenuScannerSection';
 
 interface VCardEditModalProps {
     isOpen: boolean;
@@ -65,6 +66,34 @@ export default function VCardEditModal({
     const [isChangingSlug, setIsChangingSlug] = useState(false);
     const [slugMessage, setSlugMessage] = useState('');
     const [slugError, setSlugError] = useState(false);
+
+    // Menu Data State for AI Digital Menu
+    const [adminParsedMenuData, setAdminParsedMenuData] = useState<MenuData | null>(null);
+
+    // Parse menu_digital when editingRegistro loads/changes
+    useEffect(() => {
+        if (!editingRegistro?.menu_digital) {
+            setAdminParsedMenuData(null);
+            return;
+        }
+        try {
+            let rawMenu = editingRegistro.menu_digital;
+            if (typeof rawMenu === 'string' && (rawMenu.trim().startsWith('{') || rawMenu.trim().startsWith('['))) {
+                rawMenu = JSON.parse(rawMenu);
+            }
+            if (rawMenu) {
+                if (Array.isArray(rawMenu)) {
+                    setAdminParsedMenuData({ categories: rawMenu });
+                } else if (rawMenu.categories && Array.isArray(rawMenu.categories)) {
+                    setAdminParsedMenuData(rawMenu);
+                } else {
+                    setAdminParsedMenuData(null);
+                }
+            }
+        } catch (e) {
+            setAdminParsedMenuData(null);
+        }
+    }, [editingRegistro?.id]); // Only parse when a new registro is loaded
 
     // Video Aspect Ratio Helper
     const getVideoAspectFromUrl = (url: string | null | undefined): 'vertical' | 'horizontal' | 'auto' => {
@@ -1301,33 +1330,78 @@ export default function VCardEditModal({
                                             </div>
                                             {(editingRegistro.plan === 'business' || editingRegistro.plan === 'catalog' || editingRegistro.plan === 'digital') && (
                                                 <div className="animate-in slide-in-from-top-2 group">
-                                                    <div className="flex justify-between items-center mb-2 ml-1">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-primary">Carta / Menú Digital o Catálogo de Servicios</label>
-                                                        <button 
-                                                            onClick={handleAutoStructure}
-                                                            disabled={isStructuring}
-                                                            className="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
-                                                        >
-                                                            {isStructuring ? (
-                                                                <Loader2 size={12} className="animate-spin" />
-                                                            ) : (
-                                                                <Zap size={12} />
+                                                    <div className="flex justify-between items-center mb-3 ml-1">
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                                            🍽️ Carta / Menú Digital o Catálogo de Servicios
+                                                        </label>
+                                                        <div className="flex items-center gap-2">
+                                                            {adminParsedMenuData && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (confirm('¿Cambiar a modo texto/URL? El menú estructurado se conservará en el campo.')) {
+                                                                            setAdminParsedMenuData(null);
+                                                                        }
+                                                                    }}
+                                                                    className="text-[9px] font-bold text-white/40 hover:text-red-400 underline transition-colors"
+                                                                >
+                                                                    Cambiar a URL / Texto
+                                                                </button>
                                                             )}
-                                                            {isStructuring ? 'Procesando...' : 'Estructurar con IA'}
-                                                        </button>
+                                                            {!adminParsedMenuData && (
+                                                                <button
+                                                                    onClick={handleAutoStructure}
+                                                                    disabled={isStructuring}
+                                                                    className="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+                                                                >
+                                                                    {isStructuring ? (
+                                                                        <Loader2 size={12} className="animate-spin" />
+                                                                    ) : (
+                                                                        <Zap size={12} />
+                                                                    )}
+                                                                    {isStructuring ? 'Procesando...' : 'Estructurar Texto con IA'}
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <div className="flex justify-between items-center mb-2 ml-1">
-                                                        <span className="text-[8px] font-bold text-white/40 uppercase group-hover:text-primary/60 transition-colors">Soporta URL o JSON Estructurado</span>
-                                                    </div>
-                                                    <textarea
-                                                        className="w-full bg-primary/5 border border-primary/20 rounded-2xl px-6 py-4 font-bold text-white outline-none focus:border-primary transition-all min-h-[120px] text-sm font-mono scrollbar-hide"
-                                                        value={editingRegistro.menu_digital || ''}
-                                                        onChange={e => setEditingRegistro({ ...editingRegistro, menu_digital: e.target.value })}
-                                                        placeholder='Pega una URL o el JSON de servicios: [{"name": "Corte", "items": [{"name": "Varón", "price": "$10"}]}]'
-                                                    />
-                                                    <p className="text-[9px] text-white/30 mt-2 ml-1 leading-relaxed italic">
-                                                        * El formato JSON permite activar el modo "Gabinete" premium automáticamente para servicios de estética, barbería, fotografía, etc.
-                                                    </p>
+
+                                                    {adminParsedMenuData ? (
+                                                        <div className="bg-white/5 border border-primary/20 rounded-2xl p-4">
+                                                            <MenuScannerSection
+                                                                menuData={adminParsedMenuData}
+                                                                onChangeMenuData={(updated) => {
+                                                                    setAdminParsedMenuData(updated);
+                                                                    setEditingRegistro({ ...editingRegistro, menu_digital: JSON.stringify(updated) });
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <div className="flex gap-2 mb-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const initialMenu: MenuData = { categories: [{ name: "Platos Principales", items: [] }] };
+                                                                        setAdminParsedMenuData(initialMenu);
+                                                                        setEditingRegistro({ ...editingRegistro, menu_digital: JSON.stringify(initialMenu) });
+                                                                    }}
+                                                                    className="flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all"
+                                                                >
+                                                                    <Sparkles size={12} />
+                                                                    Crear Menú Interactivo con IA
+                                                                </button>
+                                                            </div>
+                                                            <textarea
+                                                                className="w-full bg-primary/5 border border-primary/20 rounded-2xl px-6 py-4 font-bold text-white outline-none focus:border-primary transition-all min-h-[120px] text-sm font-mono scrollbar-hide"
+                                                                value={editingRegistro.menu_digital || ''}
+                                                                onChange={e => setEditingRegistro({ ...editingRegistro, menu_digital: e.target.value })}
+                                                                placeholder='Pega una URL o el texto de servicios para estructurar con IA'
+                                                            />
+                                                            <p className="text-[9px] text-white/30 mt-2 ml-1 leading-relaxed italic">
+                                                                * Puedes pegar texto y usar "Estructurar con IA", o crear un menú interactivo donde subes fotos de la carta.
+                                                            </p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
