@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { consolidateMenuCategories } from '@/lib/consolidateMenu';
 
 // ─────────────────────────────────────────────────
 // Utilidad de reparación de JSON truncado
@@ -53,11 +54,11 @@ Un arreglo de categorías, donde cada categoría tiene un nombre y un arreglo de
 ]
 
 REGLAS STRICT:
-1. Agrupa los servicios lógicamente en categorías basadas en el texto (ej: Peluquería Profesional, Nail Spa & Estética, Maquillaje & Eventos).
+1. OBLIGATORIO - CONSOLIDA EN CATEGORÍAS MACRO (MÁXIMO 4 A 6 CATEGORÍAS EN TOTAL): Agrupa TODAS las bebidas (alcohólicas, frías, calientes, cervezas, cocteles, shots, botellas) en UNA SOLA CATEGORÍA llamada "Bebidas & Cocteles". NUNCA crees micro-categorías de 1 o 2 ítems.
 2. Si el texto no menciona precios, pon "Consulta" o inventa un precio lógico coherente (ej: "15.00", "20.00").
 3. NO agregues campos extras como "tags", "highlight", "size" o "image" que no estén en el esquema. Esto es sumamente importante para reducir tamaño.
 4. Mantén las descripciones extremadamente cortas (máximo 8 palabras) para conservar tokens y acelerar el tiempo de respuesta.
-5. Asegúrate de que el JSON sea válido. Devuelve SOLAMENTE el JSON puro, sin bloques markdown (\`\`\`json).
+5. Asegúrate de que el JSON sea válido. Devuelve SOLAMENTE el JSON puro, sin bloques markdown ni delimitadores de código.
 
 TEXTO A PROCESAR:
 ---
@@ -72,11 +73,14 @@ RESPUESTA:`;
 function parseAndFixJsonResponse(content: string): string | null {
     const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
     const repairedArray = repairTruncatedJsonExhaustive(cleanContent);
-    if (repairedArray) return JSON.stringify(repairedArray);
-    // Si el parsing directo funciona, devolverlo
+    if (repairedArray) {
+        const consolidated = consolidateMenuCategories({ categories: repairedArray });
+        return JSON.stringify(consolidated);
+    }
     try {
-        JSON.parse(cleanContent);
-        return cleanContent;
+        const parsed = JSON.parse(cleanContent);
+        const consolidated = consolidateMenuCategories(parsed);
+        return JSON.stringify(consolidated);
     } catch { return null; }
 }
 

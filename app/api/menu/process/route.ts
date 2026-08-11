@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { consolidateMenuCategories } from "@/lib/consolidateMenu";
 
 export const maxDuration = 60; // Hasta 60s para procesamiento con visión
 
@@ -15,7 +16,7 @@ Tu trabajo es analizar fotos de cartas o menús de restaurantes, cafeterías o b
 
 REGLAS OBLIGATORIAS:
 1. Extrae todos los platos, bebidas, combos, postres y promociones con sus respectivos precios y descripciones si existen.
-2. Agrupa los productos en categorías lógicas (ej: "Entradas", "Platos Fuertes", "Bebidas", "Postres", "Especialidades", etc.).
+2. CONSOLIDA EN CATEGORÍAS PRINCIPALES (Máximo 4 a 6 categorías en total). Agrupa TODAS las bebidas (frías, calientes, cervezas, cocteles, shots, botellas) en UNA SOLA CATEGORÍA llamada "Bebidas & Cocteles". NUNCA crees micro-categorías de 1 o 2 platos.
 3. Formatea los precios correctamente con su símbolo (ej: "$5.00", "$2.50").
 4. Si un plato no tiene precio visible, pon "".
 5. Responde ÚNICAMENTE un objeto JSON válido con la siguiente estructura, SIN markdown de triple comilla, SIN explicaciones:
@@ -113,11 +114,12 @@ export async function POST(req: NextRequest) {
 
                 const jsonOutput = JSON.parse(cleanedContent);
 
-                if (jsonOutput && jsonOutput.categories) {
+                if (jsonOutput) {
+                    const consolidatedData = consolidateMenuCategories(jsonOutput);
                     return NextResponse.json({
                         success: true,
                         modelUsed: model,
-                        data: jsonOutput,
+                        data: consolidatedData,
                     });
                 }
             } catch (err: any) {

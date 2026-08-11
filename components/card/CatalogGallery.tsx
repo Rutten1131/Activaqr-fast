@@ -6,6 +6,7 @@ import { X, ZoomIn, Info, DollarSign, ChevronLeft, ChevronRight, Plus, Minus, Tr
 import { cn } from '@/lib/utils';
 import { getVideoEmbedUrl, getYouTubeThumbnail, checkIsVerticalVideo, isVideoUrl, needsMetaSDKEmbed } from "@/lib/videoUtils";
 import SocialVideoEmbed from './SocialVideoEmbed';
+import { DishSteamViewer } from '../restaurant/DishSteamViewer';
 
 export interface CatalogItem {
     id: string;
@@ -34,6 +35,7 @@ interface CatalogGalleryProps {
     templateId?: string;
     initialCategory?: string;
     lightboxInline?: boolean;
+    isRestaurant?: boolean;
 }
 
 // Mapa de tipografías por template
@@ -50,7 +52,7 @@ export interface CartItem {
     quantity: number;
 }
 
-export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templateId, initialCategory, lightboxInline = false }: CatalogGalleryProps) {
+export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templateId, initialCategory, lightboxInline = false, isRestaurant = false }: CatalogGalleryProps) {
     const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
     const [mediaIndex, setMediaIndex] = useState(0);
     const [activeMediaType, setActiveMediaType] = useState<'image' | 'video'>('image');
@@ -61,6 +63,16 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
     const [detailQuantity, setDetailQuantity] = useState(1);
 
     const fonts = TEMPLATE_FONTS[templateId || ''] || DEFAULT_FONTS;
+
+    const isFoodRestaurant = useMemo(() => {
+        if (isRestaurant) return true;
+        let cats: string[] = [];
+        if (data && !Array.isArray(data) && Array.isArray(data.categories)) {
+            cats = data.categories;
+        }
+        const foodKeywords = ['platos', 'bebidas', 'entradas', 'menu', 'menú', 'gastronomia', 'gastronomía', 'restaurante', 'postres', 'asados', 'comida', 'parrillada', 'piqueos', 'especialidades', 'cocteles'];
+        return cats.some(c => foodKeywords.some(kw => (c || '').toLowerCase().includes(kw)));
+    }, [isRestaurant, data]);
 
     // Helper to parse price safely
     const parsePrice = (priceStr?: string): number => {
@@ -575,8 +587,21 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                 const imageUrl = images[0] || '';
                                 const videoUrl = videos[0] || '';
                                 
-                                // Si hay al menos una imagen, mostrar la primera
+                                // Si hay al menos una imagen, mostrar la primera (o visor 3D para restaurantes)
                                 if (imageUrl) {
+                                    if (isFoodRestaurant) {
+                                        return (
+                                            <DishSteamViewer
+                                                src={imageUrl}
+                                                alt={item.name || item.titulo}
+                                                dishName={item.name || item.titulo}
+                                                price={item.price || item.precio}
+                                                enableSteam={true}
+                                                enableRotation={true}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        );
+                                    }
                                     return (
                                         /* eslint-disable-next-line @next/next/no-img-element */
                                         <img

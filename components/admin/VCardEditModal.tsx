@@ -69,6 +69,8 @@ export default function VCardEditModal({
 
     // Menu Data State for AI Digital Menu
     const [adminParsedMenuData, setAdminParsedMenuData] = useState<MenuData | null>(null);
+    const [showRawJsonEditor, setShowRawJsonEditor] = useState<boolean>(false);
+    const [rawJsonError, setRawJsonError] = useState<string | null>(null);
 
     // Parse menu_digital when editingRegistro loads/changes
     useEffect(() => {
@@ -94,6 +96,83 @@ export default function VCardEditModal({
             setAdminParsedMenuData(null);
         }
     }, [editingRegistro?.id]); // Only parse when a new registro is loaded
+
+    // ⚡ Auto-Sincronizar Menú Digital → Categorías (Experiencia) y Catálogo Pro
+    const handleSyncMenuToCatalog = (customMenuData?: any) => {
+        let menuToUse = customMenuData || adminParsedMenuData;
+        if (!menuToUse && editingRegistro?.menu_digital) {
+            try {
+                const parsed = typeof editingRegistro.menu_digital === 'string'
+                    ? JSON.parse(editingRegistro.menu_digital)
+                    : editingRegistro.menu_digital;
+                menuToUse = Array.isArray(parsed) ? { categories: parsed } : parsed;
+            } catch {
+                menuToUse = null;
+            }
+        }
+
+        if (!menuToUse) {
+            alert("Ingresa o genera primero un Menú Digital válido.");
+            return;
+        }
+
+        const categoriesList = menuToUse.categories || (Array.isArray(menuToUse) ? menuToUse : []);
+        if (!categoriesList || categoriesList.length === 0) {
+            alert("No se encontraron categorías en el Menú Digital.");
+            return;
+        }
+
+        const categoryNames: string[] = categoriesList.map((c: any) => c.name || c.nombre).filter(Boolean);
+
+        // Mapear productos existentes para preservar imágenes previamente cargadas
+        let existingCatalog = editingRegistro?.catalogo_json;
+        if (typeof existingCatalog === 'string') {
+            try { existingCatalog = JSON.parse(existingCatalog); } catch { existingCatalog = {}; }
+        }
+        const existingProducts = existingCatalog?.products || [];
+        const imageMap = new Map<string, string>();
+        existingProducts.forEach((p: any) => {
+            const pName = p.name || p.nombre || '';
+            const pImg = p.image || p.imagen || '';
+            if (pName && pImg) {
+                imageMap.set(pName.trim().toLowerCase(), pImg);
+            }
+        });
+
+        const newProducts: any[] = [];
+        let counter = 1;
+
+        categoriesList.forEach((cat: any) => {
+            const catName = cat.name || cat.nombre || 'General';
+            const items = cat.items || cat.productos || [];
+            items.forEach((item: any) => {
+                const itemName = item.name || item.nombre || '';
+                if (!itemName) return;
+                const preservedImage = imageMap.get(itemName.trim().toLowerCase()) || item.image || item.imagen || '';
+                newProducts.push({
+                    id: item.id || `prod_${Date.now()}_${counter++}`,
+                    name: itemName,
+                    price: item.price || item.precio || '',
+                    description: item.description || item.descripcion || '',
+                    category: catName,
+                    image: preservedImage,
+                });
+            });
+        });
+
+        const updatedCatalogoJson = {
+            categories: categoryNames,
+            products: newProducts,
+        };
+
+        setEditingRegistro({
+            ...editingRegistro,
+            catalogo_json: updatedCatalogoJson,
+            productos_servicios: categoryNames.join('\n'),
+        });
+
+        alert(`✅ ¡Éxito! Se sincronizaron ${categoryNames.length} categorías y ${newProducts.length} platos/productos al Catálogo Pro.`);
+    };
 
     // Video Aspect Ratio Helper
     const getVideoAspectFromUrl = (url: string | null | undefined): 'vertical' | 'horizontal' | 'auto' => {
@@ -1335,7 +1414,47 @@ export default function VCardEditModal({
                                                             🍽️ Carta / Menú Digital o Catálogo de Servicios
                                                         </label>
                                                         <div className="flex items-center gap-2">
-                                                            {adminParsedMenuData && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const nextState = !showRawJsonEditor;
+                                                                    setShowRawJsonEditor(nextState);
+                                                                    if (nextState && editingRegistro.menu_digital) {
+                                                                        try {
+                                                                            const parsed = typeof editingRegistro.menu_digital === 'string'
+                                                                                ? JSON.parse(editingRegistro.menu_digital)
+                                                                                : editingRegistro.menu_digital;
+                                                                            setEditingRegistro({
+                                                                                ...editingRegistro,
+                                                                                menu_digital: JSON.stringify(parsed, null, 2)
+                                                                            });
+                                                                            setRawJsonError(null);
+                                                                        } catch (e: any) {
+                                                                            setRawJsonError(e.message || 'JSON inválido');
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
+                                                                    showRawJsonEditor
+                                                                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                                                        : 'bg-white/10 hover:bg-white/20 text-white/70'
+                                                                }`}
+                                                            >
+                                                                <FileText size={12} />
+                                                                {showRawJsonEditor ? 'Vista Visual' : '‹/› Editor Código JSON'}
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleSyncMenuToCatalog()}
+                                                                className="flex items-center gap-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-sm"
+                                                                title="Genera automáticamente las categorías de experiencia y llena los platos en el Catálogo Pro"
+                                                            >
+                                                                <Sparkles size={12} />
+                                                                ⚡ Sincronizar a Catálogo Pro
+                                                            </button>
+
+                                                            {adminParsedMenuData && !showRawJsonEditor && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => {
@@ -1348,8 +1467,9 @@ export default function VCardEditModal({
                                                                     Cambiar a URL / Texto
                                                                 </button>
                                                             )}
-                                                            {!adminParsedMenuData && (
+                                                            {!adminParsedMenuData && !showRawJsonEditor && (
                                                                 <button
+                                                                    type="button"
                                                                     onClick={handleAutoStructure}
                                                                     disabled={isStructuring}
                                                                     className="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
@@ -1365,7 +1485,70 @@ export default function VCardEditModal({
                                                         </div>
                                                     </div>
 
-                                                    {adminParsedMenuData ? (
+                                                    {/* MODO EDITOR DE CÓDIGO JSON */}
+                                                    {showRawJsonEditor ? (
+                                                        <div className="bg-slate-950 border border-amber-500/30 rounded-2xl p-4 space-y-3 shadow-2xl">
+                                                            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                                                                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                                    <Sparkles size={12} /> Editor de Código JSON Directo
+                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            try {
+                                                                                const parsed = JSON.parse(editingRegistro.menu_digital || '{}');
+                                                                                setEditingRegistro({
+                                                                                    ...editingRegistro,
+                                                                                    menu_digital: JSON.stringify(parsed, null, 2)
+                                                                                });
+                                                                                setRawJsonError(null);
+                                                                            } catch (err: any) {
+                                                                                setRawJsonError('Error de formato: ' + err.message);
+                                                                            }
+                                                                        }}
+                                                                        className="bg-white/10 hover:bg-white/20 text-white text-[9px] font-bold px-2.5 py-1 rounded-md transition-colors"
+                                                                    >
+                                                                        ✨ Formatear JSON
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            {rawJsonError ? (
+                                                                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2.5 text-xs text-red-300 flex items-center gap-2">
+                                                                    <AlertCircle size={14} className="shrink-0" />
+                                                                    <span>{rawJsonError}</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2 text-[11px] text-emerald-300 flex items-center gap-1.5">
+                                                                    <CheckCircle size={12} />
+                                                                    <span>Sintaxis JSON Válida</span>
+                                                                </div>
+                                                            )}
+
+                                                            <textarea
+                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 font-mono text-xs text-amber-200 outline-none focus:border-amber-500/50 transition-all min-h-[260px] leading-relaxed scrollbar-thin"
+                                                                value={typeof editingRegistro.menu_digital === 'string' ? editingRegistro.menu_digital : JSON.stringify(editingRegistro.menu_digital || {}, null, 2)}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    setEditingRegistro({ ...editingRegistro, menu_digital: val });
+                                                                    try {
+                                                                        const parsed = JSON.parse(val);
+                                                                        setRawJsonError(null);
+                                                                        if (parsed && (parsed.categories || Array.isArray(parsed))) {
+                                                                            setAdminParsedMenuData(Array.isArray(parsed) ? { categories: parsed } : parsed);
+                                                                        }
+                                                                    } catch (err: any) {
+                                                                        setRawJsonError(err.message);
+                                                                    }
+                                                                }}
+                                                                placeholder='{\n  "categories": [\n    {\n      "name": "Platos Principales",\n      "items": []\n    }\n  ]\n}'
+                                                            />
+                                                            <p className="text-[9px] text-white/40 italic">
+                                                                * Edita directamente el JSON estructurado de la carta o menú. Al guardar cambios se actualizará la base de datos.
+                                                            </p>
+                                                        </div>
+                                                    ) : adminParsedMenuData ? (
                                                         <div className="bg-white/5 border border-primary/20 rounded-2xl p-4">
                                                             <MenuScannerSection
                                                                 menuData={adminParsedMenuData}

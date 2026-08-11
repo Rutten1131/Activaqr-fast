@@ -1477,7 +1477,12 @@ export default function AdminDashboard() {
                     r.whatsapp || r.telefono || '',
                     r.plan || '',
                     r.status || '',
-                    String(r.id || '')
+                    String(r.id || ''),
+                    r.profesion || '',
+                    r.nombre_negocio || '',
+                    r.etiquetas || '',
+                    r.productos_servicios || '',
+                    r.bio || '',
                 ].map(f => f.toLowerCase());
                 // Match if ALL space-separated words appear in any field
                 const words = term.split(/\s+/).filter(Boolean);
@@ -2185,7 +2190,7 @@ export default function AdminDashboard() {
                             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20" size={20} />
                             <input
                                 type="text"
-                                placeholder="Buscar por nombre o email..."
+                                placeholder="Buscar por nombre, profesión, negocio, email, etiquetas..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-16 py-4 outline-none focus:border-primary/40 transition-all font-bold text-white"
