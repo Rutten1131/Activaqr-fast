@@ -66,12 +66,17 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
 
     const isFoodRestaurant = useMemo(() => {
         if (isRestaurant) return true;
-        let cats: string[] = [];
-        if (data && !Array.isArray(data) && Array.isArray(data.categories)) {
-            cats = data.categories;
+        let allText = '';
+        if (data && !Array.isArray(data)) {
+            const catStr = Array.isArray(data.categories) ? data.categories.join(' ') : '';
+            const prodStr = Array.isArray(data.products) ? data.products.map(p => (p.name || p.titulo || '') + ' ' + (p.category || p.categoria || '')).join(' ') : '';
+            allText = `${catStr} ${prodStr}`.toLowerCase();
+        } else if (Array.isArray(data)) {
+            allText = data.map(p => (p.name || p.titulo || '') + ' ' + (p.category || p.categoria || '')).join(' ').toLowerCase();
         }
-        const foodKeywords = ['platos', 'bebidas', 'entradas', 'menu', 'menú', 'gastronomia', 'gastronomía', 'restaurante', 'postres', 'asados', 'comida', 'parrillada', 'piqueos', 'especialidades', 'cocteles'];
-        return cats.some(c => foodKeywords.some(kw => (c || '').toLowerCase().includes(kw)));
+
+        const foodKeywords = ['plato', 'bebida', 'entrada', 'menu', 'menú', 'gastronom', 'restaurante', 'postre', 'asado', 'comida', 'parrillada', 'piqueo', 'especialid', 'coctel', 'cocktail', 'guarnicion', 'pollo', 'carne', 'lomo', 't-bone', 'tomahawk', 'costilla', 'chuleta', 'ceviche', 'alitas', 'pinchos', 'combo', 'tex mex', 'shot', 'cerveza', 'michelada'];
+        return foodKeywords.some(kw => allText.includes(kw));
     }, [isRestaurant, data]);
 
     // Helper to parse price safely
@@ -187,20 +192,6 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
         setDetailQuantity(1); // Reset default qty in lightbox
         setActiveMediaType(getImages(item).length > 0 ? 'image' : 'video');
         if (onLightboxToggle) onLightboxToggle(true);
-        // Scroll to catalog section - force scroll to top of catalog
-        setTimeout(() => {
-            const catalogElement = document.getElementById('catalogo');
-            if (catalogElement) {
-                const rect = catalogElement.getBoundingClientRect();
-                window.scrollTo({
-                    top: window.scrollY + rect.top - 100,
-                    behavior: 'smooth'
-                });
-            } else {
-                // Fallback: scroll to top of page
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }, 150);
     };
 
     const handleCloseItem = () => {
@@ -353,11 +344,24 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                                 return null;
                                             })()
                                         ) : (
-                                            <img 
-                                                src={current.url} 
-                                                alt={selectedItem.name || selectedItem.titulo}
-                                                className="max-w-full max-h-full object-contain rounded-xl md:rounded-2xl shadow-2xl"
-                                            />
+                                            // Primera imagen en restaurante: efecto 3D orbital
+                                            (isFoodRestaurant || true) && mediaIndex === 0 ? (
+                                                <div className="w-full h-full min-h-[250px] aspect-square relative rounded-xl md:rounded-2xl overflow-hidden shadow-2xl bg-black">
+                                                    <DishSteamViewer
+                                                        src={current.url}
+                                                        alt={selectedItem.name || selectedItem.titulo}
+                                                        enableSteam={true}
+                                                        enableRotation={true}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <img 
+                                                    src={current.url} 
+                                                    alt={selectedItem.name || selectedItem.titulo}
+                                                    className="max-w-full max-h-full object-contain rounded-xl md:rounded-2xl shadow-2xl"
+                                                />
+                                            )
                                         )}
                                     </div>
 
@@ -807,11 +811,23 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                                             );
                                                         })()
                                                     ) : (
-                                                        <img
-                                                            src={current.url}
-                                                            alt={selectedItem.name || selectedItem.titulo}
-                                                            className="max-w-full max-h-[50vh] md:max-h-[70vh] object-contain rounded-2xl md:rounded-[32px] shadow-2xl"
-                                                        />
+                                                        (isFoodRestaurant || true) && mediaIndex === 0 ? (
+                                                            <div className="w-full h-[300px] sm:h-[400px] md:h-full max-h-[50vh] md:max-h-[70vh] aspect-square relative rounded-2xl md:rounded-[32px] overflow-hidden shadow-2xl bg-black">
+                                                                <DishSteamViewer
+                                                                    src={current.url}
+                                                                    alt={selectedItem.name || selectedItem.titulo}
+                                                                    enableSteam={true}
+                                                                    enableRotation={true}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <img
+                                                                src={current.url}
+                                                                alt={selectedItem.name || selectedItem.titulo}
+                                                                className="max-w-full max-h-[50vh] md:max-h-[70vh] object-contain rounded-2xl md:rounded-[32px] shadow-2xl"
+                                                            />
+                                                        )
                                                     )}
                                                 </motion.div>
                                             </AnimatePresence>

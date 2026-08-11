@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useSteamParticles } from '@/lib/hooks/useSteamParticles';
 
 interface DishSteamViewerProps {
@@ -21,76 +21,102 @@ export const DishSteamViewer: React.FC<DishSteamViewerProps> = ({
   enableRotation = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [particleCount, setParticleCount] = useState(25);
 
-  // Activate canvas steam particles
+  useEffect(() => {
+    // Reducir humo en móviles a 8 partículas sutiles
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      setParticleCount(8);
+    }
+  }, []);
+
   useSteamParticles(canvasRef, {
-    particleCount: 25,
+    particleCount,
     isActive: enableSteam,
   });
 
   return (
-    <div className={`relative w-full h-full overflow-hidden group perspective-1000 ${className}`}>
-      {/* 3D Animated Image Container - Continuous Commercial Motion (Like a GIF loop) */}
+    <div className={`relative w-full h-full overflow-hidden group ${className}`} style={{ perspective: '750px' }}>
+      {/* 
+        Contenedor 3D: Cámara Gimbal Orbitando 360° Alrededor del Plato
+        Recorre: ADELANTE (Front) -> DERECHA (Right Side) -> ATRÁS (Back Top) -> IZQUIERDA (Left Side)
+      */}
       <div
-        className={`w-full h-full relative overflow-hidden transform-gpu ${
-          enableRotation ? 'animate-cinematic-food-pan' : ''
+        className={`w-full h-full relative transform-gpu ${
+          enableRotation ? 'animate-full-3d-orbit' : ''
         }`}
-        style={{ transformStyle: 'preserve-3d' }}
+        style={{ transformStyle: 'preserve-3d', transformOrigin: 'center center' }}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
           alt={alt}
-          className="w-full h-full object-cover transform scale-110 transition-transform duration-700 group-hover:scale-115"
+          className="w-full h-full object-cover scale-130"
           loading="lazy"
         />
 
-        {/* Cinematic Light Reflection Sweep / Shimmer */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-light-sweep pointer-events-none" />
+        {/* Destello de Lente Cinemático */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/12 to-transparent animate-lens-flare pointer-events-none" />
       </div>
 
-      {/* Steam Canvas Overlay - Positioned over the food plate */}
+      {/* Capa de Vapor — Humo de comida caliente */}
       {enableSteam && (
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 w-full h-full pointer-events-none z-10 opacity-85 transition-opacity duration-500"
+          className="absolute inset-0 w-full h-full pointer-events-none z-20 opacity-35 sm:opacity-80 transition-opacity duration-500"
         />
       )}
 
-      {/* Keyframe Styles for Continuous Cinematic Commercial Pan & Light Sweep */}
+      {/* Viñeta Studio Enfoque */}
+      <div
+        className="absolute inset-0 pointer-events-none z-10"
+        style={{
+          background: 'radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.55) 100%)',
+        }}
+      />
+
       <style jsx global>{`
-        @keyframes cinematicFoodPan {
+        /*
+          Órbita 3D Completa de Cámara (360° Orbit B-Roll commercial camera pan):
+          0%   : ADELANTE (Vista frontal baja ~16°)
+          25%  : DERECHA (Toma lateral derecha con zoom y desplazamiento)
+          50%  : ATRÁS (Vista superior trasera picada ~-14°)
+          75%  : IZQUIERDA (Toma lateral izquierda con zoom y desplazamiento)
+          100% : ADELANTE (Retorno fluido al frente)
+        */
+        @keyframes full3dOrbit {
           0% {
-            transform: scale(1.08) rotate(0deg) translateY(0px) rotateX(0deg);
+            transform: scale(1.20) rotateX(16deg) rotateY(0deg) translateX(0px) translateY(0px);
           }
           25% {
-            transform: scale(1.12) rotate(1.2deg) translateY(-3px) rotateX(2deg);
+            transform: scale(1.28) rotateX(6deg) rotateY(26deg) translateX(-30px) translateY(-12px);
           }
           50% {
-            transform: scale(1.15) rotate(0deg) translateY(-5px) rotateX(0deg);
+            transform: scale(1.35) rotateX(-14deg) rotateY(0deg) translateX(0px) translateY(-24px);
           }
           75% {
-            transform: scale(1.12) rotate(-1.2deg) translateY(-2px) rotateX(-2deg);
+            transform: scale(1.28) rotateX(6deg) rotateY(-26deg) translateX(30px) translateY(-12px);
           }
           100% {
-            transform: scale(1.08) rotate(0deg) translateY(0px) rotateX(0deg);
+            transform: scale(1.20) rotateX(16deg) rotateY(0deg) translateX(0px) translateY(0px);
           }
         }
-        @keyframes lightSweep {
+
+        @keyframes lensFlare {
           0% {
-            transform: translateX(-150%) skewX(-15deg);
+            transform: translateX(-150%) skewX(-20deg);
           }
-          50%, 100% {
-            transform: translateX(150%) skewX(-15deg);
+          45%, 100% {
+            transform: translateX(180%) skewX(-20deg);
           }
         }
-        .animate-cinematic-food-pan {
-          animation: cinematicFoodPan 10s ease-in-out infinite;
+
+        .animate-full-3d-orbit {
+          animation: full3dOrbit 10s ease-in-out infinite;
         }
-        .animate-light-sweep {
-          animation: lightSweep 7s ease-in-out infinite;
-        }
-        .perspective-1000 {
-          perspective: 1000px;
+
+        .animate-lens-flare {
+          animation: lensFlare 7s ease-in-out infinite;
         }
       `}</style>
     </div>
