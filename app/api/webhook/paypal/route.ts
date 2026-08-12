@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { notifyCrmPaymentSucceeded } from '@/lib/crm-webhook';
 
 
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,9 @@ export async function POST(req: NextRequest) {
 
                     if (users.length > 0) {
                         console.log(`[PayPal Webhook] ¡Éxito! Usuario ${email} marcado como pagado.`);
+
+                        // Notificar al CRM de Finanzas
+                        await notifyCrmPaymentSucceeded(email, 'paypal', resource.id);
 
                         try {
                             const wpNotifyUrl = new URL('/api/notify-whatsapp', req.url).toString();

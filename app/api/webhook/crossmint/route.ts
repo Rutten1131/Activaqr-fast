@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import pool from '@/lib/db';
+import { notifyCrmPaymentSucceeded } from '@/lib/crm-webhook';
 
 export async function POST(req: Request) {
     try {
@@ -56,6 +57,9 @@ export async function POST(req: Request) {
 
                         if (users.length > 0) {
                             console.log(`[Crossmint Webhook] Usuario ${email} marcado como pagado.`);
+
+                            // Notificar al CRM de Finanzas
+                            await notifyCrmPaymentSucceeded(email, 'crypto_crossmint', paymentId);
 
                             try {
                                 const wpNotifyUrl = new URL('/api/notify-whatsapp', req.url).toString();
