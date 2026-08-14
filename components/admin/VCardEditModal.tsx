@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Trash2, Download, Save, RefreshCw, QrCode, ExternalLink, Clock, X as CloseIcon, Video, Store, Library, Plus, Edit, Zap, ChevronDown, Star, Info, LogOut, CheckCircle, FileText, Loader2, ShieldCheck, User, Image as ImageIcon, AlertCircle, Copy, Layers, Sparkles } from 'lucide-react';
+import { Upload, Trash2, Download, Save, RefreshCw, QrCode, ExternalLink, Clock, X as CloseIcon, Video, Store, Library, Plus, Edit, Zap, ChevronDown, Star, Info, LogOut, CheckCircle, FileText, Loader2, ShieldCheck, User, Image as ImageIcon, AlertCircle, Copy, Layers, Sparkles, Globe, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/lib/upload';
 import { MenuScannerSection, MenuData } from '@/components/MenuScannerSection';
+import { classifyBusinessProfile } from '@/lib/seo/businessClassifier';
+import type { BusinessSchemaCategory, SeoConfig } from '@/lib/seo/types';
 
 interface VCardEditModalProps {
     isOpen: boolean;
@@ -59,7 +61,7 @@ export default function VCardEditModal({
     }, [editingRegistro?.productos_servicios]);
 
     const [heroSectionOpen, setHeroSectionOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'identidad' | 'contacto' | 'contenido' | 'hero' | 'catalogo' | 'qr' | 'vip' | 'categorias'>('identidad');
+    const [activeTab, setActiveTab] = useState<'identidad' | 'contacto' | 'contenido' | 'hero' | 'catalogo' | 'qr' | 'vip' | 'categorias' | 'seo'>('identidad');
     const [isStructuring, setIsStructuring] = useState(false);
     // ── Slug Changer ──
     const [newSlug, setNewSlug] = useState('');
@@ -917,6 +919,7 @@ export default function VCardEditModal({
                                 {[
                                     { id: 'qr', label: 'Diseño QR', icon: <QrCode size={14} /> },
                                     { id: 'vip', label: 'Personalización VIP', icon: <ShieldCheck size={14} /> },
+                                    { id: 'seo', label: 'SEO & Google', icon: <Sparkles size={14} /> },
                                 ].map((tab) => (
                                     <button
                                         key={tab.id}
@@ -2756,6 +2759,285 @@ export default function VCardEditModal({
                                 </div>
                             </div>
                         )}
+
+                        {activeTab === 'seo' && (() => {
+                            const detected = classifyBusinessProfile(editingRegistro);
+                            
+                            let currentSeo: SeoConfig = {};
+                            try {
+                                const raw = editingRegistro.json_override;
+                                const parsed = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
+                                currentSeo = parsed.seo || {};
+                            } catch (e) {}
+
+                            const updateSeoField = (fields: Partial<SeoConfig>) => {
+                                let parsed: any = {};
+                                try {
+                                    const raw = editingRegistro.json_override;
+                                    parsed = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
+                                } catch (e) {}
+
+                                parsed.seo = { ...(parsed.seo || {}), ...fields };
+                                setEditingRegistro({ ...editingRegistro, json_override: parsed });
+                            };
+
+                            const displayName = editingRegistro.tipo_perfil === 'negocio'
+                                ? (editingRegistro.nombre_negocio || editingRegistro.nombre)
+                                : editingRegistro.nombre;
+
+                            let locationSuffix = '';
+                            if (editingRegistro.direccion) {
+                                const parts = editingRegistro.direccion.split(',').map((s: string) => s.trim());
+                                if (parts.length > 0) locationSuffix = ` en ${parts[parts.length - 1]}`;
+                            }
+
+                            const computedDefaultTitle = `${displayName} | ${detected.nichedTitleSuffix}${locationSuffix} - Perfil Oficial`;
+                            const computedDefaultDesc = editingRegistro.bio && editingRegistro.bio.length > 20
+                                ? `${editingRegistro.bio} Contacta con ${displayName} directamente a través de su tarjeta digital interactiva ActivaQR.`
+                                : `Conoce a ${displayName} (${detected.nichedTitleSuffix}). Consulta servicios, ubicación, redes y catálogo en un solo clic.`;
+
+                            const effectiveTitle = currentSeo.customTitle || computedDefaultTitle;
+                            const effectiveDesc = currentSeo.customDescription || computedDefaultDesc;
+                            const effectiveCategory = currentSeo.schemaCategory || detected.category;
+
+                            const handleAutoGenerate = () => {
+                                const keywords = [
+                                    displayName.toLowerCase(),
+                                    detected.nichedTitleSuffix.toLowerCase(),
+                                    ...(detected.cuisineType ? [detected.cuisineType.toLowerCase()] : []),
+                                    ...(editingRegistro.etiquetas ? editingRegistro.etiquetas.split(',').map((t: string) => t.trim().toLowerCase()) : []),
+                                    'tarjeta digital',
+                                    'contacto digital',
+                                    'activaqr'
+                                ].filter(Boolean);
+
+                                updateSeoField({
+                                    customTitle: computedDefaultTitle,
+                                    customDescription: computedDefaultDesc,
+                                    customKeywords: Array.from(new Set(keywords)),
+                                    schemaCategory: detected.category,
+                                    cuisineType: detected.cuisineType,
+                                    enableIndexed: true
+                                });
+                            };
+
+                            return (
+                                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    {/* Header & Quick Action */}
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-8 bg-gradient-to-r from-primary/10 via-white/5 to-transparent border border-primary/20 rounded-[32px]">
+                                        <div className="space-y-2">
+                                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/30">
+                                                <Sparkles size={12} /> Motor SEO & Schema.org ActivaQR
+                                            </div>
+                                            <h3 className="text-2xl font-black text-white">Posicionamiento Interno en Google</h3>
+                                            <p className="text-xs text-white/50 max-w-xl">
+                                                Configura el marcado semántico, metadatos y Schema.org (JSON-LD) para que Google indexe a {displayName} como negocio especializado. 100% invisible en la vista visual del cliente.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleAutoGenerate}
+                                            className="px-6 py-3.5 rounded-2xl bg-primary text-navy font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(255,107,0,0.2)] shrink-0"
+                                        >
+                                            <Sparkles size={14} /> Auto-generar SEO con IA
+                                        </button>
+                                    </div>
+
+                                    {/* Google SERP Live Preview */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
+                                                <Search size={14} className="text-primary" /> Previsualización en Google (SERP Preview)
+                                            </h4>
+                                            <span className="text-[9px] font-bold text-white/30">Cómo verán los clientes este negocio en búsquedas</span>
+                                        </div>
+                                        <div className="p-6 bg-[#202124] rounded-2xl border border-white/10 font-sans shadow-2xl">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-primary font-bold text-xs">
+                                                    <Globe size={14} />
+                                                </div>
+                                                <div className="flex flex-col text-[11px] leading-tight">
+                                                    <span className="text-[#dadce0] font-medium">ActivaQR Perfil Digital</span>
+                                                    <span className="text-[#bdc1c6] text-[10px] truncate max-w-md">
+                                                        https://www.activaqr.com/card/{editingRegistro.slug || 'perfil'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <h4 className="text-[#8ab4f8] text-base hover:underline cursor-pointer font-medium mb-1 line-clamp-1">
+                                                {effectiveTitle}
+                                            </h4>
+                                            
+                                            {/* Rich Snippet Stars & Category Badge */}
+                                            <div className="flex items-center gap-3 text-xs text-[#bdc1c6] mb-1.5">
+                                                {editingRegistro.google_rating && (
+                                                    <span className="flex items-center gap-1 text-[#fbbc04] font-bold text-[11px]">
+                                                        <span>★</span> {editingRegistro.google_rating}
+                                                        <span className="text-[#9aa0a6] font-normal">({editingRegistro.google_reviews_count || '15+'} reseñas)</span>
+                                                    </span>
+                                                )}
+                                                <span className="px-2 py-0.5 rounded bg-white/10 text-[9px] font-mono text-[#e8eaed]">
+                                                    Schema: {effectiveCategory}
+                                                </span>
+                                                {detected.cuisineType && (
+                                                    <span className="text-[10px] text-[#8ab4f8]">
+                                                        Cocina: {detected.cuisineType}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <p className="text-[#bdc1c6] text-xs leading-relaxed line-clamp-2">
+                                                {effectiveDesc}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Categoría Schema & Inferencia */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="p-6 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                                                    Tipo de Negocio en Schema.org (JSON-LD)
+                                                </label>
+                                                <span className="text-[9px] font-bold text-primary">
+                                                    Detectado: {detected.category} ({Math.round(detected.confidence * 100)}%)
+                                                </span>
+                                            </div>
+                                            <select
+                                                value={currentSeo.schemaCategory || ''}
+                                                onChange={(e) => updateSeoField({ schemaCategory: (e.target.value || undefined) as any })}
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-primary/60 transition-all"
+                                            >
+                                                <option value="" className="bg-[#0A1229]">Auto-detectar ({detected.category})</option>
+                                                <option value="Restaurant" className="bg-[#0A1229]">Restaurante / Grill / Asador (Restaurant)</option>
+                                                <option value="CafeOrCoffeeShop" className="bg-[#0A1229]">Cafetería / Pastelería (CafeOrCoffeeShop)</option>
+                                                <option value="BarOrPub" className="bg-[#0A1229]">Bar / Pub / Coctelería (BarOrPub)</option>
+                                                <option value="BeautySalon" className="bg-[#0A1229]">Salón de Belleza / Peluquería / Barbería (BeautySalon)</option>
+                                                <option value="StationeryStore" className="bg-[#0A1229]">Papelería / Marcos / Librería (StationeryStore)</option>
+                                                <option value="ClothingStore" className="bg-[#0A1229]">Tienda de Ropa / Moda (ClothingStore)</option>
+                                                <option value="HardwareStore" className="bg-[#0A1229]">Ferretería / Materiales (HardwareStore)</option>
+                                                <option value="Store" className="bg-[#0A1229]">Comercio / Tienda General (Store)</option>
+                                                <option value="AutoRepair" className="bg-[#0A1229]">Taller Mecánico / Repuestos (AutoRepair)</option>
+                                                <option value="AutomotiveBusiness" className="bg-[#0A1229]">Servicio Automotriz / Taxis (AutomotiveBusiness)</option>
+                                                <option value="Dentist" className="bg-[#0A1229]">Clínica Dental / Odontólogo (Dentist)</option>
+                                                <option value="MedicalBusiness" className="bg-[#0A1229]">Centro Médico / Salud (MedicalBusiness)</option>
+                                                <option value="LegalService" className="bg-[#0A1229]">Estudio Jurídico / Abogado (LegalService)</option>
+                                                <option value="AccountingService" className="bg-[#0A1229]">Asesoría Contable / SRI (AccountingService)</option>
+                                                <option value="RealEstateAgent" className="bg-[#0A1229]">Bienes Raíces / Inmobiliaria (RealEstateAgent)</option>
+                                                <option value="ProfessionalService" className="bg-[#0A1229]">Servicios Profesionales / Consultoría (ProfessionalService)</option>
+                                                <option value="LocalBusiness" className="bg-[#0A1229]">Negocio Local General (LocalBusiness)</option>
+                                                <option value="Person" className="bg-[#0A1229]">Perfil Profesional Personal (Person)</option>
+                                            </select>
+                                            <p className="text-[10px] text-white/30">
+                                                Define cómo Google clasifica el negocio en Maps y Google Knowledge Graph.
+                                            </p>
+                                        </div>
+
+                                        <div className="p-6 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                                                    Indexación en Buscadores
+                                                </label>
+                                                <span className="text-[9px] font-bold text-emerald-400">
+                                                    {currentSeo.enableIndexed !== false ? 'Activo (Indexable)' : 'Noindex'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => updateSeoField({ enableIndexed: !(currentSeo.enableIndexed !== false) })}
+                                                    className={cn(
+                                                        "w-12 h-6 rounded-full transition-all relative p-1",
+                                                        currentSeo.enableIndexed !== false ? "bg-emerald-500" : "bg-white/10"
+                                                    )}
+                                                >
+                                                    <div className={cn(
+                                                        "w-4 h-4 rounded-full bg-white transition-all",
+                                                        currentSeo.enableIndexed !== false ? "translate-x-6" : "translate-x-0"
+                                                    )} />
+                                                </button>
+                                                <span className="text-xs text-white/70">
+                                                    Permitir que Google y Bing rastreen e indexen esta página
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-white/30">
+                                                Desactívalo solo si el cliente requiere un perfil privado no listado públicamente.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Campos de Título y Descripción Personalizados */}
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                                                    Título SEO Personalizado (Meta Title)
+                                                </label>
+                                                <span className={cn(
+                                                    "text-[10px] font-mono",
+                                                    (currentSeo.customTitle || computedDefaultTitle).length > 65 ? "text-amber-400" : "text-white/30"
+                                                )}>
+                                                    {(currentSeo.customTitle || computedDefaultTitle).length}/60 carac. recomendados
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder={computedDefaultTitle}
+                                                value={currentSeo.customTitle || ''}
+                                                onChange={(e) => updateSeoField({ customTitle: e.target.value || undefined })}
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-primary/60 transition-all placeholder:text-white/20"
+                                            />
+                                            <p className="text-[10px] text-white/30">
+                                                Deja vacío para usar el título inteligente auto-generado.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                                                    Meta Descripción Personalizada
+                                                </label>
+                                                <span className={cn(
+                                                    "text-[10px] font-mono",
+                                                    (currentSeo.customDescription || computedDefaultDesc).length > 160 ? "text-amber-400" : "text-white/30"
+                                                )}>
+                                                    {(currentSeo.customDescription || computedDefaultDesc).length}/155 carac. recomendados
+                                                </span>
+                                            </div>
+                                            <textarea
+                                                rows={3}
+                                                placeholder={computedDefaultDesc}
+                                                value={currentSeo.customDescription || ''}
+                                                onChange={(e) => updateSeoField({ customDescription: e.target.value || undefined })}
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-medium text-white outline-none focus:border-primary/60 transition-all resize-none placeholder:text-white/20"
+                                            />
+                                            <p className="text-[10px] text-white/30">
+                                                Texto que aparece debajo del enlace en Google. Debe ser persuasivo e invitar al clic.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                                                Palabras Clave SEO (Keywords separadas por coma)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="restaurante, carnes, parrillada, comida en quito, activaqr"
+                                                value={currentSeo.customKeywords ? currentSeo.customKeywords.join(', ') : ''}
+                                                onChange={(e) => {
+                                                    const rawVal = e.target.value;
+                                                    const tags = rawVal ? rawVal.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+                                                    updateSeoField({ customKeywords: tags });
+                                                }}
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-primary/60 transition-all placeholder:text-white/20"
+                                            />
+                                            <p className="text-[10px] text-white/30">
+                                                Términos de búsqueda que los clientes usarán para encontrar este negocio.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
 
