@@ -1613,7 +1613,8 @@ export default function VCardEditModal({
                                         </AnimatePresence>
                                     </div>
 
-                                    {/* SECCIÓN 2.5: CATEGORÍAS E IMÁGENES (PROTOCOLO VIP) */}
+                                    {/* SECCIÓN 2.5: CATEGORÍAS E IMÁGENES (PROTOCOLO VIP) - OCULTO EN CATALOG */}
+                                    {userData?.plan !== 'catalog' && (
                                     <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
                                         <button 
                                             onClick={() => setActiveSection(activeSection === 'categorias' ? null : 'categorias')}
@@ -1754,6 +1755,7 @@ export default function VCardEditModal({
                                             )}
                                         </AnimatePresence>
                                     </div>
+                                    )}
 
                                     {/* SECCIÓN 2.6: CARTA / MENÚ DIGITAL */}
                                     {(userData?.plan === 'business' || userData?.plan === 'catalog' || userData?.plan === 'digital' || userData?.plan === 'pro') && (
@@ -2097,16 +2099,53 @@ export default function VCardEditModal({
 
                                                         {/* Ubicación */}
                                                         <div className="col-span-full">
-                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 mt-4">Ubicación</p>
+                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 mt-4">Ubicación y Google Reviews</p>
                                                         </div>
                                                         <div className="col-span-full space-y-1">
                                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Dirección Física</label>
                                                             <input className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Ej. Calle Principal #123" />
                                                         </div>
                                                         <div className="col-span-full space-y-1">
-                                                            <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Google Business / Maps</label>
-                                                            <input className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50" value={formData.google_business} onChange={(e) => setFormData({ ...formData, google_business: e.target.value })} placeholder="Link a Maps" />
+                                                            <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest">📍 Enlace de Ubicación Google Maps (Cómo Llegar)</label>
+                                                            <input className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50 border-blue-100" value={formData.google_business} onChange={(e) => setFormData({ ...formData, google_business: e.target.value })} placeholder="Ej. https://maps.app.goo.gl/..." />
                                                         </div>
+                                                        <div className="col-span-full space-y-1">
+                                                            <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest">⭐ Enlace Directo para Dejar Opinión en Google (Reseñas 5 Estrellas)</label>
+                                                            <input 
+                                                                className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50 border-amber-200" 
+                                                                value={formData.json_override?.google_review_url || ''} 
+                                                                onChange={(e) => setFormData({ 
+                                                                    ...formData, 
+                                                                    json_override: { 
+                                                                        ...(formData.json_override || {}), 
+                                                                        google_review_url: e.target.value 
+                                                                    } 
+                                                                })} 
+                                                                placeholder="Ej. https://g.page/r/.../review o link de opiniones de Google" 
+                                                            />
+                                                            <p className="text-[9px] text-gray-400 font-medium">Este link abrirá directamente la pantalla de opinar en Google cuando el cliente presione 5 estrellas.</p>
+                                                        </div>
+
+                                                        {/* Descarga de Opiniones / Feedback */}
+                                                        {userData?.id && (
+                                                            <div className="col-span-full mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                                                                <div>
+                                                                    <p className="text-xs font-black uppercase text-amber-600 tracking-wider flex items-center gap-1.5">
+                                                                        ⭐ Opiniones e Impresiones Privadas
+                                                                    </p>
+                                                                    <p className="text-[10px] text-gray-500 font-medium mt-0.5">
+                                                                        Descarga las opiniones dejadas por usuarios que calificaron con 1 a 4 estrellas.
+                                                                    </p>
+                                                                </div>
+                                                                <a
+                                                                    href={`/api/vcard/feedback?registro_id=${userData.id}&code=${encodeURIComponent(editCode)}`}
+                                                                    download
+                                                                    className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl transition-all shadow-md shrink-0"
+                                                                >
+                                                                    <Download size={14} /> Descargar Opiniones (CSV)
+                                                                </a>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </motion.div>
                                             )}

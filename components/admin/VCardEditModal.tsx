@@ -889,7 +889,7 @@ export default function VCardEditModal({
                                 {[
                                     { id: 'contenido', label: 'Bio & Servicios', icon: <FileText size={14} /> },
                                     { id: 'hero', label: 'Banners & Media', icon: <ImageIcon size={14} /> },
-                                    { id: 'categorias', label: 'Categorías (Experiencia)', icon: <Layers size={14} /> },
+                                    ...(editingRegistro.plan !== 'catalog' ? [{ id: 'categorias', label: 'Categorías (Experiencia)', icon: <Layers size={14} /> }] : []),
                                     ...(editingRegistro.plan === 'catalog' ? [{ id: 'catalogo', label: 'Catálogo Pro', icon: <Store size={14} /> }] : []),
                                 ].map((tab) => (
                                     <button
@@ -1953,7 +1953,7 @@ export default function VCardEditModal({
                                     </div>
                                 )}
 
-                                {/* REPUTACIÓN DIGITAL Y PRODUCTO VIDEO */}
+                                             {/* REPUTACIÓN DIGITAL Y PRODUCTO VIDEO */}
                                 {(editingRegistro.plan === 'business' || editingRegistro.plan === 'catalog') && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="p-8 bg-yellow-500/5 rounded-[2.5rem] border border-yellow-500/20 space-y-6">
@@ -1980,6 +1980,41 @@ export default function VCardEditModal({
                                                     />
                                                 </div>
                                             </div>
+
+                                            <div className="space-y-2 pt-2 border-t border-yellow-500/10">
+                                                <label className="text-[9px] font-black uppercase text-yellow-500/60 block">⭐ Enlace Directo para Reseñas en Google (5 Estrellas)</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full bg-[#050B1C] border border-yellow-500/20 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-yellow-500"
+                                                    value={(() => {
+                                                        try {
+                                                            const parsed = typeof editingRegistro.json_override === 'string' ? JSON.parse(editingRegistro.json_override || '{}') : (editingRegistro.json_override || {});
+                                                            return parsed.google_review_url || '';
+                                                        } catch { return ''; }
+                                                    })()}
+                                                    onChange={e => {
+                                                        let parsed: any = {};
+                                                        try {
+                                                            parsed = typeof editingRegistro.json_override === 'string' ? JSON.parse(editingRegistro.json_override || '{}') : (editingRegistro.json_override || {});
+                                                        } catch {}
+                                                        parsed.google_review_url = e.target.value;
+                                                        setEditingRegistro({ ...editingRegistro, json_override: parsed });
+                                                    }}
+                                                    placeholder="Ej. https://g.page/r/.../review"
+                                                />
+                                            </div>
+
+                                            {editingRegistro.id && (
+                                                <div className="pt-2">
+                                                    <a
+                                                        href={`/api/vcard/feedback?registro_id=${editingRegistro.id}`}
+                                                        download
+                                                        className="w-full inline-flex items-center justify-center gap-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md"
+                                                    >
+                                                        <Download size={14} /> Descargar Opiniones Privadas (CSV)
+                                                    </a>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="p-8 bg-red-500/5 rounded-[2.5rem] border border-red-500/20 space-y-6">

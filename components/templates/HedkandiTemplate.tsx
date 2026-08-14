@@ -548,6 +548,9 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                 </div>
             </section>
 
+            {/* ─── MÓDULO INTERACTIVO DE CALIFICACIÓN / FEEDBACK ─── */}
+            <InteractiveRatingSection data={props.data} themePrimary={props.themePrimary} />
+
             {/* 3. BIOGRAPHY SECTION */}
             <section className="bg-[#1A1A1A] text-white py-24 px-4 md:px-12">
                 <div className="max-w-4xl mx-auto text-center">
@@ -856,3 +859,235 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
         </div>
     );
 }
+
+function InteractiveRatingSection({ data, themePrimary }: { data: any; themePrimary?: string }) {
+    const [selectedRating, setSelectedRating] = React.useState<number | null>(null);
+    const [hoverRating, setHoverRating] = React.useState<number | null>(null);
+    const [comment, setComment] = React.useState('');
+    const [customerName, setCustomerName] = React.useState('');
+    const [customerContact, setCustomerContact] = React.useState('');
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isSubmitted, setIsSubmitted] = React.useState(false);
+
+    const activeAccent = themePrimary && themePrimary !== '#1A1A1A' ? themePrimary : '#f66739';
+    const parsedOverride = safeParse(data?.json_override, {} as any);
+    const googleReviewUrl = parsedOverride?.google_review_url || data?.google_business || '#';
+
+    const handleRatingClick = (rating: number) => {
+        setSelectedRating(rating);
+        setIsSubmitted(false);
+    };
+
+    const handleSubmitFeedback = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedRating || !data?.id) return;
+
+        setIsSubmitting(true);
+        try {
+            const res = await fetch('/api/vcard/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    registro_id: data.id,
+                    rating: selectedRating,
+                    comment,
+                    customer_name: customerName,
+                    customer_contact: customerContact
+                })
+            });
+
+            if (res.ok) {
+                setIsSubmitted(true);
+            } else {
+                alert('Error al enviar tus comentarios. Inténtalo de nuevo.');
+            }
+        } catch (err) {
+            console.error('Error enviando feedback:', err);
+            alert('Error de conexión.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <section className="bg-[#1A1A1A] py-24 px-4 md:px-12 relative overflow-hidden text-white border-t border-white/10">
+            {/* Ambient Background Glow */}
+            <div 
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none opacity-15"
+                style={{ backgroundColor: activeAccent }}
+            />
+
+            <div className="max-w-4xl mx-auto relative z-10 text-center">
+                {/* Header Badge */}
+                <div className="flex items-center gap-4 mb-8 w-full justify-center">
+                    <div 
+                        className="h-[1px] flex-1 max-w-[100px] opacity-40"
+                        style={{ background: `linear-gradient(to right, transparent, ${activeAccent})` }}
+                    />
+                    <span 
+                        className="font-sans-body text-[10px] md:text-xs tracking-[0.3em] uppercase font-bold"
+                        style={{ color: activeAccent }}
+                    >
+                        TU OPINIÓN ES NUESTRO MOTOR
+                    </span>
+                    <div 
+                        className="h-[1px] flex-1 max-w-[100px] opacity-40"
+                        style={{ background: `linear-gradient(to left, transparent, ${activeAccent})` }}
+                    />
+                </div>
+
+                <h3 className="font-display-condensed text-4xl md:text-6xl uppercase tracking-tight mb-4 text-white leading-none">
+                    ¿CÓMO FUE TU EXPERIENCIA?
+                </h3>
+                <p className="font-sans-body text-xs md:text-sm text-white/50 uppercase tracking-[0.25em] max-w-xl mx-auto mb-12">
+                    Toca las estrellas para darnos tu calificación
+                </p>
+
+                {/* Interactive Stars Row */}
+                <div className="flex justify-center items-center gap-3 md:gap-6 mb-12">
+                    {[1, 2, 3, 4, 5].map((star) => {
+                        const active = (hoverRating !== null ? star <= hoverRating : (selectedRating !== null && star <= selectedRating));
+                        return (
+                            <button
+                                key={star}
+                                type="button"
+                                onClick={() => handleRatingClick(star)}
+                                onMouseEnter={() => setHoverRating(star)}
+                                onMouseLeave={() => setHoverRating(null)}
+                                className="p-2 transition-all duration-300 hover:scale-125 focus:outline-none group"
+                            >
+                                <svg
+                                    className="w-10 h-10 md:w-14 md:h-14 transition-all duration-300 fill-current"
+                                    viewBox="0 0 20 20"
+                                    style={{
+                                        color: active ? '#ffc107' : 'rgba(255,255,255,0.15)',
+                                        filter: active ? 'drop-shadow(0 0 16px rgba(255, 193, 7, 0.6))' : 'none'
+                                    }}
+                                >
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* 5 ESTRELLAS -> Google Reviews Redirect Card */}
+                {selectedRating === 5 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="border border-white/10 bg-white/5 backdrop-blur-xl rounded-[3rem] p-8 md:p-14 max-w-2xl mx-auto shadow-2xl space-y-6"
+                    >
+                        <div 
+                            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto text-3xl font-black shadow-lg"
+                            style={{ backgroundColor: `${activeAccent}22`, color: activeAccent }}
+                        >
+                            ⭐ 5.0
+                        </div>
+                        <h4 className="font-display-condensed text-3xl md:text-4xl text-white uppercase tracking-widest leading-tight">
+                            ¡GRACIAS POR TU VALORACIÓN!
+                        </h4>
+                        <p className="font-sans-body text-xs md:text-sm text-white/70 uppercase tracking-widest leading-relaxed">
+                            Nos alegra haber superado tus expectativas. Déjanos tu reseña en Google Business para ayudar a más personas a conocernos.
+                        </p>
+                        <div className="pt-2">
+                            <a
+                                href={googleReviewUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group relative inline-flex items-center gap-3 px-10 py-5 rounded-2xl font-display-condensed text-lg md:text-xl tracking-[0.2em] uppercase transition-all duration-300 shadow-2xl hover:scale-105 text-white font-bold"
+                                style={{ backgroundColor: activeAccent }}
+                            >
+                                COMPARTIR EN GOOGLE MAPS 🚀
+                            </a>
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* 1 A 4 ESTRELLAS -> Formulario Interno de Mejora */}
+                {selectedRating !== null && selectedRating < 5 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="border border-white/10 bg-white/5 backdrop-blur-xl rounded-[3rem] p-8 md:p-14 max-w-2xl mx-auto shadow-2xl space-y-6 text-left"
+                    >
+                        {!isSubmitted ? (
+                            <form onSubmit={handleSubmitFeedback} className="space-y-6">
+                                <div className="text-center space-y-2">
+                                    <span className="font-sans-body text-[10px] uppercase tracking-[0.3em] text-white/40 block font-bold">
+                                        Calificación seleccionada: {selectedRating} de 5 estrellas
+                                    </span>
+                                    <h4 className="font-display-condensed text-2xl md:text-4xl text-white uppercase tracking-tight">
+                                        ¿CÓMO PODEMOS MEJORAR?
+                                    </h4>
+                                    <p className="font-sans-body text-xs text-white/50 uppercase tracking-widest max-w-md mx-auto">
+                                        Tus comentarios llegarán directo a la gerencia para brindarte un servicio de 5 estrellas.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block ml-1">Tu Observación o Sugerencia</label>
+                                    <textarea
+                                        required
+                                        rows={4}
+                                        value={comment}
+                                        onChange={(e) => setComment(e.target.value)}
+                                        placeholder="Escribe aquí tu comentario para ayudarnos a mejorar..."
+                                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-white/40 transition-all resize-none font-sans"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block ml-1">Tu Nombre (Opcional)</label>
+                                        <input
+                                            type="text"
+                                            value={customerName}
+                                            onChange={(e) => setCustomerName(e.target.value)}
+                                            placeholder="Nombre completo"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-white/40 transition-all font-sans"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block ml-1">Teléfono o Email (Opcional)</label>
+                                        <input
+                                            type="text"
+                                            value={customerContact}
+                                            onChange={(e) => setCustomerContact(e.target.value)}
+                                            placeholder="Contacto para darte seguimiento"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-white/40 transition-all font-sans"
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="w-full py-5 rounded-2xl font-display-condensed text-lg md:text-xl tracking-[0.2em] uppercase transition-all duration-300 font-bold shadow-2xl text-white hover:brightness-110 disabled:opacity-50"
+                                    style={{ backgroundColor: activeAccent }}
+                                >
+                                    {isSubmitting ? 'ENVIANDO...' : 'ENVIAR MENSAJE'}
+                                </button>
+                            </form>
+                        ) : (
+                            <div className="py-8 text-center space-y-4">
+                                <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-3xl font-black border border-emerald-500/30">
+                                    ✓
+                                </div>
+                                <h4 className="font-display-condensed text-3xl text-white uppercase tracking-widest">
+                                    ¡MENSAJE RECIBIDO CON ÉXITO!
+                                </h4>
+                                <p className="font-sans-body text-xs md:text-sm text-white/70 uppercase tracking-widest leading-relaxed max-w-md mx-auto">
+                                    Agradecemos enormemente tu tiempo. Tomaremos en cuenta tus observaciones de inmediato.
+                                </p>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </div>
+        </section>
+    );
+}
+

@@ -388,10 +388,12 @@ export default function VCardClient({ showCatalog = false }: VCardClientProps) {
             case 'showcase':
             case 'hedkandi':
                 // overrides BEFORE slot so the menu slot always wins
+                const hideExp = data.plan === 'catalog' || Boolean(overrides.hideExperience);
                 return (
                     <HedkandiTemplate 
                         {...baseProps} 
                         {...overrides} 
+                        hideExperience={hideExp}
                         afterExperienceSlot={catalogNode} 
                         beforeMarqueeSlot={menuNode}
                     />
