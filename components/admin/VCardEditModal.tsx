@@ -1410,186 +1410,133 @@ export default function VCardEditModal({
                                                     placeholder="https://maps.app.goo.gl/..."
                                                 />
                                             </div>
-                                            {(editingRegistro.plan === 'business' || editingRegistro.plan === 'catalog' || editingRegistro.plan === 'digital') && (
-                                                <div className="animate-in slide-in-from-top-2 group">
-                                                    <div className="flex justify-between items-center mb-3 ml-1">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                                                            🍽️ Carta / Menú Digital o Catálogo de Servicios
-                                                        </label>
-                                                        <div className="flex items-center gap-2">
+
+                                            {/* SECCIÓN MENÚ DIGITAL / CARTA INTERACTIVA CON IA */}
+                                            <div className="animate-in slide-in-from-top-2 group space-y-4">
+                                                <div className="flex flex-wrap justify-between items-center gap-2 mb-1 ml-1">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                                        🍽️ Menú Digital / Carta Inteligente con IA (Fotos OCR)
+                                                    </label>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const nextState = !showRawJsonEditor;
+                                                                setShowRawJsonEditor(nextState);
+                                                                if (nextState && editingRegistro.menu_digital) {
+                                                                    try {
+                                                                        const parsed = typeof editingRegistro.menu_digital === 'string'
+                                                                            ? JSON.parse(editingRegistro.menu_digital)
+                                                                            : editingRegistro.menu_digital;
+                                                                        setEditingRegistro({
+                                                                            ...editingRegistro,
+                                                                            menu_digital: JSON.stringify(parsed, null, 2)
+                                                                        });
+                                                                        setRawJsonError(null);
+                                                                    } catch (e: any) {
+                                                                        setRawJsonError(e.message || 'JSON inválido');
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
+                                                                showRawJsonEditor
+                                                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                                                    : 'bg-white/10 hover:bg-white/20 text-white/70'
+                                                            }`}
+                                                        >
+                                                            <FileText size={12} />
+                                                            {showRawJsonEditor ? 'Ver Escáner Visual' : '‹/› Editor Código JSON'}
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSyncMenuToCatalog()}
+                                                            className="flex items-center gap-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-sm"
+                                                            title="Genera automáticamente las categorías de experiencia y llena los platos en el Catálogo Pro"
+                                                        >
+                                                            <Sparkles size={12} />
+                                                            ⚡ Sincronizar a Catálogo Pro
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* MODO EDITOR DE CÓDIGO JSON */}
+                                                {showRawJsonEditor ? (
+                                                    <div className="bg-slate-950 border border-amber-500/30 rounded-2xl p-4 space-y-3 shadow-2xl">
+                                                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                                                            <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                                <Sparkles size={12} /> Editor de Código JSON Directo
+                                                            </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    const nextState = !showRawJsonEditor;
-                                                                    setShowRawJsonEditor(nextState);
-                                                                    if (nextState && editingRegistro.menu_digital) {
-                                                                        try {
-                                                                            const parsed = typeof editingRegistro.menu_digital === 'string'
-                                                                                ? JSON.parse(editingRegistro.menu_digital)
-                                                                                : editingRegistro.menu_digital;
-                                                                            setEditingRegistro({
-                                                                                ...editingRegistro,
-                                                                                menu_digital: JSON.stringify(parsed, null, 2)
-                                                                            });
-                                                                            setRawJsonError(null);
-                                                                        } catch (e: any) {
-                                                                            setRawJsonError(e.message || 'JSON inválido');
-                                                                        }
-                                                                    }
-                                                                }}
-                                                                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
-                                                                    showRawJsonEditor
-                                                                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                                                        : 'bg-white/10 hover:bg-white/20 text-white/70'
-                                                                }`}
-                                                            >
-                                                                <FileText size={12} />
-                                                                {showRawJsonEditor ? 'Vista Visual' : '‹/› Editor Código JSON'}
-                                                            </button>
-
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleSyncMenuToCatalog()}
-                                                                className="flex items-center gap-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-sm"
-                                                                title="Genera automáticamente las categorías de experiencia y llena los platos en el Catálogo Pro"
-                                                            >
-                                                                <Sparkles size={12} />
-                                                                ⚡ Sincronizar a Catálogo Pro
-                                                            </button>
-
-                                                            {adminParsedMenuData && !showRawJsonEditor && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        if (confirm('¿Cambiar a modo texto/URL? El menú estructurado se conservará en el campo.')) {
-                                                                            setAdminParsedMenuData(null);
-                                                                        }
-                                                                    }}
-                                                                    className="text-[9px] font-bold text-white/40 hover:text-red-400 underline transition-colors"
-                                                                >
-                                                                    Cambiar a URL / Texto
-                                                                </button>
-                                                            )}
-                                                            {!adminParsedMenuData && !showRawJsonEditor && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={handleAutoStructure}
-                                                                    disabled={isStructuring}
-                                                                    className="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
-                                                                >
-                                                                    {isStructuring ? (
-                                                                        <Loader2 size={12} className="animate-spin" />
-                                                                    ) : (
-                                                                        <Zap size={12} />
-                                                                    )}
-                                                                    {isStructuring ? 'Procesando...' : 'Estructurar Texto con IA'}
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* MODO EDITOR DE CÓDIGO JSON */}
-                                                    {showRawJsonEditor ? (
-                                                        <div className="bg-slate-950 border border-amber-500/30 rounded-2xl p-4 space-y-3 shadow-2xl">
-                                                            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                                                                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
-                                                                    <Sparkles size={12} /> Editor de Código JSON Directo
-                                                                </span>
-                                                                <div className="flex items-center gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            try {
-                                                                                const parsed = JSON.parse(editingRegistro.menu_digital || '{}');
-                                                                                setEditingRegistro({
-                                                                                    ...editingRegistro,
-                                                                                    menu_digital: JSON.stringify(parsed, null, 2)
-                                                                                });
-                                                                                setRawJsonError(null);
-                                                                            } catch (err: any) {
-                                                                                setRawJsonError('Error de formato: ' + err.message);
-                                                                            }
-                                                                        }}
-                                                                        className="bg-white/10 hover:bg-white/20 text-white text-[9px] font-bold px-2.5 py-1 rounded-md transition-colors"
-                                                                    >
-                                                                        ✨ Formatear JSON
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-
-                                                            {rawJsonError ? (
-                                                                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2.5 text-xs text-red-300 flex items-center gap-2">
-                                                                    <AlertCircle size={14} className="shrink-0" />
-                                                                    <span>{rawJsonError}</span>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2 text-[11px] text-emerald-300 flex items-center gap-1.5">
-                                                                    <CheckCircle size={12} />
-                                                                    <span>Sintaxis JSON Válida</span>
-                                                                </div>
-                                                            )}
-
-                                                            <textarea
-                                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 font-mono text-xs text-amber-200 outline-none focus:border-amber-500/50 transition-all min-h-[260px] leading-relaxed scrollbar-thin"
-                                                                value={typeof editingRegistro.menu_digital === 'string' ? editingRegistro.menu_digital : JSON.stringify(editingRegistro.menu_digital || {}, null, 2)}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value;
-                                                                    setEditingRegistro({ ...editingRegistro, menu_digital: val });
                                                                     try {
-                                                                        const parsed = JSON.parse(val);
+                                                                        const parsed = JSON.parse(editingRegistro.menu_digital || '{}');
+                                                                        setEditingRegistro({
+                                                                            ...editingRegistro,
+                                                                            menu_digital: JSON.stringify(parsed, null, 2)
+                                                                        });
                                                                         setRawJsonError(null);
-                                                                        if (parsed && (parsed.categories || Array.isArray(parsed))) {
-                                                                            setAdminParsedMenuData(Array.isArray(parsed) ? { categories: parsed } : parsed);
-                                                                        }
                                                                     } catch (err: any) {
-                                                                        setRawJsonError(err.message);
+                                                                        setRawJsonError('Error de formato: ' + err.message);
                                                                     }
                                                                 }}
-                                                                placeholder='{\n  "categories": [\n    {\n      "name": "Platos Principales",\n      "items": []\n    }\n  ]\n}'
-                                                            />
-                                                            <p className="text-[9px] text-white/40 italic">
-                                                                * Edita directamente el JSON estructurado de la carta o menú. Al guardar cambios se actualizará la base de datos.
-                                                            </p>
+                                                                className="bg-white/10 hover:bg-white/20 text-white text-[9px] font-bold px-2.5 py-1 rounded-md transition-colors"
+                                                            >
+                                                                ✨ Formatear JSON
+                                                            </button>
                                                         </div>
-                                                    ) : adminParsedMenuData ? (
-                                                        <div className="bg-white/5 border border-primary/20 rounded-2xl p-4">
-                                                            <MenuScannerSection
-                                                                menuData={adminParsedMenuData}
-                                                                onChangeMenuData={(updated) => {
-                                                                    setAdminParsedMenuData(updated);
-                                                                    setEditingRegistro({ ...editingRegistro, menu_digital: JSON.stringify(updated) });
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        <div>
-                                                            <div className="flex gap-2 mb-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const initialMenu: MenuData = { categories: [{ name: "Platos Principales", items: [] }] };
-                                                                        setAdminParsedMenuData(initialMenu);
-                                                                        setEditingRegistro({ ...editingRegistro, menu_digital: JSON.stringify(initialMenu) });
-                                                                    }}
-                                                                    className="flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all"
-                                                                >
-                                                                    <Sparkles size={12} />
-                                                                    Crear Menú Interactivo con IA
-                                                                </button>
+
+                                                        {rawJsonError ? (
+                                                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2.5 text-xs text-red-300 flex items-center gap-2">
+                                                                <AlertCircle size={14} className="shrink-0" />
+                                                                <span>{rawJsonError}</span>
                                                             </div>
-                                                            <textarea
-                                                                className="w-full bg-primary/5 border border-primary/20 rounded-2xl px-6 py-4 font-bold text-white outline-none focus:border-primary transition-all min-h-[120px] text-sm font-mono scrollbar-hide"
-                                                                value={editingRegistro.menu_digital || ''}
-                                                                onChange={e => setEditingRegistro({ ...editingRegistro, menu_digital: e.target.value })}
-                                                                placeholder='Pega una URL o el texto de servicios para estructurar con IA'
-                                                            />
-                                                            <p className="text-[9px] text-white/30 mt-2 ml-1 leading-relaxed italic">
-                                                                * Puedes pegar texto y usar "Estructurar con IA", o crear un menú interactivo donde subes fotos de la carta.
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
+                                                        ) : (
+                                                            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2 text-[11px] text-emerald-300 flex items-center gap-1.5">
+                                                                <CheckCircle size={12} />
+                                                                <span>Sintaxis JSON Válida</span>
+                                                            </div>
+                                                        )}
+
+                                                        <textarea
+                                                            className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 font-mono text-xs text-amber-200 outline-none focus:border-amber-500/50 transition-all min-h-[260px] leading-relaxed scrollbar-thin"
+                                                            value={typeof editingRegistro.menu_digital === 'string' ? editingRegistro.menu_digital : JSON.stringify(editingRegistro.menu_digital || {}, null, 2)}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                setEditingRegistro({ ...editingRegistro, menu_digital: val });
+                                                                try {
+                                                                    const parsed = JSON.parse(val);
+                                                                    setRawJsonError(null);
+                                                                    if (parsed && (parsed.categories || Array.isArray(parsed))) {
+                                                                        setAdminParsedMenuData(Array.isArray(parsed) ? { categories: parsed } : parsed);
+                                                                    }
+                                                                } catch (err: any) {
+                                                                    setRawJsonError(err.message);
+                                                                }
+                                                            }}
+                                                            placeholder='{\n  "categories": [\n    {\n      "name": "Platos Principales",\n      "items": []\n    }\n  ]\n}'
+                                                        />
+                                                        <p className="text-[9px] text-white/40 italic">
+                                                            * Edita directamente el JSON estructurado de la carta o menú. Al guardar cambios se actualizará la base de datos.
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    /* ESCÁNER VISUAL DE MENÚ CON FOTOS E IA */
+                                                    <div className="bg-white/5 border border-primary/20 rounded-2xl p-4">
+                                                        <MenuScannerSection
+                                                            menuData={adminParsedMenuData}
+                                                            onChangeMenuData={(updated) => {
+                                                                setAdminParsedMenuData(updated);
+                                                                setEditingRegistro({
+                                                                    ...editingRegistro,
+                                                                    menu_digital: updated ? JSON.stringify(updated) : ''
+                                                                });
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2539,6 +2486,26 @@ export default function VCardEditModal({
                                     <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10">
                                         <button type="button" onClick={() => setCatalogTab('config')} className={cn("flex-1 py-3 font-black uppercase text-[10px] tracking-widest rounded-xl transition-all", catalogTab === 'config' ? "bg-primary text-navy" : "text-white/40")}>Categorías</button>
                                         <button type="button" onClick={() => setCatalogTab('products')} className={cn("flex-1 py-3 font-black uppercase text-[10px] tracking-widest rounded-xl transition-all", catalogTab === 'products' ? "bg-primary text-navy" : "text-white/40")}>Productos ({catalogoJson.products.length}/20)</button>
+                                    </div>
+
+                                    {/* Banner Escanear Carta con Fotos e IA */}
+                                    <div className="bg-gradient-to-r from-primary/15 via-[#f66739]/10 to-transparent p-5 rounded-2xl border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2.5 bg-primary/20 text-primary rounded-xl shrink-0">
+                                                <Sparkles size={20} />
+                                            </div>
+                                            <div>
+                                                <h5 className="text-xs font-black uppercase tracking-wider text-white">¿Tienes fotos de la carta o menú físico?</h5>
+                                                <p className="text-[10px] text-white/50">Sube las fotos en Bio & Menú y la IA extraerá categorías, platos y precios listos para tu Catálogo Pro.</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab('contenido')}
+                                            className="px-4 py-2 bg-primary hover:bg-[#e55628] text-navy font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-md shrink-0 flex items-center gap-1.5"
+                                        >
+                                            <Upload size={12} /> Ir a Escanear Fotos
+                                        </button>
                                     </div>
 
                                     {catalogTab === 'config' ? (
