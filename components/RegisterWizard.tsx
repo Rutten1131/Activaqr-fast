@@ -2600,11 +2600,6 @@ return (
                                             ))}
                                             <button
                                                 onClick={() => {
-                                                    const total = catalogItems.reduce((acc: number, cat: any) => acc + (cat.items?.length || 0), 0);
-                                                    if (total >= 30) {
-                                                        alert("Máximo 30 productos permitidos en total en todas las categorías.");
-                                                        return;
-                                                    }
                                                     const newCats = [...catalogItems];
                                                     newCats[catIdx].items.push({ name: '', price: '', description: '', image: '' });
                                                     setCatalogItems(newCats);

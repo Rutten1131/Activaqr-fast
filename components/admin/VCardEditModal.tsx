@@ -729,10 +729,6 @@ export default function VCardEditModal({
     };
 
     const handleCloneProduct = (prod: any) => {
-        if (catalogoJson.products.length >= 30) {
-            alert("Máximo 30 productos permitidos. No se puede clonar.");
-            return;
-        }
         const cloned = {
             ...prod,
             id: `prod_${Date.now()}`,
@@ -2485,7 +2481,7 @@ export default function VCardEditModal({
                                     
                                     <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10">
                                         <button type="button" onClick={() => setCatalogTab('config')} className={cn("flex-1 py-3 font-black uppercase text-[10px] tracking-widest rounded-xl transition-all", catalogTab === 'config' ? "bg-primary text-navy" : "text-white/40")}>Categorías</button>
-                                        <button type="button" onClick={() => setCatalogTab('products')} className={cn("flex-1 py-3 font-black uppercase text-[10px] tracking-widest rounded-xl transition-all", catalogTab === 'products' ? "bg-primary text-navy" : "text-white/40")}>Productos ({catalogoJson.products.length}/20)</button>
+                                        <button type="button" onClick={() => setCatalogTab('products')} className={cn("flex-1 py-3 font-black uppercase text-[10px] tracking-widest rounded-xl transition-all", catalogTab === 'products' ? "bg-primary text-navy" : "text-white/40")}>Productos ({catalogoJson.products.length})</button>
                                     </div>
 
                                     {/* Banner Escanear Carta con Fotos e IA */}
@@ -2540,10 +2536,7 @@ export default function VCardEditModal({
                                                 <button 
                                                     type="button" 
                                                     onClick={() => {
-                                                        if (catalogoJson.products.length >= 30) {
-                                                            alert("Máximo 30 productos permitidos en total.");
-                                                            return;
-                                                        }
+
                                                         
                                                         // Determinamos la categoría objetivo basada en el filtro actual
                                                         let targetCategory = categoryFilterRef.current;
