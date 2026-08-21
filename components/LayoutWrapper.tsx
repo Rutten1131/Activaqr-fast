@@ -19,6 +19,7 @@ const HIDDEN_LAYOUT_ROUTES = [
     '/sitio-web-completo-producto',
     '/card',
     '/catalog',
+    '/menu',
     '/solidario-nestor'
 ];
 

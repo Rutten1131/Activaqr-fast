@@ -62,7 +62,7 @@ function cleanRepairedMenu(menu: any[] | null): any[] {
                     name: String(item.name).trim(),
                     price: item.price ? String(item.price).trim() : '',
                     desc: item.desc || item.descripcion || '',
-                    image: null // We remove the image field entirely
+                    image: item.image || item.imagen || item.imagen_url || null
                 }))
             };
         })
@@ -121,7 +121,7 @@ export async function syncMenuDigitalToRelational(
                         `INSERT INTO registraya_menu_productos 
                          (categoria_id, nombre, descripcion, precio, imagen_url, orden, disponible) 
                          VALUES (?, ?, ?, ?, ?, ?, 1)`,
-                        [categoryId, item.name.trim(), item.desc || null, cleanPrice, null, pIdx]
+                        [categoryId, item.name.trim(), item.desc || null, cleanPrice, item.image || null, pIdx]
                     );
                 }
             }

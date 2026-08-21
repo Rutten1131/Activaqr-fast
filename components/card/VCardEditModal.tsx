@@ -13,6 +13,7 @@ interface VCardEditModalProps {
     allowCatalog?: boolean;
     initialSection?: 'perfil' | 'contacto' | 'hero' | 'portada' | 'catalogo';
     isSetup?: boolean;
+    onlyCatalog?: boolean;
 }
 
 const safeParse = <T,>(str: string | null | undefined, fallback: T): T => {
@@ -41,7 +42,8 @@ export default function VCardEditModal({
     initialSlug, 
     allowCatalog = false,
     initialSection = 'perfil',
-    isSetup = false
+    isSetup = false,
+    onlyCatalog = false
 }: VCardEditModalProps) {
     const [step, setStep] = useState<'code' | 'edit' | 'success'>('code');
     const [editCode, setEditCode] = useState('');
@@ -50,7 +52,7 @@ export default function VCardEditModal({
     const [uploadingImage, setUploadingImage] = useState(false);
     const [userData, setUserData] = useState<any>(null);
     const [usesRemaining, setUsesRemaining] = useState(0);
-    const [activeSection, setActiveSection] = useState<'perfil' | 'contacto' | 'hero' | 'portada' | 'categorias' | 'catalogo' | 'autoridad' | 'industrial' | 'carta' | 'video-redes' | 'code' | 'success' | 'hedkandi' | null>(initialSection);
+    const [activeSection, setActiveSection] = useState<'perfil' | 'contacto' | 'hero' | 'portada' | 'categorias' | 'catalogo' | 'autoridad' | 'industrial' | 'carta' | 'video-redes' | 'code' | 'success' | 'hedkandi' | null>(onlyCatalog ? 'catalogo' : initialSection);
     const [isStructuring, setIsStructuring] = useState(false);
     const [productCategoryFilter, setProductCategoryFilter] = useState<string>('Todas');
     const productCategoryFilterRef = useRef('Todas');
@@ -550,6 +552,9 @@ export default function VCardEditModal({
                         }
                     })()
                 });
+                if (onlyCatalog) {
+                    setActiveSection('catalogo');
+                }
                 setStep('edit');
             } else {
                 setError(data.error);
@@ -1257,10 +1262,10 @@ export default function VCardEditModal({
                         <div>
                             <h2 className="text-xl font-black uppercase italic tracking-tight flex items-center gap-2">
                                 <Edit size={24} />
-                                Configuración de VCard
+                                {onlyCatalog ? "Editor de Menú / Catálogo" : "Configuración de VCard"}
                             </h2>
                             <p className="text-white/80 text-xs font-bold uppercase tracking-widest mt-1">
-                                Edita Hero, Ofertas y perfil directamente
+                                {onlyCatalog ? "Edita tus categorías, productos, precios y fotos" : "Edita Hero, Ofertas y perfil directamente"}
                             </p>
                         </div>
                         <button onClick={onClose} className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors">
@@ -1324,7 +1329,9 @@ export default function VCardEditModal({
                                             <Edit size={20} />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Editando Perfil</p>
+                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                                                {onlyCatalog ? "Editando Catálogo / Menú" : "Editando Perfil"}
+                                            </p>
                                             <p className="text-sm font-black uppercase tracking-tight italic">/{initialSlug}</p>
                                         </div>
                                     </div>
@@ -1336,6 +1343,8 @@ export default function VCardEditModal({
 
                                 <div className="space-y-4 pb-20">
 
+                                    {!onlyCatalog && (
+                                    <>
                                     {/* SECCIÓN 4: CARRUSEL DE BANNERS (HERO) */}
                                     <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
                                         <button 
@@ -2307,9 +2316,11 @@ export default function VCardEditModal({
                                             </AnimatePresence>
                                         </div>
                                     )}
+                                    </>
+                                    )}
 
                                     {/* SECCIÓN 5: CATÁLOGO DE PRODUCTOS (VISIBLE SI EL PLAN ES CATALOG O SI SE PERMITE EXPLÍCITAMENTE) */}
-                                     {(userData?.plan === 'catalog' || allowCatalog) && (
+                                    {(userData?.plan === 'catalog' || allowCatalog || onlyCatalog) && (
                                     <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
                                         <button 
                                             onClick={() => setActiveSection(activeSection === 'catalogo' ? null : 'catalogo')}
@@ -2321,13 +2332,13 @@ export default function VCardEditModal({
                                                 </div>
                                                 <div className="text-left leading-none">
                                                     <span className="font-black text-navy uppercase text-sm tracking-tighter">Catálogo de Productos</span>
-                                                    {!allowCatalog && userData?.plan !== 'catalog' && <p className="text-[9px] font-black text-navy/40 uppercase tracking-widest">Exclusivo Plan BIZ + CAT</p>}
+                                                    {!allowCatalog && !onlyCatalog && userData?.plan !== 'catalog' && <p className="text-[9px] font-black text-navy/40 uppercase tracking-widest">Exclusivo Plan BIZ + CAT</p>}
                                                 </div>
                                             </div>
-                                            <ChevronDown size={20} className={cn("text-navy/30 transition-transform", activeSection === 'catalogo' && "rotate-180")} />
+                                            <ChevronDown size={20} className={cn("text-navy/30 transition-transform", (activeSection === 'catalogo' || onlyCatalog) && "rotate-180")} />
                                         </button>
                                         <AnimatePresence>
-                                            {activeSection === 'catalogo' && (userData?.plan === 'catalog' || allowCatalog) && (
+                                            {(activeSection === 'catalogo' || onlyCatalog) && (userData?.plan === 'catalog' || allowCatalog || onlyCatalog) && (
                                                 <motion.div 
                                                     initial={{ height: 0, opacity: 0 }}
                                                     animate={{ height: "auto", opacity: 1 }}
@@ -2794,7 +2805,8 @@ export default function VCardEditModal({
                                         </AnimatePresence>
                                     </div>
 
-                                    {/* SECCIÓN 2: CONTACTO Y REDES */}
+                                    {!onlyCatalog && (
+                                    /* SECCIÓN 2: CONTACTO Y REDES */
                                     <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
                                         <button 
                                             onClick={() => setActiveSection(activeSection === 'contacto' ? null : 'contacto')}
@@ -2916,6 +2928,7 @@ export default function VCardEditModal({
                                             )}
                                         </AnimatePresence>
                                     </div>
+                                    )}
                                 </div>
                         </div>
                         )}

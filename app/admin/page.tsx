@@ -20,6 +20,7 @@ import {
     ShieldAlert,
     ShieldCheck,
     Edit,
+    Edit3,
     Save,
     X,
     Upload,
@@ -44,7 +45,8 @@ import {
     CalendarCheck,
     Copy,
     BarChart2,
-    Send
+    Send,
+    Utensils
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -1217,22 +1219,28 @@ export default function AdminDashboard() {
                     setSetupTarget('view');
                     setIsHeroPromptOpen(true);
                 } else {
-                    const targetUrl = fullRegistro.plan === 'catalog' || fullRegistro.plan === 'catalogo'
-                        ? `/catalog/${fullRegistro.slug || fullRegistro.id}`
-                        : `/card/${fullRegistro.slug || fullRegistro.id}`;
+                    const targetUrl = fullRegistro.plan === 'menu'
+                        ? `/menu/${fullRegistro.slug || fullRegistro.id}`
+                        : (fullRegistro.plan === 'catalog' || fullRegistro.plan === 'catalogo')
+                            ? `/catalog/${fullRegistro.slug || fullRegistro.id}`
+                            : `/card/${fullRegistro.slug || fullRegistro.id}`;
                     window.open(targetUrl, '_blank');
                 }
             } else {
                 // Fallback al objeto local si falla la red
-                const targetUrl = (registro as any).plan === 'catalog' || (registro as any).plan === 'catalogo'
-                    ? `/catalog/${registro.slug || registro.id}`
-                    : `/card/${registro.slug || registro.id}`;
+                const targetUrl = (registro as any).plan === 'menu'
+                    ? `/menu/${registro.slug || registro.id}`
+                    : ((registro as any).plan === 'catalog' || (registro as any).plan === 'catalogo')
+                        ? `/catalog/${registro.slug || registro.id}`
+                        : `/card/${registro.slug || registro.id}`;
                 window.open(targetUrl, '_blank');
             }
         } catch (e) {
-            const targetUrl = (registro as any).plan === 'catalog' || (registro as any).plan === 'catalogo'
-                ? `/catalog/${registro.slug || registro.id}`
-                : `/card/${registro.slug || registro.id}`;
+            const targetUrl = (registro as any).plan === 'menu'
+                ? `/menu/${registro.slug || registro.id}`
+                : ((registro as any).plan === 'catalog' || (registro as any).plan === 'catalogo')
+                    ? `/catalog/${registro.slug || registro.id}`
+                    : `/card/${registro.slug || registro.id}`;
             window.open(targetUrl, '_blank');
         } finally {
             setIsSaving(false);
@@ -2292,6 +2300,7 @@ export default function AdminDashboard() {
                                                     <option value="digital" className="bg-navy">Digital ($35)</option>
                                                     <option value="business" className="bg-navy">Business ($100)</option>
                                                     <option value="catalog" className="bg-navy">Catálogo ($200)</option>
+                                                    <option value="menu" className="bg-navy">Menú ($150)</option>
                                                 </select>
                                                 {r.menu_digital && r.menu_digital.startsWith('http') && (
                                                     <a
@@ -2513,6 +2522,28 @@ export default function AdminDashboard() {
                                                         <Store size={18} />
                                                     </button>
                                                 )}
+
+                                                {/* Botón Ver Menú Digital */}
+                                                <a
+                                                    href={`/menu/${r.slug || r.id}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center"
+                                                    title="Abrir Menú Digital (/menu/...)"
+                                                >
+                                                    <Utensils size={18} />
+                                                </a>
+
+                                                {/* Botón Abrir Editor Directo de Menú */}
+                                                <a
+                                                    href={`/menu/${r.slug || r.id}?edit=true`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 bg-orange-500/10 text-orange-400 rounded-xl hover:bg-orange-500 hover:text-white transition-all shadow-lg shadow-orange-500/10 flex items-center justify-center"
+                                                    title="Abrir Enlace de Edición de Menú con Clave (?edit=true)"
+                                                >
+                                                    <Edit3 size={18} />
+                                                </a>
 
                                                 {/* Botón Analíticas de Descargas */}
                                                 <button
@@ -3556,6 +3587,7 @@ export default function AdminDashboard() {
                                         <option value="basic">Plan Basic ($35)</option>
                                         <option value="business">Plan Business ($100)</option>
                                         <option value="catalog">Plan Catalog/Store ($200)</option>
+                                        <option value="menu">Plan Menú Digital ($150)</option>
                                     </select>
                                 </div>
 

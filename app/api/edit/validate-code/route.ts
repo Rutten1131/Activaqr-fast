@@ -44,6 +44,56 @@ export async function POST(req: NextRequest) {
 
             const user = users[0];
 
+            // Si catalogo_json está vacío pero existen categorías/productos relacionales, reconstruir
+            if (!user.catalogo_json || user.catalogo_json === 'null') {
+                try {
+                    const [dbCategories]: any = await connection.execute(
+                        'SELECT * FROM registraya_menu_categorias WHERE registro_id = ? ORDER BY orden ASC, created_at ASC',
+                        [user.id]
+                    );
+                    if (dbCategories && dbCategories.length > 0) {
+                        const categoriesList: string[] = [];
+                        const productsList: any[] = [];
+
+                        for (const cat of dbCategories) {
+                            categoriesList.push(cat.nombre);
+                            const [dbProducts]: any = await connection.execute(
+                                'SELECT * FROM registraya_menu_productos WHERE categoria_id = ? ORDER BY orden ASC, created_at ASC',
+                                [cat.id]
+                            );
+                            if (dbProducts && dbProducts.length > 0) {
+                                for (const prod of dbProducts) {
+                                    let formattedPrice = '';
+                                    if (prod.precio !== null && prod.precio !== undefined) {
+                                        const priceStr = String(prod.precio);
+                                        formattedPrice = priceStr.startsWith('$') ? priceStr : `$${parseFloat(priceStr).toFixed(2)}`;
+                                    }
+                                    productsList.push({
+                                        id: String(prod.id),
+                                        name: prod.nombre,
+                                        titulo: prod.nombre,
+                                        price: formattedPrice,
+                                        precio: formattedPrice,
+                                        description: prod.descripcion || '',
+                                        descripcion: prod.descripcion || '',
+                                        category: cat.nombre,
+                                        categoria: cat.nombre,
+                                        image: prod.imagen_url || '',
+                                        images: prod.imagen_url ? [prod.imagen_url] : [],
+                                    });
+                                }
+                            }
+                        }
+
+                        user.catalogo_json = {
+                            categories: categoriesList,
+                            products: productsList,
+                        };
+                    }
+                } catch (e) {
+                    console.error('Error fetching relational menu in validate-code:', e);
+                }
+            }
 
             // Return user data for editing (Ediciones ilimitadas)
             return NextResponse.json({

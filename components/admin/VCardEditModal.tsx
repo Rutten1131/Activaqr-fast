@@ -987,6 +987,7 @@ export default function VCardEditModal({
                                                             <option value="digital" className="bg-navy">Digital ($35)</option>
                                                             <option value="business" className="bg-navy">Business ($100)</option>
                                                             <option value="catalog" className="bg-navy">Catálogo ($200)</option>
+                                                            <option value="menu" className="bg-navy">Menú ($150)</option>
                                                         </select>
                                                     </div>
                                                 </div>

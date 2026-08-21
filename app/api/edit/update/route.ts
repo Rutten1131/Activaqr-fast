@@ -145,6 +145,34 @@ export async function POST(req: NextRequest) {
                 }
             }
 
+            // 2. Synthesize menu_digital payload from catalogo_json if needed
+            let menuDigitalPayload = data.menu_digital || null;
+            if (!menuDigitalPayload && data.catalogo_json) {
+                try {
+                    const catData = typeof data.catalogo_json === 'string' ? JSON.parse(data.catalogo_json) : data.catalogo_json;
+                    if (catData && catData.categories && catData.products) {
+                        const categories = catData.categories as string[];
+                        const prods = catData.products as any[];
+                        const structured = categories.map(catName => {
+                            const catProducts = prods.filter(p => (p.category || p.categoria || '').toLowerCase() === catName.toLowerCase());
+                            return {
+                                name: catName,
+                                items: catProducts.map(p => ({
+                                    id: p.id,
+                                    name: p.name || p.titulo || 'Plato',
+                                    price: p.price || p.precio || '',
+                                    desc: p.description || p.descripcion || '',
+                                    image: (p.images && p.images[0]) || p.image || ''
+                                }))
+                            };
+                        });
+                        menuDigitalPayload = JSON.stringify(structured);
+                    }
+                } catch (e) {
+                    console.error('Error synthesizing menu_digital:', e);
+                }
+            }
+
             let updateQuery = `
                 UPDATE registraya_vcard_registros SET
                     whatsapp = ?,
@@ -223,7 +251,7 @@ export async function POST(req: NextRequest) {
                 data.contacto_nombre || '',
                 data.contacto_apellido || '',
                 nombreLegacy || '',
-                data.menu_digital || null,
+                menuDigitalPayload,
                 data.wifi_ssid || null,
                 data.wifi_password || null,
                 data.portada_desktop || null,
@@ -262,7 +290,7 @@ export async function POST(req: NextRequest) {
 
             // Synchronize menu_digital string with relational database tables
             try {
-                await syncMenuDigitalToRelational(connection, user.id, data.menu_digital);
+                await syncMenuDigitalToRelational(connection, user.id, menuDigitalPayload);
             } catch (syncErr) {
                 console.error("Error syncing menu to relational tables in update route:", syncErr);
             }

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { getVideoEmbedUrl, getYouTubeThumbnail, checkIsVerticalVideo, isVideoUrl, needsMetaSDKEmbed } from "@/lib/videoUtils";
 import SocialVideoEmbed from './SocialVideoEmbed';
 import { DishSteamViewer } from '../restaurant/DishSteamViewer';
+import { getMenuTranslations, translateCategory } from '@/lib/menuI18n';
 
 export interface CatalogItem {
     id: string;
@@ -36,23 +37,27 @@ interface CatalogGalleryProps {
     initialCategory?: string;
     lightboxInline?: boolean;
     isRestaurant?: boolean;
+    sectionTitle?: string;
+    lang?: string;
+    categoryImages?: Record<string, string>;
 }
 
-// Mapa de tipografías por template
+// Mapa de tipografías por template con texturas y jerarquía premium
 const TEMPLATE_FONTS: Record<string, { title: string; body: string }> = {
-    'hedkandi': { title: 'font-display-condensed font-black', body: 'font-sans-body' },
-    'showcase': { title: 'font-display-condensed font-black', body: 'font-sans-body' },
-    'industrial': { title: 'font-black', body: 'font-sans' },
-    'carrocerias': { title: 'font-black', body: 'font-sans' },
+    'hedkandi': { title: 'font-display-condensed font-black tracking-wide', body: 'font-sans-body font-medium' },
+    'showcase': { title: 'font-display-condensed font-black tracking-wide', body: 'font-sans-body font-medium' },
+    'industrial': { title: 'font-sans-body font-black tracking-tight', body: 'font-sans-body font-medium' },
+    'carrocerias': { title: 'font-sans-body font-black tracking-tight', body: 'font-sans-body font-medium' },
 };
-const DEFAULT_FONTS = { title: 'font-black', body: 'font-sans' };
+const DEFAULT_FONTS = { title: 'font-sans-body font-black tracking-tight', body: 'font-sans-body font-medium' };
 
 export interface CartItem {
     product: CatalogItem;
     quantity: number;
 }
 
-export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templateId, initialCategory, lightboxInline = false, isRestaurant = false }: CatalogGalleryProps) {
+export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templateId, initialCategory, lightboxInline = false, isRestaurant = false, sectionTitle, lang, categoryImages }: CatalogGalleryProps) {
+    const t = useMemo(() => getMenuTranslations(lang), [lang]);
     const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
     const [mediaIndex, setMediaIndex] = useState(0);
     const [activeMediaType, setActiveMediaType] = useState<'image' | 'video'>('image');
@@ -127,7 +132,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
         if (!whatsapp || cart.length === 0) return;
         let text = `🛒 *NUEVO PEDIDO DESDE EL CATÁLOGO*\n\n`;
         cart.forEach((item, index) => {
-            const name = item.product.name || item.product.titulo || 'Producto';
+            const name = getItemName(item.product) || 'Producto';
             const price = item.product.price || item.product.precio || 'Consultar';
             const qty = item.quantity;
             const numPrice = parsePrice(price);
@@ -206,6 +211,74 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
         return data?.products || [];
     }, [data]);
 
+    // Dynamic Translation for Dish Names and Descriptions
+    const [translatedTexts, setTranslatedTexts] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        if (!lang || lang === 'es' || !items || items.length === 0) {
+            setTranslatedTexts({});
+            return;
+        }
+
+        const textsToTranslate: string[] = [];
+        items.forEach(item => {
+            const name = (item.name || item.titulo || '').trim();
+            const desc = (item.description || item.descripcion || '').trim();
+            if (name && !textsToTranslate.includes(name)) textsToTranslate.push(name);
+            if (desc && !textsToTranslate.includes(desc)) textsToTranslate.push(desc);
+        });
+
+        if (textsToTranslate.length === 0) return;
+
+        const storageKey = `activaqr_tr_${lang}`;
+        try {
+            const cached = typeof window !== 'undefined' ? sessionStorage.getItem(storageKey) : null;
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed && typeof parsed === 'object') {
+                    setTranslatedTexts(parsed);
+                }
+            }
+        } catch {}
+
+        fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texts: textsToTranslate, from: 'es', to: lang })
+        })
+        .then(res => res.json())
+        .then(resData => {
+            if (resData?.translations && Array.isArray(resData.translations)) {
+                const map: Record<string, string> = {};
+                textsToTranslate.forEach((text, i) => {
+                    if (resData.translations[i]) {
+                        map[text] = resData.translations[i];
+                    }
+                });
+                setTranslatedTexts(prev => {
+                    const updated = { ...prev, ...map };
+                    try { if (typeof window !== 'undefined') sessionStorage.setItem(storageKey, JSON.stringify(updated)); } catch {}
+                    return updated;
+                });
+            }
+        })
+        .catch(() => {});
+    }, [lang, items]);
+
+    const getItemName = (item?: CatalogItem | null): string => {
+        if (!item) return '';
+        const raw = (item.name || item.titulo || '').trim();
+        if (!lang || lang === 'es') return raw;
+        return translatedTexts[raw] || raw;
+    };
+
+    const getItemDescription = (item?: CatalogItem | null): string => {
+        if (!item) return '';
+        const raw = (item.description || item.descripcion || '').trim();
+        if (!lang || lang === 'es') return raw;
+        return translatedTexts[raw] || raw;
+    };
+
     const customCategories = useMemo(() => {
         if (Array.isArray(data)) return null;
         const cats = data?.categories || null;
@@ -253,6 +326,9 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
 
     // Función auxiliar para obtener la imagen representativa de una categoría
     const getCategoryRepresentativeImage = (catName: string): string => {
+        if (categoryImages && categoryImages[catName]) {
+            return categoryImages[catName];
+        }
         const catItems = items.filter(item => (item.category || item.categoria)?.toLowerCase() === catName.toLowerCase());
         for (const item of catItems) {
             const imgs = getImages(item);
@@ -304,9 +380,9 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
     }
 
     return (
-        <div className="w-full mt-8 md:mt-16 pt-6 md:pt-10 border-t border-white/10 flex flex-col gap-8">
-            <h4 className={`text-[10px] sm:text-xs ${fonts.title} uppercase tracking-widest text-[var(--theme-primary)] mb-2 flex items-center gap-2`}>
-                <ZoomIn size={14} /> CATÁLOGO INTERACTIVO
+        <div className={cn("w-full flex flex-col gap-8", sectionTitle ? "pt-2" : "mt-8 md:mt-16 pt-6 md:pt-10 border-t border-white/10")}>
+            <h4 className={`text-[10px] sm:text-xs ${fonts.title} uppercase tracking-widest text-[var(--theme-primary)] mb-2 flex items-center gap-2 font-black`}>
+                <ZoomIn size={14} /> {isFoodRestaurant ? t.sectionTitle : (sectionTitle ?? 'CATÁLOGO INTERACTIVO')}
             </h4>
 
             {/* Inline Lightbox Modal - appears just below title when lightboxInline=true */}
@@ -460,13 +536,13 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                         >
                             <div className="relative z-10">
                                 <div className="flex flex-wrap items-center gap-2 mb-3 md:mb-4">
-                                    <div className={`inline-block px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-white/10 text-white/60 text-[9px] md:text-[10px] ${fonts.title} uppercase tracking-widest w-fit border border-white/5`}>
-                                        {selectedItem.category || selectedItem.categoria}
+                                    <div className={`inline-block px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-white/10 text-amber-300 text-[9px] md:text-[10px] ${fonts.title} font-black uppercase tracking-widest w-fit border border-amber-400/30 shadow-md`}>
+                                        {translateCategory(selectedItem.category || selectedItem.categoria || '', lang)}
                                     </div>
                                 </div>
                                 
                                 <h2 className={`text-lg md:text-2xl lg:text-3xl ${fonts.title} text-white uppercase tracking-tight mb-2 md:mb-3 leading-tight`}>
-                                    {selectedItem.name || selectedItem.titulo}
+                                    {getItemName(selectedItem)}
                                 </h2>
                                 
                                 {(selectedItem.price || selectedItem.precio) && (
@@ -475,7 +551,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                             <DollarSign size={16} className="md:w-5 md:h-5" />
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-[8px] md:text-[9px] text-white/50 font-black uppercase tracking-widest mb-0.5">Inversión</span>
+                                            <span className="text-[8px] md:text-[9px] text-white/50 font-black uppercase tracking-widest mb-0.5">{t.priceLabel}</span>
                                             <span className="text-base md:text-xl lg:text-2xl font-black text-white leading-none">{selectedItem.price || selectedItem.precio}</span>
                                         </div>
                                     </div>
@@ -484,11 +560,11 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
 
                             {(selectedItem.description || selectedItem.descripcion) && (
                                 <div className="mb-3 md:mb-4">
-                                    <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 flex items-center gap-1 md:gap-2">
-                                        <Info size={10} className="md:w-3 md:h-3" /> DETALLES
+                                    <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/50 mb-2 flex items-center gap-1 md:gap-2">
+                                        <Info size={10} className="md:w-3 md:h-3 text-amber-400" /> {t.dishDetails}
                                     </h4>
-                                    <div className={`text-white/70 text-xs md:text-sm leading-relaxed ${fonts.body} line-clamp-3`}>
-                                        {selectedItem.description || selectedItem.descripcion}
+                                    <div className={`text-white/85 text-xs md:text-sm leading-relaxed ${fonts.body} line-clamp-3 font-medium`}>
+                                        {getItemDescription(selectedItem)}
                                     </div>
                                 </div>
                             )}
@@ -527,13 +603,13 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                     style={{ backgroundColor: 'var(--theme-primary, #f66739)' }}
                                 >
                                     <ShoppingCart size={14} className="md:w-4 md:h-4" />
-                                    Añadir al Carrito
+                                    {t.addToCart}
                                 </button>
 
                                 {/* WhatsApp button - only if whatsapp exists */}
                                 {whatsapp && (
                                     <a
-                                        href={`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa: ${selectedItem.name || selectedItem.titulo}. Precio: ${selectedItem.price || selectedItem.precio || 'Consultar'}`)}`}
+                                        href={`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa: ${getItemName(selectedItem)}. Precio: ${selectedItem.price || selectedItem.precio || 'Consultar'}`)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="w-full bg-[#25D366]/20 border border-[#25D366]/30 text-[#25D366] py-2.5 md:py-3 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#25D366]/30 active:scale-95 transition-all"
@@ -541,7 +617,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                         <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                                             <path d="M19.057 4.298c-1.883-1.884-4.386-2.922-7.05-2.922-5.495 0-9.968 4.471-9.968 9.966 0 1.756.459 3.468 1.328 4.975l-1.41 5.148 5.266-1.381c1.455.794 3.09 1.211 4.78 1.212h.004c5.493 0 9.964-4.471 9.964-9.966 0-2.662-1.036-5.166-2.921-7.052zm-7.05 15.393h-.003c-1.488 0-2.946-.4-4.23-1.155l-.304-.18-3.146.825.839-3.067-.197-.314c-.829-1.321-1.267-2.854-1.267-4.43 0-4.43 3.605-8.036 8.04-8.036 2.148 0 4.167.837 5.684 2.355 1.517 1.518 2.352 3.538 2.352 5.686-.002 4.434-3.609 8.041-8.043 8.041zm4.412-6.03c-.242-.121-1.431-.707-1.652-.788-.221-.081-.383-.121-.544.121-.161.242-.625.787-.766.949-.141.161-.282.181-.524.061-.242-.121-1.02-.376-1.943-1.199-.718-.641-1.203-1.433-1.344-1.675-.141-.242-.015-.373.106-.493.109-.108.242-.282.363-.423.121-.141.161-.242.242-.403.081-.161.04-.303-.02-.424-.061-.121-.544-1.312-.746-1.796-.196-.472-.397-.407-.544-.415-.141-.007-.302-.008-.463-.008-.161 0-.423.061-.644.303-.221.242-.846.827-.846 2.018 0 1.191.866 2.336.987 2.5.121.164 1.706 2.605 4.133 3.651.577.249 1.027.397 1.378.508.579.185 1.107.158 1.523.096.465-.069 1.431-.585 1.632-1.15.201-.564.201-1.049.141-1.15-.06-.101-.221-.161-.463-.282z"/>
                                         </svg>
-                                        WhatsApp
+                                        {t.orderViaWhatsApp}
                                     </a>
                                 )}
                             </div>
@@ -560,7 +636,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder={
                             isFoodRestaurant 
-                                ? "Busca cualquier plato en todo el menú (ej. Pollo, Asado, Ceviche...)" 
+                                ? t.searchPlaceholder 
                                 : "Busca cualquier producto o servicio en el catálogo..."
                         }
                         className="w-full bg-transparent text-white placeholder-white/40 text-xs sm:text-sm font-medium focus:outline-none"
@@ -704,12 +780,12 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                                 );
                                             })()}
 
-                                            <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-90 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 md:p-6 pb-5 md:pb-8">
-                                                <h3 className="text-white font-black text-sm md:text-xl uppercase tracking-wide leading-tight mb-1 group-hover:text-[var(--theme-primary)] transition-colors line-clamp-2">
-                                                    {item.name || item.titulo}
+                                            <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/95 via-black/45 to-transparent opacity-95 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 md:p-6 pb-5 md:pb-8">
+                                                <h3 className={`text-white ${fonts.title} text-sm sm:text-base md:text-xl uppercase tracking-tight leading-snug mb-1 group-hover:text-[var(--theme-primary)] transition-colors line-clamp-2 drop-shadow-md`}>
+                                                    {getItemName(item)}
                                                 </h3>
                                                 {(item.price || item.precio) && (
-                                                    <p className="inline-block w-fit px-3 py-1.5 bg-black/70 border border-white/20 rounded-xl text-white font-black text-xs md:text-sm mt-2 backdrop-blur-md shadow-xl">
+                                                    <p className="inline-block w-fit px-3 py-1.5 bg-black/75 border border-white/20 rounded-xl text-white font-black text-xs md:text-sm mt-1.5 backdrop-blur-md shadow-xl font-mono">
                                                         {item.price || item.precio}
                                                     </p>
                                                 )}
@@ -726,11 +802,11 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col gap-1 text-center sm:text-left">
                         <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight drop-shadow-sm">
-                            {isFoodRestaurant ? 'Explora Nuestro Menú' : 'Explora Nuestro Catálogo'}
+                            {isFoodRestaurant ? t.exploreTitle : 'Explora Nuestro Catálogo'}
                         </h2>
                         <p className="text-xs sm:text-sm text-white/60 font-medium">
                             {isFoodRestaurant 
-                                ? 'Elige una categoría para descubrir nuestras especialidades' 
+                                ? t.exploreSubtitle 
                                 : 'Elige una categoría para descubrir todos los productos y servicios'}
                         </p>
                     </div>
@@ -757,7 +833,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                 {/* Top Left Badge: Conteo de platos */}
                                 <div className="absolute top-3 left-3 sm:top-3.5 sm:left-3.5 z-20">
                                     <span className="inline-flex items-center px-3 py-1 bg-black/70 backdrop-blur-md border border-amber-400/40 text-amber-300 text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-full shadow-lg">
-                                        {cat.count} {isFoodRestaurant ? (cat.count === 1 ? 'plato' : 'platos') : (cat.count === 1 ? 'ítem' : 'productos')}
+                                        {t.dishesCount(cat.count)}
                                     </span>
                                 </div>
 
@@ -779,10 +855,10 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                 {/* Dark Gradient Overlay for optimal legibility */}
                                 <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/95 via-black/45 to-transparent flex flex-col justify-end p-4 sm:p-5 group-hover:from-black/90 transition-all">
                                     <h3 className="text-white font-black text-base sm:text-lg md:text-xl uppercase tracking-tight leading-snug group-hover:text-[var(--theme-primary)] transition-colors drop-shadow-md line-clamp-2">
-                                        {cat.name}
+                                        {translateCategory(cat.name, lang)}
                                     </h3>
                                     <span className="text-xs font-semibold text-amber-300/90 group-hover:text-amber-200 flex items-center gap-1.5 mt-2 transition-all group-hover:translate-x-1">
-                                        Ver {isFoodRestaurant ? 'platos' : 'productos'} <ChevronRight size={14} />
+                                        {isFoodRestaurant ? t.viewDishes : 'Ver productos'} <ChevronRight size={14} />
                                     </span>
                                 </div>
                             </motion.div>
@@ -805,7 +881,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                 }}
                                 className="w-fit inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer select-none"
                             >
-                                <ArrowLeft size={14} /> Todas las categorías
+                                <ArrowLeft size={14} /> {t.backToCategories}
                             </button>
                         )}
                     </div>
@@ -813,10 +889,10 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                     {/* Título de la Categoría Activa */}
                     <div className="flex items-baseline justify-between border-b border-white/10 pb-3">
                         <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white uppercase tracking-tight">
-                            {activeCategory || categories[0]}
+                            {translateCategory(activeCategory || categories[0], lang)}
                         </h2>
                         <span className="text-xs text-white/50 font-bold uppercase tracking-wider">
-                            {filteredItems.length} {isFoodRestaurant ? (filteredItems.length === 1 ? 'plato' : 'platos') : (filteredItems.length === 1 ? 'ítem' : 'productos')}
+                            {t.dishesCount(filteredItems.length)}
                         </span>
                     </div>
 
@@ -970,12 +1046,12 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                         );
                                     })()}
                                     {/* Overlay Gradient */}
-                                    <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-90 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 md:p-6 pb-5 md:pb-8">
-                                        <h3 className="text-white font-black text-sm md:text-xl uppercase tracking-wide leading-tight mb-1 group-hover:text-[var(--theme-primary)] transition-colors line-clamp-2">
-                                            {item.name || item.titulo}
+                                    <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/95 via-black/45 to-transparent opacity-95 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 md:p-6 pb-5 md:pb-8">
+                                        <h3 className={`text-white ${fonts.title} text-sm sm:text-base md:text-xl uppercase tracking-tight leading-snug mb-1 group-hover:text-[var(--theme-primary)] transition-colors line-clamp-2 drop-shadow-md`}>
+                                            {getItemName(item)}
                                         </h3>
                                         {(item.price || item.precio) && (
-                                            <p className="inline-block w-fit px-3 py-1.5 bg-black/70 border border-white/20 rounded-xl text-white font-black text-xs md:text-sm mt-2 backdrop-blur-md shadow-xl">
+                                            <p className="inline-block w-fit px-3 py-1.5 bg-black/75 border border-white/20 rounded-xl text-white font-black text-xs md:text-sm mt-1.5 backdrop-blur-md shadow-xl font-mono">
                                                 {item.price || item.precio}
                                             </p>
                                         )}
@@ -1157,13 +1233,13 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
 
                                 <div className="relative z-10">
                                     <div className="flex flex-wrap items-center gap-2 mb-6">
-                                        <div className={`inline-block px-3 py-1 rounded-full bg-white/10 text-white/60 text-[10px] ${fonts.title} uppercase tracking-widest w-fit border border-white/5`}>
-                                            {selectedItem.category || selectedItem.categoria}
+                                        <div className={`inline-block px-3 py-1 rounded-full bg-white/10 text-amber-300 text-[10px] sm:text-xs ${fonts.title} font-black uppercase tracking-widest w-fit border border-amber-400/30 shadow-md`}>
+                                            {translateCategory(selectedItem.category || selectedItem.categoria || '', lang)}
                                         </div>
                                     </div>
                                     
                                     <h2 className={`text-2xl md:text-4xl ${fonts.title} text-white uppercase tracking-tight mb-4 leading-none`}>
-                                        {selectedItem.name || selectedItem.titulo}
+                                        {getItemName(selectedItem)}
                                     </h2>
                                     
                                     {(selectedItem.price || selectedItem.precio) && (
@@ -1172,7 +1248,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                                 <DollarSign size={24} />
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[9px] text-white/50 font-black uppercase tracking-widest mb-0.5">Inversión</span>
+                                                <span className="text-[9px] text-white/50 font-black uppercase tracking-widest mb-0.5">{t.priceLabel}</span>
                                                 <span className="text-2xl md:text-3xl font-black text-white leading-none">{selectedItem.price || selectedItem.precio}</span>
                                             </div>
                                         </div>
@@ -1181,11 +1257,11 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
 
                                 {(selectedItem.description || selectedItem.descripcion) && (
                                     <div>
-                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3 flex items-center gap-2">
-                                            <Info size={12} /> DETALLES DEL PRODUCTO
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-3 flex items-center gap-2">
+                                            <Info size={12} className="text-amber-400" /> {t.dishDetails}
                                         </h4>
-                                        <div className={`text-white/80 text-sm md:text-base leading-relaxed ${fonts.body} space-y-2 whitespace-pre-line`}>
-                                            {selectedItem.description || selectedItem.descripcion}
+                                        <div className={`text-white/85 text-sm md:text-base leading-relaxed ${fonts.body} space-y-2 whitespace-pre-line font-medium`}>
+                                            {getItemDescription(selectedItem)}
                                         </div>
                                     </div>
                                 )}
@@ -1221,13 +1297,13 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                                 style={{ backgroundColor: 'var(--theme-primary, #f66739)' }}
                                             >
                                                 <ShoppingCart size={16} />
-                                                Añadir al Carrito
+                                                {t.addToCart}
                                             </button>
                                         </div>
 
                                         {/* Botón secundario para Comprar Directo */}
                                         <a
-                                            href={`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa comprar: ${selectedItem.name || selectedItem.titulo}. Precio: ${selectedItem.price || selectedItem.precio || 'Consultar'}`)}`}
+                                            href={`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa comprar: ${getItemName(selectedItem)}. Precio: ${selectedItem.price || selectedItem.precio || 'Consultar'}`)}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="w-full bg-[#25D366]/20 border border-[#25D366]/30 text-[#25D366] py-3 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#25D366]/30 active:scale-95 transition-all"
@@ -1235,7 +1311,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                             <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                                                 <path d="M19.057 4.298c-1.883-1.884-4.386-2.922-7.05-2.922-5.495 0-9.968 4.471-9.968 9.966 0 1.756.459 3.468 1.328 4.975l-1.41 5.148 5.266-1.381c1.455.794 3.09 1.211 4.78 1.212h.004c5.493 0 9.964-4.471 9.964-9.966 0-2.662-1.036-5.166-2.921-7.052zm-7.05 15.393h-.003c-1.488 0-2.946-.4-4.23-1.155l-.304-.18-3.146.825.839-3.067-.197-.314c-.829-1.321-1.267-2.854-1.267-4.43 0-4.43 3.605-8.036 8.04-8.036 2.148 0 4.167.837 5.684 2.355 1.517 1.518 2.352 3.538 2.352 5.686-.002 4.434-3.609 8.041-8.043 8.041zm4.412-6.03c-.242-.121-1.431-.707-1.652-.788-.221-.081-.383-.121-.544.121-.161.242-.625.787-.766.949-.141.161-.282.181-.524.061-.242-.121-1.02-.376-1.943-1.199-.718-.641-1.203-1.433-1.344-1.675-.141-.242-.015-.373.106-.493.109-.108.242-.282.363-.423.121-.141.161-.242.242-.403.081-.161.04-.303-.02-.424-.061-.121-.544-1.312-.746-1.796-.196-.472-.397-.407-.544-.415-.141-.007-.302-.008-.463-.008-.161 0-.423.061-.644.303-.221.242-.846.827-.846 2.018 0 1.191.866 2.336.987 2.5.121.164 1.706 2.605 4.133 3.651.577.249 1.027.397 1.378.508.579.185 1.107.158 1.523.096.465-.069 1.431-.585 1.632-1.15.201-.564.201-1.049.141-1.15-.06-.101-.221-.161-.463-.282z"/>
                                             </svg>
-                                            Consultar por WhatsApp
+                                            {t.orderViaWhatsApp}
                                         </a>
                                     </div>
                                 )}
@@ -1290,7 +1366,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                 <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
                                     <div className="flex items-center gap-2">
                                         <ShoppingBag className="text-[var(--theme-primary)]" size={24} style={{ color: 'var(--theme-primary, #f66739)' }} />
-                                        <h3 className="text-lg font-black text-white uppercase tracking-wider">Tu Pedido</h3>
+                                        <h3 className="text-lg font-black text-white uppercase tracking-wider">{t.orderModalTitle}</h3>
                                     </div>
                                     <button
                                         onClick={() => setIsCartOpen(false)}
@@ -1305,7 +1381,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                     {cart.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center py-20 text-white/40">
                                             <ShoppingBag size={48} className="mb-4 opacity-20" />
-                                            <p className="text-sm font-bold uppercase tracking-wider">El carrito está vacío</p>
+                                            <p className="text-sm font-bold uppercase tracking-wider">{t.emptyCartMessage}</p>
                                         </div>
                                     ) : (
                                         cart.map(item => {
@@ -1328,7 +1404,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
 
                                                     {/* Product Details */}
                                                     <div className="flex-1 min-w-0">
-                                                        <h4 className="text-white font-bold text-sm truncate uppercase">{item.product.name || item.product.titulo}</h4>
+                                                        <h4 className="text-white font-bold text-sm truncate uppercase">{getItemName(item.product)}</h4>
                                                         <p className="text-xs text-white/50 mb-2">{price}</p>
                                                         
                                                         {/* Quantity controls */}
@@ -1352,7 +1428,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                                                 onClick={() => removeFromCart(item.product.id)}
                                                                 className="text-red-400/80 hover:text-red-400 text-xs font-bold uppercase tracking-wider cursor-pointer"
                                                             >
-                                                                Eliminar
+                                                                {t.clearCart ? 'Quitar' : 'Eliminar'}
                                                             </button>
                                                         </div>
                                                     </div>
@@ -1367,7 +1443,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                             {cart.length > 0 && (
                                 <div className="border-t border-white/10 pt-6 mt-6 space-y-4">
                                     <div className="flex justify-between items-center text-white">
-                                        <span className="text-xs font-bold uppercase tracking-wider text-white/50">Total Estimado</span>
+                                        <span className="text-xs font-bold uppercase tracking-wider text-white/50">{t.cartTotal}</span>
                                         <span className="text-2xl font-black">${cartTotals.priceSum.toFixed(2)}</span>
                                     </div>
                                     <button
@@ -1377,7 +1453,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                         <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
                                             <path d="M19.057 4.298c-1.883-1.884-4.386-2.922-7.05-2.922-5.495 0-9.968 4.471-9.968 9.966 0 1.756.459 3.468 1.328 4.975l-1.41 5.148 5.266-1.381c1.455.794 3.09 1.211 4.78 1.212h.004c5.493 0 9.964-4.471 9.964-9.966 0-2.662-1.036-5.166-2.921-7.052zm-7.05 15.393h-.003c-1.488 0-2.946-.4-4.23-1.155l-.304-.18-3.146.825.839-3.067-.197-.314c-.829-1.321-1.267-2.854-1.267-4.43 0-4.43 3.605-8.036 8.04-8.036 2.148 0 4.167.837 5.684 2.355 1.517 1.518 2.352 3.538 2.352 5.686-.002 4.434-3.609 8.041-8.043 8.041zm4.412-6.03c-.242-.121-1.431-.707-1.652-.788-.221-.081-.383-.121-.544.121-.161.242-.625.787-.766.949-.141.161-.282.181-.524.061-.242-.121-1.02-.376-1.943-1.199-.718-.641-1.203-1.433-1.344-1.675-.141-.242-.015-.373.106-.493.109-.108.242-.282.363-.423.121-.141.161-.242.242-.403.081-.161.04-.303-.02-.424-.061-.121-.544-1.312-.746-1.796-.196-.472-.397-.407-.544-.415-.141-.007-.302-.008-.463-.008-.161 0-.423.061-.644.303-.221.242-.846.827-.846 2.018 0 1.191.866 2.336.987 2.5.121.164 1.706 2.605 4.133 3.651.577.249 1.027.397 1.378.508.579.185 1.107.158 1.523.096.465-.069 1.431-.585 1.632-1.15.201-.564.201-1.049.141-1.15-.06-.101-.221-.161-.463-.282z"/>
                                         </svg>
-                                        Enviar Pedido por WhatsApp
+                                        {t.sendOrder}
                                     </button>
                                 </div>
                             )}
