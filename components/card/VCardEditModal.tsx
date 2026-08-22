@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Download, Key, AlertCircle, CheckCircle, Loader2, Edit, Image as ImageIcon, Zap, Phone, User, ChevronDown, Store, Plus, Trash2, Activity, Video, Camera, Upload, Info, Sparkles } from 'lucide-react';
 import { formatPhoneEcuador, cn } from '@/lib/utils';
 import { isVideoUrl } from '@/lib/videoUtils';
+import VisualCatalogSectionEditor from './VisualCatalogSectionEditor';
 
 interface VCardEditModalProps {
     isOpen: boolean;
@@ -581,28 +582,50 @@ export default function VCardEditModal({
                     return num;
                 })(),
                 template_id: formData.template_id || 'classic',
-                menu_digital: menuCategories.length > 0 
-                    ? JSON.stringify(menuCategories.map(cat => ({
-                        id: cat.id,
-                        name: cat.nombre,
-                        items: (cat.products || []).map((prod: any) => {
-                            let formattedPrice = '';
-                            if (prod.precio !== null && prod.precio !== undefined) {
-                                formattedPrice = `$${Number(prod.precio).toFixed(2)}`;
-                            } else if (prod.price) {
-                                formattedPrice = prod.price;
-                            }
+                menu_digital: (() => {
+                    if (formData.catalogo_json?.categories?.length > 0 || formData.catalogo_json?.products?.length > 0) {
+                        const cats = formData.catalogo_json.categories || [];
+                        const prods = formData.catalogo_json.products || [];
+                        return JSON.stringify(cats.map(catName => {
+                            const catProds = prods.filter(
+                                (p: any) => (p.category || p.categoria || '').toLowerCase() === catName.toLowerCase()
+                            );
                             return {
-                                id: prod.id,
-                                name: prod.nombre,
-                                desc: prod.descripcion || prod.desc || '',
-                                price: formattedPrice,
-                                image: prod.imagen_url || prod.image || '',
-                                disponible: prod.disponible !== undefined ? prod.disponible : 1
+                                name: catName,
+                                items: catProds.map((p: any) => ({
+                                    id: p.id,
+                                    name: p.name || p.titulo || 'Plato',
+                                    price: p.price || p.precio || '',
+                                    desc: p.description || p.descripcion || '',
+                                    image: (p.images && p.images[0]) || p.image || p.foto || '',
+                                }))
                             };
-                        })
-                    })))
-                    : formData.menu_digital,
+                        }));
+                    }
+                    if (menuCategories.length > 0) {
+                        return JSON.stringify(menuCategories.map(cat => ({
+                            id: cat.id,
+                            name: cat.nombre,
+                            items: (cat.products || []).map((prod: any) => {
+                                let formattedPrice = '';
+                                if (prod.precio !== null && prod.precio !== undefined) {
+                                    formattedPrice = `$${Number(prod.precio).toFixed(2)}`;
+                                } else if (prod.price) {
+                                    formattedPrice = prod.price;
+                                }
+                                return {
+                                    id: prod.id,
+                                    name: prod.nombre,
+                                    desc: prod.descripcion || prod.desc || '',
+                                    price: formattedPrice,
+                                    image: prod.imagen_url || prod.image || '',
+                                    disponible: prod.disponible !== undefined ? prod.disponible : 1
+                                };
+                            })
+                        })));
+                    }
+                    return formData.menu_digital;
+                })(),
                 // Asegurar que json_override sea string para la API
                 json_override: typeof formData.json_override === 'object' 
                     ? JSON.stringify(formData.json_override) 
@@ -2345,257 +2368,28 @@ export default function VCardEditModal({
                                                     exit={{ height: 0, opacity: 0 }}
                                                     className="overflow-visible bg-white border-t border-gray-100"
                                                 >
-                                                    <div className="p-5 flex flex-col gap-5">
-                                                        {/* CATEGORÍAS - etiquetas simples */}
-                                                        <div>
-                                                            <div className="flex items-center justify-between mb-3">
-                                                                <span className="text-[11px] font-black text-gray-500 uppercase tracking-wider">📁 Categorías</span>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const cat = prompt('Nueva categoría (ej: Hamburguesas, Bebidas):');
-                                                                        if (cat && cat.trim() && !formData.catalogo_json.categories.includes(cat.trim())) {
-                                                                            setFormData({
-                                                                                ...formData,
-                                                                                catalogo_json: {
-                                                                                    ...formData.catalogo_json,
-                                                                                    categories: [...formData.catalogo_json.categories, cat.trim()]
-                                                                                }
-                                                                            });
-                                                                        }
-                                                                    }}
-                                                                    className="text-[11px] font-black text-[#FF5C00] bg-[#FF5C00]/10 px-3 py-1.5 rounded-full flex items-center gap-1 hover:bg-[#FF5C00]/20 transition-all"
-                                                                >
-                                                                    + Nueva
-                                                                </button>
-                                                            </div>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {formData.catalogo_json.categories.filter((c: string) => c && !['Nueva Categoría', 'Sin Categoría', 'Todas', '', 'General'].includes(c)).map((cat, idx) => (
-                                                                    <div key={idx} className="bg-[#FF5C00]/10 border border-[#FF5C00]/20 px-3 py-1.5 rounded-full flex items-center gap-2">
-                                                                        <span className="text-[11px] font-black text-[#FF5C00]">{cat}</span>
-                                                                        <button onClick={() => {
-                                                                            const productCount = formData.catalogo_json.products.filter(
-                                                                                p => (p.category || p.categoria || '').toLowerCase() === cat.toLowerCase()
-                                                                            ).length;
-                                                                            var msg = 'Eliminar categoria "' + cat + '"?';
-                                                                            if (productCount > 0) {
-                                                                                msg += '\n\nADVERTENCIA: Tambien se eliminaran ' + productCount + ' producto(s) de esta categoria.\n\nEsta accion no se puede deshacer.';
-                                                                            }
-                                                                            if (!confirm(msg)) return;
-                                                                            setFormData({
-                                                                                ...formData,
-                                                                                catalogo_json: {
-                                                                                    ...formData.catalogo_json,
-                                                                                    categories: formData.catalogo_json.categories.filter(c => c !== cat),
-                                                                                    products: formData.catalogo_json.products.filter(
-                                                                                        p => (p.category || p.categoria || '').toLowerCase() !== cat.toLowerCase()
-                                                                                    )
-                                                                                }
-                                                                            });
-                                                                        }} className="text-[#FF5C00]/50 hover:text-red-500 transition-colors"><X size={13} /></button>
-                                                                    </div>
-                                                                ))}
-                                                                {formData.catalogo_json.categories.filter((c: string) => c && !['Nueva Categoría', 'Sin Categoría', 'Todas', '', 'General'].includes(c)).length === 0 && (
-                                                                    <span className="text-[10px] text-gray-400 italic">Crea categorías para agrupar tus productos 😊</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* FILTRO + BOTÓN AÑADIR */}
-                                                        <div className="flex items-center gap-2">
-                                                            <select
-                                                                value={productCategoryFilter}
-                                                                onChange={(e) => { setProductCategoryFilter(e.target.value); productCategoryFilterRef.current = e.target.value; }}
-                                                                className="flex-1 bg-gray-100 border border-gray-200 rounded-xl text-[11px] font-black uppercase py-2.5 px-3 outline-none text-navy"
-                                                            >
-                                                                <option value="Todas">🎯 Todas</option>
-                                                                {formData.catalogo_json.categories.filter((c: string) => c && !['Nueva Categoría', 'Sin Categoría', 'Todas', '', 'General'].includes(c)).map(c => (
-                                                                    <option key={c} value={c}>📦 {c}</option>
-                                                                ))}
-                                                            </select>
-                                                            <button
-                                                                onClick={() => {
-                                                                    const cf = productCategoryFilterRef.current;
-                                                                    const invalidCats = ['Nueva Categoría', 'Sin Categoría', 'Todas', '', 'General'];
-                                                                    const cats = formData.catalogo_json.categories.filter((c: string) => c && !invalidCats.includes(c));
-                                                                    const norm = (s: string) => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                                                                    let cat = cf !== 'Todas' ? (cats.find(c => norm(c) === norm(cf)) || cf) : (cats[0] || '');
-                                                                    // Si cat es inválido, usar empty string
-                                                                    if (!cat || invalidCats.includes(cat)) cat = '';
-                                                                    setFormData({
-                                                                        ...formData,
-                                                                        catalogo_json: {
-                                                                            ...formData.catalogo_json,
-                                                                            products: [{
-                                                                                id: `prod_${Date.now()}`,
-                                                                                name: 'Producto Nuevo',
-                                                                                price: '',
-                                                                                description: '',
-                                                                                image: '',
-                                                                                images: [],
-                                                                                video: '',
-                                                                                category: cat
-                                                                            }, ...formData.catalogo_json.products]
-                                                                        }
-                                                                    });
-                                                                }}
-                                                                className="bg-[#FF5C00] text-white px-5 py-2.5 rounded-xl font-black text-[11px] uppercase shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                                                            >
-                                                                <Plus size={18} /> Añadir
-                                                            </button>
-                                                        </div>
-
-                                                        {/* LISTA DE PRODUCTOS */}
-                                                        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-                                                            {formData.catalogo_json.products
-                                                                .filter(p => {
-                                                                    if (productCategoryFilter === 'Todas') return true;
-                                                                    const norm = (s: string) => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                                                                    return norm(p.category || '') === norm(productCategoryFilter || '');
-                                                                })
-                                                                .map((prod, pIdx) => (
-                                                                <div key={prod.id || pIdx} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm relative group hover:border-[#FF5C00]/30 transition-all">
-                                                                    <button onClick={() => {
-                                                                        if (confirm('¿Eliminar este producto?')) {
-                                                                            setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.filter(p => p.id !== prod.id) } });
-                                                                        }
-                                                                    }} className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"><X size={13} /></button>
-
-                                                                    {/* Fila superior: Foto + Nombre + Precio */}
-                                                                    <div className="flex items-start gap-3 mb-3">
-                                                                        {/* FOTO principal + miniaturas extra */}
-                                                                        <div className="flex-shrink-0 space-y-1">
-                                                                            <label className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 cursor-pointer hover:opacity-80 transition-all border border-gray-200 relative group/img block">
-                                                                                {(() => {
-                                                                                    const imgs = prod.images || (prod.image ? [prod.image] : []);
-                                                                                    const imgSrc = imgs[0] || '';
-                                                                                    return imgSrc ? (
-                                                                                        <img src={imgSrc} className="w-full h-full object-cover" />
-                                                                                    ) : (
-                                                                                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-[20px]">📷</div>
-                                                                                    );
-                                                                                })()}
-                                                                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity rounded-xl">
-                                                                                    <Camera size={16} className="text-white" />
-                                                                                </div>
-                                                                                <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                                                                                    const file = e.target.files?.[0];
-                                                                                    if (!file) return;
-                                                                                    const fd = new FormData();
-                                                                                    fd.append('file', file);
-                                                                                    if (userData?.slug) fd.append('slug', userData.slug);
-                                                                                    const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                                                                                    if (res.ok) {
-                                                                                        const { url } = await res.json();
-                                                                                        const current = prod.images || (prod.image ? [prod.image] : []);
-                                                                                        setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, images: [...current, url], image: current[0] || url } : p) } });
-                                                                                    }
-                                                                                }} />
-                                                                            </label>
-                                                                            {/* Miniaturas extra (si tiene más fotos) */}
-                                                                            {(prod.images?.length || 0) > 1 && (
-                                                                                <div className="flex gap-1 mt-1">
-                                                                                    {prod.images.slice(1, 5).map((imgUrl: string, iIdx: number) => (
-                                                                                        <div key={iIdx} className="w-9 h-9 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 relative group/mini shadow-sm">
-                                                                                            <img src={imgUrl} className="w-full h-full object-cover" />
-                                                                                            <button onClick={(e) => {
-                                                                                                e.stopPropagation();
-                                                                                                const updated = prod.images.filter((_: string, idx: number) => idx !== iIdx + 1);
-                                                                                                setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, images: updated, image: updated[0] || '' } : p) } });
-                                                                                            }} className="absolute inset-0 bg-red-500/60 flex items-center justify-center opacity-0 group-hover/mini:opacity-100 transition-opacity text-white text-[8px] font-black"><X size={10} /></button>
-                                                                                        </div>
-                                                                                    ))}
-                                                                                    {(prod.images?.length || 0) > 5 && <div className="w-9 h-9 rounded-lg bg-gray-200 flex items-center justify-center text-[10px] font-black text-gray-500 shadow-sm">+{prod.images.length - 5}</div>}
-                                                                                </div>
-                                                                            )}
-                                                                            
-                                                                            {/* Miniaturas de videos vinculados */}
-                                                                            {(prod.videos?.length || 0) > 0 && (
-                                                                                <div className="flex flex-wrap gap-1 mt-1.5">
-                                                                                    {prod.videos.map((vidUrl: string, vIdx: number) => (
-                                                                                        <div key={vIdx} className="w-9 h-9 rounded-lg bg-black overflow-hidden border border-gray-200 relative group/vid shadow-sm flex items-center justify-center text-white" title={vidUrl}>
-                                                                                            <Video size={12} className="text-white/60 group-hover/vid:opacity-0 transition-opacity" />
-                                                                                            <button onClick={(e) => {
-                                                                                                e.stopPropagation();
-                                                                                                const updated = prod.videos.filter((_: string, idx: number) => idx !== vIdx);
-                                                                                                setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, videos: updated, video: updated[0] || '' } : p) } });
-                                                                                            }} className="absolute inset-0 bg-red-500/80 flex items-center justify-center opacity-0 group-hover/vid:opacity-100 transition-opacity text-white text-[8px] font-black"><X size={10} /></button>
-                                                                                        </div>
-                                                                                    ))}
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
- 
-                                                                        {/* Nombre + Precio */}
-                                                                        <div className="flex-1 min-w-0 space-y-1.5">
-                                                                            <input className="w-full bg-transparent border-0 border-b-2 border-gray-100 focus:border-[#FF5C00] pb-1 text-sm font-black text-navy outline-none placeholder:text-gray-300 transition-colors" value={prod.name} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, name: e.target.value } : p) } })} placeholder="Nombre del producto" />
-                                                                            <div className="flex items-center gap-2">
-                                                                                <span className="text-gray-400 text-[11px] font-bold">$</span>
-                                                                                <input className="flex-1 bg-transparent border-0 border-b-2 border-gray-100 focus:border-[#FF5C00] pb-1 text-sm font-black text-navy outline-none placeholder:text-gray-300 transition-colors" value={prod.price} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, price: e.target.value } : p) } })} placeholder="Precio" type="text" />
-                                                                                <select className="bg-gray-100 border-0 rounded-lg px-2 py-1.5 text-[9px] font-black uppercase text-navy outline-none" value={prod.category || ''} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, category: e.target.value } : p) } })}>
-                                                                                    {formData.catalogo_json.categories.filter(c => c && !['Nueva Categoría', 'Sin Categoría', 'Todas', '', 'General'].includes(c)).map(c => (
-                                                                                        <option key={c} value={c}>{c}</option>
-                                                                                    ))}
-                                                                                </select>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
- 
-                                                                    {/* DESCRIPCIÓN */}
-                                                                    <textarea className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-[11px] font-medium text-navy min-h-[52px] resize-none outline-none focus:border-[#FF5C00]/50 transition-all placeholder:text-gray-300" value={prod.description} onChange={(e) => setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, description: e.target.value } : p) } })} placeholder="Descripción breve del producto..." rows={2} />
- 
-                                                                    {/* SUBIR ARCHIVO o pegar LINK (imagen o video) */}
-                                                                    <div className="mt-2 flex items-center gap-2">
-                                                                        <label className="flex items-center gap-1 text-[10px] font-bold text-[#FF5C00] bg-[#FF5C00]/10 hover:bg-[#FF5C00]/20 px-3 py-1.5 rounded-lg cursor-pointer transition-all">
-                                                                            <Camera size={12} /> Subir
-                                                                            <input type="file" accept="image/*,video/*" className="hidden" onChange={async (e) => {
-                                                                                const file = e.target.files?.[0];
-                                                                                if (!file) return;
-                                                                                const fd = new FormData();
-                                                                                fd.append('file', file);
-                                                                                if (userData?.slug) fd.append('slug', userData.slug);
-                                                                                const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                                                                                if (res.ok) {
-                                                                                    const { url } = await res.json();
-                                                                                    if (isVideoUrl(url) || file.type.startsWith('video/')) {
-                                                                                        const current = prod.videos || (prod.video ? [prod.video] : []);
-                                                                                        setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, videos: [...current, url], video: current[0] || url } : p) } });
-                                                                                    } else {
-                                                                                        const current = prod.images || (prod.image ? [prod.image] : []);
-                                                                                        setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, images: [...current, url], image: current[0] || url } : p) } });
-                                                                                    }
-                                                                                }
-                                                                            }} />
-                                                                        </label>
-                                                                        <span className="text-[10px] text-gray-300">o</span>
-                                                                        <div className="flex-1 flex items-center gap-1">
-                                                                            <input className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-[10px] text-navy outline-none placeholder:text-gray-300" placeholder="Pega link (imagen o video)..." id={`media-link-${prod.id}`} />
-                                                                            <button onClick={() => {
-                                                                                const input = document.getElementById(`media-link-${prod.id}`) as HTMLInputElement;
-                                                                                const url = input?.value?.trim();
-                                                                                if (!url) return;
-                                                                                if (isVideoUrl(url)) {
-                                                                                    const current = prod.videos || (prod.video ? [prod.video] : []);
-                                                                                    setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, videos: [...current, url], video: current[0] || url } : p) } });
-                                                                                } else {
-                                                                                    const current = prod.images || (prod.image ? [prod.image] : []);
-                                                                                    setFormData({ ...formData, catalogo_json: { ...formData.catalogo_json, products: formData.catalogo_json.products.map(p => p.id === prod.id ? { ...p, images: [...current, url], image: current[0] || url } : p) } });
-                                                                                }
-                                                                                input.value = '';
-                                                                            }} className="text-[10px] font-black text-[#FF5C00] hover:underline px-2 whitespace-nowrap">+ Link</button>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                            {formData.catalogo_json.products.filter(p => {
-                                                                if (productCategoryFilter === 'Todas') return true;
-                                                                const norm = (s: string) => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                                                                return norm(p.category || '') === norm(productCategoryFilter || '');
-                                                            }).length === 0 && (
-                                                                <div className="text-center py-8 text-gray-400 text-[12px] font-medium border-2 border-dashed border-gray-100 rounded-2xl">
-                                                                    {productCategoryFilter === 'Todas' ? '👆 Añade tu primer producto' : `No hay productos en "${productCategoryFilter}"`}
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                                    <div className="p-4 sm:p-6 bg-white">
+                                                        <VisualCatalogSectionEditor
+                                                            categories={formData.catalogo_json?.categories || []}
+                                                            products={formData.catalogo_json?.products || []}
+                                                            categoryImages={(() => {
+                                                                const ov = safeParse<any>(formData.json_override, {});
+                                                                return ov.category_images || {};
+                                                            })()}
+                                                            onChange={({ categories, products, categoryImages }) => {
+                                                                const ov = safeParse<any>(formData.json_override, {});
+                                                                const updatedOv = { ...ov, category_images: categoryImages };
+                                                                setFormData({
+                                                                    ...formData,
+                                                                    catalogo_json: {
+                                                                        categories,
+                                                                        products,
+                                                                    },
+                                                                    json_override: JSON.stringify(updatedOv),
+                                                                });
+                                                            }}
+                                                            themeColor="#FF5C00"
+                                                        />
                                                     </div>
                                                 </motion.div>
                                             )}
