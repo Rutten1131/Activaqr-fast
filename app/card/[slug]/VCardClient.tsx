@@ -374,6 +374,7 @@ export default function VCardClient({ showCatalog = false }: VCardClientProps) {
                     onLightboxToggle={setIsLightboxOpen}
                     templateId={data.template_id}
                     initialCategory={urlCategory}
+                    categoryImages={safeParse<any>(data?.json_override, {})?.category_images || {}}
                 />
             </div>
         </div>

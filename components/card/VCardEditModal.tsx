@@ -2389,6 +2389,7 @@ export default function VCardEditModal({
                                                                 });
                                                             }}
                                                             themeColor="#FF5C00"
+                                                            slug={userData?.slug || initialSlug}
                                                         />
                                                     </div>
                                                 </motion.div>

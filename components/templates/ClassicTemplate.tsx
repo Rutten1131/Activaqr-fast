@@ -815,6 +815,7 @@ export default function ClassicTemplate({
                                                                 whatsapp={data.whatsapp}
                                                                 onLightboxToggle={setIsLightboxOpen}
                                                                 lightboxInline={true}
+                                                                categoryImages={safeParse<any>(data?.json_override, {})?.category_images || {}}
                                                             />
                                                         )}
                                                     </div>

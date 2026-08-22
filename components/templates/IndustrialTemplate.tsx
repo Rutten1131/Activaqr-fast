@@ -455,6 +455,7 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
                                     whatsapp={data.whatsapp}
                                     onLightboxToggle={props.setIsLightboxOpen}
                                     templateId="industrial"
+                                    categoryImages={safeParse<any>(data?.json_override, {})?.category_images || {}}
                                 />
                             </div>
                         </section>

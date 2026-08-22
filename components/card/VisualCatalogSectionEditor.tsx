@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getVideoEmbedUrl, getYouTubeThumbnail } from "@/lib/videoUtils";
+import { compressImage } from "@/lib/imageCompress";
 
 export interface CatalogProduct {
     id: string;
@@ -51,50 +52,8 @@ export interface VisualCatalogSectionEditorProps {
         categoryImages: Record<string, string>;
     }) => void;
     themeColor?: string;
+    slug?: string;
 }
-
-// ─── Compresor de imágenes cliente ───────────────────────────────────────────
-const compressImage = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target?.result as string;
-            img.onload = () => {
-                const canvas = document.createElement("canvas");
-                const MAX_WIDTH = 1200;
-                const MAX_HEIGHT = 1200;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext("2d");
-                if (!ctx) {
-                    resolve(img.src);
-                    return;
-                }
-                ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL("image/webp", 0.85));
-            };
-            img.onerror = (error) => reject(error);
-        };
-        reader.onerror = (error) => reject(error);
-    });
-};
 
 export default function VisualCatalogSectionEditor({
     categories = [],
@@ -102,6 +61,7 @@ export default function VisualCatalogSectionEditor({
     categoryImages = {},
     onChange,
     themeColor = "#FF5C00",
+    slug,
 }: VisualCatalogSectionEditorProps) {
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [uploadingId, setUploadingId] = useState<string | null>(null);
@@ -248,15 +208,25 @@ export default function VisualCatalogSectionEditor({
     const handleUploadCategoryImage = async (catName: string, file: File) => {
         setUploadingId(`cat_${catName}`);
         try {
-            const base64 = await compressImage(file);
-            const updatedImages = { ...categoryImages, [catName]: base64 };
-            onChange({
-                categories: validCategories,
-                products,
-                categoryImages: updatedImages,
-            });
+            const compressed = await compressImage(file);
+            const fd = new FormData();
+            fd.append("file", compressed);
+            if (slug) fd.append("slug", slug);
+
+            const res = await fetch("/api/upload", { method: "POST", body: fd });
+            if (res.ok) {
+                const { url } = await res.json();
+                const updatedImages = { ...categoryImages, [catName]: url };
+                onChange({
+                    categories: validCategories,
+                    products,
+                    categoryImages: updatedImages,
+                });
+            } else {
+                alert("Error al subir la imagen de la categoría.");
+            }
         } catch (e) {
-            alert("Error al comprimir la foto de categoría");
+            alert("Error al procesar la foto de categoría");
         } finally {
             setUploadingId(null);
         }
@@ -329,31 +299,41 @@ export default function VisualCatalogSectionEditor({
     const handleUploadProductImage = async (prodId: string, file: File, isMain = false) => {
         setUploadingId(prodId);
         try {
-            const base64 = await compressImage(file);
-            const updatedProducts = products.map((p) => {
-                if (p.id === prodId) {
-                    const currentImgs = p.images || (p.image ? [p.image] : []) || [];
-                    let newImgs: string[];
-                    if (isMain) {
-                        newImgs = [base64, ...currentImgs.filter((_, idx) => idx !== 0)];
-                    } else {
-                        newImgs = [...currentImgs, base64];
+            const compressed = await compressImage(file);
+            const fd = new FormData();
+            fd.append("file", compressed);
+            if (slug) fd.append("slug", slug);
+
+            const res = await fetch("/api/upload", { method: "POST", body: fd });
+            if (res.ok) {
+                const { url } = await res.json();
+                const updatedProducts = products.map((p) => {
+                    if (p.id === prodId) {
+                        const currentImgs = p.images || (p.image ? [p.image] : []) || [];
+                        let newImgs: string[];
+                        if (isMain) {
+                            newImgs = [url, ...currentImgs.filter((_, idx) => idx !== 0)];
+                        } else {
+                            newImgs = [...currentImgs, url];
+                        }
+                        return {
+                            ...p,
+                            image: newImgs[0] || "",
+                            images: newImgs,
+                        };
                     }
-                    return {
-                        ...p,
-                        image: newImgs[0] || "",
-                        images: newImgs,
-                    };
-                }
-                return p;
-            });
-            onChange({
-                categories: validCategories,
-                products: updatedProducts,
-                categoryImages,
-            });
+                    return p;
+                });
+                onChange({
+                    categories: validCategories,
+                    products: updatedProducts,
+                    categoryImages,
+                });
+            } else {
+                alert("Error al subir la imagen.");
+            }
         } catch (e) {
-            alert("Error al comprimir la imagen.");
+            alert("Error al procesar la imagen.");
         } finally {
             setUploadingId(null);
         }
