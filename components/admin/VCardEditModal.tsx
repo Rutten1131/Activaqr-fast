@@ -692,17 +692,41 @@ export default function VCardEditModal({
             // Añadir categorías de productos que no estén en la lista
             const productCats = products.map((p: any) => p.categoria).filter((c: string) => c && !invalidCats.includes(c));
             const allValidCats = [...new Set([...normalizedCats, ...productCats])];
+            
+            let ov: any = {};
+            try {
+                const rawOv = editingRegistro.json_override;
+                ov = typeof rawOv === 'string' ? JSON.parse(rawOv || '{}') : (rawOv || {});
+            } catch (e) {}
+
             return {
                 categories: allValidCats,
-                products: products
+                products: products,
+                item_label_singular: parsed.item_label_singular || ov.item_label_singular || '',
+                item_label_plural: parsed.item_label_plural || ov.item_label_plural || ''
             };
         }
         
-        return { categories: [] as string[], products: [] as any[] };
+        return { categories: [] as string[], products: [] as any[], item_label_singular: '', item_label_plural: '' };
     })();
 
-    const updateCatalogo = (updated: { categories: string[], products: any[] }) => {
-        setEditingRegistro({ ...editingRegistro, catalogo_json: updated });
+    const updateCatalogo = (updated: { categories: string[], products: any[], item_label_singular?: string, item_label_plural?: string }) => {
+        let parsedOv: any = {};
+        try {
+            const raw = editingRegistro.json_override;
+            parsedOv = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
+        } catch (e) {}
+        if (updated.item_label_singular !== undefined) {
+            parsedOv.item_label_singular = updated.item_label_singular;
+        }
+        if (updated.item_label_plural !== undefined) {
+            parsedOv.item_label_plural = updated.item_label_plural;
+        }
+        setEditingRegistro({ 
+            ...editingRegistro, 
+            catalogo_json: updated,
+            json_override: parsedOv
+        });
     };
 
     const handleDeleteCategory = (catName: string) => {
@@ -2506,21 +2530,114 @@ export default function VCardEditModal({
                                     </div>
 
                                     {catalogTab === 'config' ? (
-                                        <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/10 space-y-6">
-                                            <div className="flex justify-between items-center">
-                                                <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">Organización del Catálogo</p>
-                                                <button type="button" onClick={() => {
-                                                    const cat = prompt('Nombre de la categoría:');
-                                                    if (cat) updateCatalogo({ ...catalogoJson, categories: [...catalogoJson.categories, cat] });
-                                                }} className="text-primary font-black uppercase text-[10px] hover:underline flex items-center gap-1"><Plus size={12} /> Nueva Categoría</button>
-                                            </div>
-                                            <div className="flex flex-wrap gap-3">
-                                                {catalogoJson.categories.map((c: string, i: number) => (
-                                                    <div key={i} className="bg-primary/10 border border-primary/20 px-4 py-2 rounded-xl flex items-center gap-3">
-                                                        <span className="text-[10px] font-black text-primary uppercase">{c}</span>
-                                                        <button type="button" onClick={() => handleDeleteCategory(c)} className="hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
+                                        <div className="space-y-6">
+                                            {/* Configuración de Etiquetas de Ítems */}
+                                            <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/10 space-y-5">
+                                                <div className="flex justify-between items-center">
+                                                    <div>
+                                                        <h5 className="text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                                            🏷️ Tipo de Elementos del Catálogo
+                                                        </h5>
+                                                        <p className="text-[9px] text-white/40 mt-0.5">
+                                                            Define la etiqueta que se mostrará en los badges y conteos de la vCard pública (ej: 3 Productos, 3 Platos, 3 Servicios).
+                                                        </p>
                                                     </div>
-                                                ))}
+                                                </div>
+
+                                                {/* Presets rápidos */}
+                                                <div className="flex flex-wrap gap-2">
+                                                    {[
+                                                        { id: 'productos', label: 'Productos', singular: 'Producto', plural: 'Productos', icon: '📦' },
+                                                        { id: 'platos', label: 'Platos', singular: 'Plato', plural: 'Platos', icon: '🍽️' },
+                                                        { id: 'servicios', label: 'Servicios', singular: 'Servicio', plural: 'Servicios', icon: '💼' },
+                                                        { id: 'articulos', label: 'Artículos', singular: 'Artículo', plural: 'Artículos', icon: '🏷️' },
+                                                        { id: 'proyectos', label: 'Proyectos', singular: 'Proyecto', plural: 'Proyectos', icon: '📁' },
+                                                        { id: 'modelos', label: 'Modelos', singular: 'Modelo', plural: 'Modelos', icon: '✨' },
+                                                    ].map((p) => {
+                                                        const currentSingular = catalogoJson.item_label_singular || 'Producto';
+                                                        const isSelected = currentSingular.toLowerCase() === p.singular.toLowerCase();
+                                                        return (
+                                                            <button
+                                                                key={p.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    updateCatalogo({
+                                                                        ...catalogoJson,
+                                                                        item_label_singular: p.singular,
+                                                                        item_label_plural: p.plural
+                                                                    });
+                                                                }}
+                                                                className={cn(
+                                                                    "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer border",
+                                                                    isSelected
+                                                                        ? "bg-primary text-navy border-primary shadow-sm scale-105"
+                                                                        : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"
+                                                                )}
+                                                            >
+                                                                <span>{p.icon}</span>
+                                                                <span>{p.label}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Inputs de Singular y Plural */}
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-white/5">
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase tracking-widest text-white/50 block mb-1">
+                                                            Singular (ej: Producto, Plato, Vehículo)
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={catalogoJson.item_label_singular || ""}
+                                                            onChange={(e) => {
+                                                                updateCatalogo({
+                                                                    ...catalogoJson,
+                                                                    item_label_singular: e.target.value,
+                                                                    item_label_plural: catalogoJson.item_label_plural || `${e.target.value}s`
+                                                                });
+                                                            }}
+                                                            placeholder="Producto (por defecto)"
+                                                            className="w-full bg-[#050B1C] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:border-primary transition-all"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase tracking-widest text-white/50 block mb-1">
+                                                            Plural (ej: Productos, Platos, Vehículos)
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={catalogoJson.item_label_plural || ""}
+                                                            onChange={(e) => {
+                                                                updateCatalogo({
+                                                                    ...catalogoJson,
+                                                                    item_label_plural: e.target.value
+                                                                });
+                                                            }}
+                                                            placeholder="Productos (por defecto)"
+                                                            className="w-full bg-[#050B1C] border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:border-primary transition-all"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Organización de Categorías */}
+                                            <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/10 space-y-6">
+                                                <div className="flex justify-between items-center">
+                                                    <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">Organización del Catálogo</p>
+                                                    <button type="button" onClick={() => {
+                                                        const cat = prompt('Nombre de la categoría:');
+                                                        if (cat) updateCatalogo({ ...catalogoJson, categories: [...catalogoJson.categories, cat] });
+                                                    }} className="text-primary font-black uppercase text-[10px] hover:underline flex items-center gap-1"><Plus size={12} /> Nueva Categoría</button>
+                                                </div>
+                                                <div className="flex flex-wrap gap-3">
+                                                    {catalogoJson.categories.map((c: string, i: number) => (
+                                                        <div key={i} className="bg-primary/10 border border-primary/20 px-4 py-2 rounded-xl flex items-center gap-3">
+                                                            <span className="text-[10px] font-black text-primary uppercase">{c}</span>
+                                                            <button type="button" onClick={() => handleDeleteCategory(c)} className="hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     ) : (

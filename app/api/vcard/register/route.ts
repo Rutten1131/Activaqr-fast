@@ -329,6 +329,62 @@ export async function POST(req: NextRequest) {
                     console.error("Error syncing menu to relational tables in register INSERT:", syncErr);
                 }
 
+                // --- ALLY & RESTAURANT PIPELINE AUTO-TRACKING ---
+                try {
+                    if (menu_digital || rawSellerCode) {
+                        const cleanAllyCode = rawSellerCode ? String(rawSellerCode).trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '') : null;
+                        let aliadoId = null;
+                        if (cleanAllyCode) {
+                            const [aliadoRows]: any = await pool.execute('SELECT id, comision_tipo, comision_valor FROM registraya_aliados WHERE codigo = ? LIMIT 1', [cleanAllyCode]);
+                            if (aliadoRows.length > 0) {
+                                aliadoId = aliadoRows[0].id;
+                            }
+                        }
+
+                        if (aliadoId || menu_digital) {
+                            const restNombre = nombre_negocio || nombres || 'Restaurante Registrado';
+                            const [pipeResult]: any = await pool.execute(
+                                `INSERT INTO registraya_pipeline_restaurantes (
+                                    aliado_id, canal_origen, nombre_restaurante, contacto_nombre,
+                                    contacto_telefono, contacto_email, pais, estado,
+                                    producto_interes, vcard_registro_id, menu_slug,
+                                    fecha_primer_contacto, fecha_cierre
+                                ) VALUES (?, ?, ?, ?, ?, ?, 'EC', ?, 'menu_interactivo', ?, ?, NOW(), ?)`,
+                                [
+                                    aliadoId,
+                                    aliadoId ? 'influencer' : 'web',
+                                    restNombre,
+                                    contacto_nombre || nombres || null,
+                                    whatsapp || '',
+                                    email || null,
+                                    finalStatus === 'pagado' ? 'pagado' : 'prospecto',
+                                    newId,
+                                    finalSlug,
+                                    finalStatus === 'pagado' ? now : null
+                                ]
+                            );
+
+                            // Si pagó y tiene aliado, generar comisión automática
+                            if (finalStatus === 'pagado' && aliadoId) {
+                                const [aliadoRows]: any = await pool.execute('SELECT comision_tipo, comision_valor FROM registraya_aliados WHERE id = ?', [aliadoId]);
+                                if (aliadoRows.length > 0) {
+                                    const { comision_tipo, comision_valor } = aliadoRows[0];
+                                    const venta = 500.00;
+                                    const comision = comision_tipo === 'monto_fijo' ? Number(comision_valor) : (venta * Number(comision_valor)) / 100;
+                                    await pool.execute(
+                                        `INSERT INTO registraya_comisiones (
+                                            pipeline_id, aliado_id, precio_venta, monto_comision, porcentaje_aplicado, estado
+                                        ) VALUES (?, ?, ?, ?, ?, 'pendiente')`,
+                                        [pipeResult.insertId, aliadoId, venta, comision, comision_tipo === 'porcentaje' ? comision_valor : null]
+                                    );
+                                }
+                            }
+                        }
+                    }
+                } catch (pipeErr) {
+                    console.error('Error tracking restaurant pipeline / affiliate in register:', pipeErr);
+                }
+
                 return NextResponse.json({ success: true, action: 'created', id: newId, edit_code: serverGeneratedEditCode });
             }
 

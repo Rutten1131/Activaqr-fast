@@ -365,16 +365,20 @@ export default function VCardClient({ showCatalog = false }: VCardClientProps) {
 
     // ─── Catálogo: parsear una sola vez ───────────────────────────────────────────
     const hasCatalog = (showCatalog || data?.plan === 'catalog') && data?.catalogo_json;
+    const parsedCatalogData = hasCatalog ? safeParse<any>(data.catalogo_json, { products: [], categories: [] }) : null;
+    const ovData = hasCatalog ? safeParse<any>(data?.json_override, {}) : {};
     const catalogNode = hasCatalog ? (
         <div className="w-full bg-[var(--theme-bg)]">
             <div id="catalogo" className="max-w-7xl mx-auto px-4 py-8">
                 <CatalogGallery 
-                    data={safeParse(data.catalogo_json, { products: [], categories: [] })} 
+                    data={parsedCatalogData} 
                     whatsapp={data.whatsapp}
                     onLightboxToggle={setIsLightboxOpen}
                     templateId={data.template_id}
                     initialCategory={urlCategory}
-                    categoryImages={safeParse<any>(data?.json_override, {})?.category_images || {}}
+                    categoryImages={ovData?.category_images || {}}
+                    itemLabelSingular={ovData?.item_label_singular || parsedCatalogData?.item_label_singular}
+                    itemLabelPlural={ovData?.item_label_plural || parsedCatalogData?.item_label_plural}
                 />
             </div>
         </div>

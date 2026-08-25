@@ -46,7 +46,8 @@ import {
     Copy,
     BarChart2,
     Send,
-    Utensils
+    Utensils,
+    Award
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -1713,6 +1714,13 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex gap-4 items-center flex-wrap">
+                        <Link
+                            href="/admin/aliados"
+                            className="bg-amber-400/10 text-amber-400 border border-amber-400/30 hover:bg-amber-400/20 hover:scale-105 px-4 py-3 md:px-6 md:py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.15)]"
+                        >
+                            <Award size={16} />
+                            Aliados & 10 Casos
+                        </Link>
                         <Link
                             href="/admin/marketing"
                             className="bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 hover:scale-105 px-4 py-3 md:px-6 md:py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(0,200,83,0.1)]"

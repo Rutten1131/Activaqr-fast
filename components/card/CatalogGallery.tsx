@@ -30,7 +30,7 @@ export interface CatalogItem {
 }
 
 interface CatalogGalleryProps {
-    data: CatalogItem[] | { categories: string[], products: CatalogItem[] };
+    data: CatalogItem[] | { categories: string[], products: CatalogItem[], item_label_singular?: string, item_label_plural?: string };
     whatsapp?: string;
     onLightboxToggle?: (isOpen: boolean) => void;
     templateId?: string;
@@ -40,6 +40,8 @@ interface CatalogGalleryProps {
     sectionTitle?: string;
     lang?: string;
     categoryImages?: Record<string, string>;
+    itemLabelSingular?: string;
+    itemLabelPlural?: string;
 }
 
 // Mapa de tipografías por template con texturas y jerarquía premium
@@ -56,7 +58,20 @@ export interface CartItem {
     quantity: number;
 }
 
-export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templateId, initialCategory, lightboxInline = false, isRestaurant = false, sectionTitle, lang, categoryImages }: CatalogGalleryProps) {
+export default function CatalogGallery({ 
+    data, 
+    whatsapp, 
+    onLightboxToggle, 
+    templateId, 
+    initialCategory, 
+    lightboxInline = false, 
+    isRestaurant = false, 
+    sectionTitle, 
+    lang, 
+    categoryImages,
+    itemLabelSingular: propsItemLabelSingular,
+    itemLabelPlural: propsItemLabelPlural
+}: CatalogGalleryProps) {
     const t = useMemo(() => getMenuTranslations(lang), [lang]);
     const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
     const [mediaIndex, setMediaIndex] = useState(0);
@@ -83,6 +98,24 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
         const foodKeywords = ['plato', 'bebida', 'entrada', 'menu', 'menú', 'gastronom', 'restaurante', 'postre', 'asado', 'comida', 'parrillada', 'piqueo', 'especialid', 'coctel', 'cocktail', 'guarnicion', 'pollo', 'carne', 'lomo', 't-bone', 'tomahawk', 'costilla', 'chuleta', 'ceviche', 'alitas', 'pinchos', 'combo', 'tex mex', 'shot', 'cerveza', 'michelada'];
         return foodKeywords.some(kw => allText.includes(kw));
     }, [isRestaurant, data]);
+
+    const itemLabelSingular = useMemo(() => {
+        if (propsItemLabelSingular && propsItemLabelSingular.trim()) return propsItemLabelSingular.trim();
+        if (data && !Array.isArray(data) && (data as any).item_label_singular && (data as any).item_label_singular.trim()) {
+            return (data as any).item_label_singular.trim();
+        }
+        if (isFoodRestaurant) return 'Plato';
+        return 'Producto';
+    }, [propsItemLabelSingular, data, isFoodRestaurant]);
+
+    const itemLabelPlural = useMemo(() => {
+        if (propsItemLabelPlural && propsItemLabelPlural.trim()) return propsItemLabelPlural.trim();
+        if (data && !Array.isArray(data) && (data as any).item_label_plural && (data as any).item_label_plural.trim()) {
+            return (data as any).item_label_plural.trim();
+        }
+        if (isFoodRestaurant) return 'Platos';
+        return 'Productos';
+    }, [propsItemLabelPlural, data, isFoodRestaurant]);
 
     // Helper to parse price safely
     const parsePrice = (priceStr?: string): number => {
@@ -780,9 +813,10 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                                 );
                                             })()}
 
+                                            {/* Info de producto */}
                                             <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/95 via-black/45 to-transparent opacity-95 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 md:p-6 pb-5 md:pb-8">
                                                 <h3 className={`text-white ${fonts.title} text-sm sm:text-base md:text-xl uppercase tracking-tight leading-snug mb-1 group-hover:text-[var(--theme-primary)] transition-colors line-clamp-2 drop-shadow-md`}>
-                                                    {getItemName(item)}
+                                                    {item.name || item.titulo}
                                                 </h3>
                                                 {(item.price || item.precio) && (
                                                     <p className="inline-block w-fit px-3 py-1.5 bg-black/75 border border-white/20 rounded-xl text-white font-black text-xs md:text-sm mt-1.5 backdrop-blur-md shadow-xl font-mono">
@@ -797,21 +831,20 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                         </motion.div>
                     )}
                 </div>
-            ) : !activeCategory && categories.length > 1 ? (
-                /* VISTA 2: Explorador de Categorías con Tarjetas de Imagen (Estilo Roma) */
+            ) : !activeCategory ? (
+                /* VISTA 2: Grid de Categorías Principales */
                 <div className="flex flex-col gap-6">
-                    <div className="flex flex-col gap-1 text-center sm:text-left">
-                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight drop-shadow-sm">
+                    <div className="text-center md:text-left">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase tracking-tight">
                             {isFoodRestaurant ? t.exploreTitle : 'Explora Nuestro Catálogo'}
                         </h2>
-                        <p className="text-xs sm:text-sm text-white/60 font-medium">
+                        <p className="text-xs sm:text-sm text-white/60 font-medium mt-1">
                             {isFoodRestaurant 
                                 ? t.exploreSubtitle 
-                                : 'Elige una categoría para descubrir todos los productos y servicios'}
+                                : `Elige una categoría para descubrir nuestros ${itemLabelPlural.toLowerCase()}`}
                         </p>
                     </div>
 
-                    {/* Grid de Categorías con Imagen (2 cols móvil, 3 cols ordenador para balance perfecto: 5 cat -> 3 arriba / 2 abajo, 6 cat -> 3 y 3) */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5 md:gap-6">
                         {categoriesData.map((cat) => (
                             <motion.div
@@ -830,10 +863,10 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                 {/* Shine effect on hover */}
                                 <div className="absolute inset-0 z-20 group-hover:translate-x-[200%] -translate-x-[150%] bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000 ease-in-out pointer-events-none" />
 
-                                {/* Top Left Badge: Conteo de platos */}
+                                {/* Top Left Badge: Conteo de items dinámico */}
                                 <div className="absolute top-3 left-3 sm:top-3.5 sm:left-3.5 z-20">
                                     <span className="inline-flex items-center px-3 py-1 bg-black/70 backdrop-blur-md border border-amber-400/40 text-amber-300 text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-full shadow-lg">
-                                        {t.dishesCount(cat.count)}
+                                        {cat.count} {cat.count === 1 ? itemLabelSingular : itemLabelPlural}
                                     </span>
                                 </div>
 
@@ -858,7 +891,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                                         {translateCategory(cat.name, lang)}
                                     </h3>
                                     <span className="text-xs font-semibold text-amber-300/90 group-hover:text-amber-200 flex items-center gap-1.5 mt-2 transition-all group-hover:translate-x-1">
-                                        {isFoodRestaurant ? t.viewDishes : 'Ver productos'} <ChevronRight size={14} />
+                                        {isFoodRestaurant ? t.viewDishes : `Ver ${itemLabelPlural.toLowerCase()}`} <ChevronRight size={14} />
                                     </span>
                                 </div>
                             </motion.div>
@@ -892,7 +925,7 @@ export default function CatalogGallery({ data, whatsapp, onLightboxToggle, templ
                             {translateCategory(activeCategory || categories[0], lang)}
                         </h2>
                         <span className="text-xs text-white/50 font-bold uppercase tracking-wider">
-                            {t.dishesCount(filteredItems.length)}
+                            {filteredItems.length} {filteredItems.length === 1 ? itemLabelSingular : itemLabelPlural}
                         </span>
                     </div>
 

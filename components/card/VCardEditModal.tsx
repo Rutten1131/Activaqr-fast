@@ -359,7 +359,7 @@ export default function VCardEditModal({
             offerExpiresAt?: string,
             offerCtaText?: string
         }>,
-        catalogo_json: { categories: [], products: [] } as { categories: string[], products: any[] },
+        catalogo_json: { categories: [], products: [] } as { categories: string[], products: any[], item_label_singular?: string, item_label_plural?: string },
         json_override: {} as any,
         mensaje: ''
     });
@@ -539,7 +539,21 @@ export default function VCardEditModal({
                             categories = [...new Set([...categories, ...productCats])];
                         }
 
-                        return { categories, products };
+                        let rawOv: any = {};
+                        if (data.data.json_override) {
+                            try {
+                                rawOv = typeof data.data.json_override === 'string' 
+                                    ? JSON.parse(data.data.json_override) 
+                                    : data.data.json_override;
+                            } catch (e) {}
+                        }
+
+                        return { 
+                            categories, 
+                            products,
+                            item_label_singular: raw.item_label_singular || rawOv.item_label_singular || '',
+                            item_label_plural: raw.item_label_plural || rawOv.item_label_plural || ''
+                        };
                     })(),
                     json_override: (() => {
                         if (!data.data.json_override) return {};
@@ -2376,14 +2390,23 @@ export default function VCardEditModal({
                                                                 const ov = safeParse<any>(formData.json_override, {});
                                                                 return ov.category_images || {};
                                                             })()}
-                                                            onChange={({ categories, products, categoryImages }) => {
+                                                            itemLabelSingular={formData.catalogo_json?.item_label_singular || safeParse<any>(formData.json_override, {})?.item_label_singular || "Producto"}
+                                                            itemLabelPlural={formData.catalogo_json?.item_label_plural || safeParse<any>(formData.json_override, {})?.item_label_plural || "Productos"}
+                                                            onChange={({ categories, products, categoryImages, itemLabelSingular, itemLabelPlural }) => {
                                                                 const ov = safeParse<any>(formData.json_override, {});
-                                                                const updatedOv = { ...ov, category_images: categoryImages };
+                                                                const updatedOv = { 
+                                                                    ...ov, 
+                                                                    category_images: categoryImages,
+                                                                    item_label_singular: itemLabelSingular,
+                                                                    item_label_plural: itemLabelPlural
+                                                                };
                                                                 setFormData({
                                                                     ...formData,
                                                                     catalogo_json: {
                                                                         categories,
                                                                         products,
+                                                                        item_label_singular: itemLabelSingular,
+                                                                        item_label_plural: itemLabelPlural
                                                                     },
                                                                     json_override: JSON.stringify(updatedOv),
                                                                 });

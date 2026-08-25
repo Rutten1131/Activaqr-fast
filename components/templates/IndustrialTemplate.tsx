@@ -456,6 +456,8 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
                                     onLightboxToggle={props.setIsLightboxOpen}
                                     templateId="industrial"
                                     categoryImages={safeParse<any>(data?.json_override, {})?.category_images || {}}
+                                    itemLabelSingular={safeParse<any>(data?.json_override, {})?.item_label_singular || catalogData?.item_label_singular}
+                                    itemLabelPlural={safeParse<any>(data?.json_override, {})?.item_label_plural || catalogData?.item_label_plural}
                                 />
                             </div>
                         </section>

@@ -816,6 +816,8 @@ export default function ClassicTemplate({
                                                                 onLightboxToggle={setIsLightboxOpen}
                                                                 lightboxInline={true}
                                                                 categoryImages={safeParse<any>(data?.json_override, {})?.category_images || {}}
+                                                                itemLabelSingular={safeParse<any>(data?.json_override, {})?.item_label_singular || parsedCatalog?.item_label_singular}
+                                                                itemLabelPlural={safeParse<any>(data?.json_override, {})?.item_label_plural || parsedCatalog?.item_label_plural}
                                                             />
                                                         )}
                                                     </div>
