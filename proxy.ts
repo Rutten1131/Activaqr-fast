@@ -63,8 +63,9 @@ export async function proxy(request: NextRequest) {
     // Si entra a la raíz '/', resolvemos a qué catálogo o tarjeta pertenece
     if (pathname === '/') {
         try {
-            const resolveUrl = new URL(`/api/internal/resolve-domain?host=${host}`, request.url);
-            const res = await fetch(resolveUrl.toString(), {
+            const apiBase = process.env.NEXT_PUBLIC_APP_URL || 'https://www.activaqr.com';
+            const resolveUrl = `${apiBase.replace(/\/$/, '')}/api/internal/resolve-domain?host=${encodeURIComponent(host)}`;
+            const res = await fetch(resolveUrl, {
                 headers: {
                     'x-internal-middleware': 'true'
                 }
