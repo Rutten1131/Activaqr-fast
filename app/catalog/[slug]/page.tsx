@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
                 direccion, web, whatsapp, email, google_business, google_rating, google_reviews_count,
                 instagram, facebook, tiktok, youtube, linkedin, x, productos_servicios, etiquetas,
                 plan, foto_url, galeria_urls, portada_desktop, portada_movil, catalogo_json,
-                menu_digital, json_override, last_edited_at, created_at
+                menu_digital, json_override, custom_domain, last_edited_at, created_at
              FROM registraya_vcard_registros 
              WHERE slug = ? OR id = ? LIMIT 1`,
             [slug, slug]
@@ -75,7 +75,7 @@ export default async function CatalogPage({ params }: { params: Promise<{ slug: 
                 direccion, web, whatsapp, email, google_business, google_rating, google_reviews_count,
                 instagram, facebook, tiktok, youtube, linkedin, x, productos_servicios, etiquetas,
                 plan, foto_url, galeria_urls, portada_desktop, portada_movil, catalogo_json,
-                menu_digital, json_override, status, last_edited_at, created_at
+                menu_digital, json_override, custom_domain, status, last_edited_at, created_at
              FROM registraya_vcard_registros 
              WHERE slug = ? OR id = ? LIMIT 1`,
             [slug, slug]

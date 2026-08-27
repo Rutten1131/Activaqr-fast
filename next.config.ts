@@ -28,21 +28,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async redirects() {
-    return [
-      {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: 'frida.activaqr.com',
-          },
-        ],
-        destination: 'https://www.activaqr.com/catalog/frida-m01b',
-        permanent: false,
-      },
-    ];
-  },
   async rewrites() {
     return [
       {

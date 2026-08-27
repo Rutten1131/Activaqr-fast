@@ -127,10 +127,16 @@ export function buildClientSeoMetadata(
         });
     }
 
-    const canonicalUrl = `${baseUrl}/${isCatalog ? 'catalog' : 'card'}/${profile.slug}`;
+    const effectiveBaseUrl = profile.custom_domain
+        ? `https://${profile.custom_domain.replace(/^https?:\/\//, '')}`
+        : baseUrl;
+
+    const canonicalUrl = profile.custom_domain
+        ? effectiveBaseUrl
+        : `${baseUrl}/${isCatalog ? 'catalog' : 'card'}/${profile.slug}`;
 
     const metadata: Metadata = {
-        metadataBase: new URL(baseUrl),
+        metadataBase: new URL(effectiveBaseUrl),
         title,
         description,
         keywords,
@@ -173,7 +179,7 @@ export function buildClientSeoMetadata(
         },
     };
 
-    const schemaJsonLd = generateCombinedSchemaJsonLd(profile, baseUrl, isCatalog);
+    const schemaJsonLd = generateCombinedSchemaJsonLd(profile, effectiveBaseUrl, isCatalog);
 
     return {
         metadata,

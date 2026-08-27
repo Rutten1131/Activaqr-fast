@@ -67,6 +67,8 @@ export interface ClientProfileData {
     catalogo_json?: any;
     menu_digital?: any;
     json_override?: any;
+    custom_domain?: string | null;
     last_edited_at?: string | Date | null;
     created_at?: string | Date | null;
 }
+
