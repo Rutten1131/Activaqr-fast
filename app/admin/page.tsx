@@ -47,7 +47,8 @@ import {
     BarChart2,
     Send,
     Utensils,
-    Award
+    Award,
+    Trophy
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -1714,6 +1715,13 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex gap-4 items-center flex-wrap">
+                        <Link
+                            href="/admin/feria"
+                            className="bg-orange-500/10 text-orange-400 border border-orange-500/30 hover:bg-orange-500/20 hover:scale-105 px-4 py-3 md:px-6 md:py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(246,103,57,0.2)]"
+                        >
+                            <Trophy size={16} />
+                            Feria de Loja 197
+                        </Link>
                         <Link
                             href="/admin/aliados"
                             className="bg-amber-400/10 text-amber-400 border border-amber-400/30 hover:bg-amber-400/20 hover:scale-105 px-4 py-3 md:px-6 md:py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.15)]"

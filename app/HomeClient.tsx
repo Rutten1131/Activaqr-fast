@@ -26,6 +26,7 @@ import QuoteModal from "@/components/QuoteModal";
 import { PricingSection } from "@/components/PricingSection/PricingSection";
 import { AdvancedFAQ, FAQItem } from "@/components/AdvancedFAQ/AdvancedFAQ";
 import ReviewsSection from "@/components/ReviewsSection";
+import FeriaLojaSection from "@/components/FeriaLojaSection";
 
 const HOME_FAQS: FAQItem[] = [
     {
@@ -266,6 +267,9 @@ export default function HomeClient() {
                     </motion.div>
                 </div>
             </section>
+
+            {/* ═══ Competencia Feria de Loja 197 (Vigente hasta 20/Sep/2026) ═══ */}
+            <FeriaLojaSection />
 
             {/* Sección Separadora con Imagen Fija (Fixed Background) */}
             <section
