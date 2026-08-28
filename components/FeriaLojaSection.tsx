@@ -17,7 +17,8 @@ import {
     ImageIcon,
     QrCode,
     Share2,
-    ExternalLink
+    ExternalLink,
+    Heart
 } from "lucide-react";
 import Link from "next/link";
 
@@ -208,18 +209,17 @@ export default function FeriaLojaSection() {
                                         </div>
                                     </div>
 
-                                    <a
-                                        href={getVoteUrl(top5[0].nombre_negocio)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    <Link
+                                        href={`/feria-loja/${top5[0].slug}`}
                                         className="w-full py-4 px-6 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-base transition-all shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02]"
                                         style={{ boxShadow: "0 10px 30px rgba(246,103,57,0.4)" }}
                                     >
-                                        <MessageCircle size={18} />
-                                        Votar por este Stand
-                                    </a>
+                                        <Heart size={18} className="fill-white" />
+                                        Ver Ficha & Votar en 1 Clic
+                                    </Link>
                                 </motion.div>
                             )}
+
 
                             {/* Card 2nd Place */}
                             {top5[1] ? (
@@ -263,15 +263,13 @@ export default function FeriaLojaSection() {
                                         </div>
                                     </div>
 
-                                    <a
-                                        href={getVoteUrl(top5[1].nombre_negocio)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    <Link
+                                        href={`/feria-loja/${top5[1].slug}`}
                                         className="w-full py-3.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 hover:border-primary/40"
                                     >
-                                        <MessageCircle size={16} className="text-primary" />
-                                        Votar por WhatsApp
-                                    </a>
+                                        <Heart size={16} className="text-primary" />
+                                        Ver Ficha & Votar
+                                    </Link>
                                 </motion.div>
                             ) : (
                                 <div className="md:order-1 rounded-3xl p-6 border border-dashed border-white/10 flex flex-col items-center justify-center text-center text-white/40 min-h-[280px]">
@@ -314,7 +312,7 @@ export default function FeriaLojaSection() {
                                             )}
                                         </div>
 
-                                        <h4 className="font-black text-xl text-white mb-2 line-clamp-1">
+                                        <h4 className="font-black text-xl text-white mb-1 line-clamp-1">
                                             {top5[2].nombre_negocio}
                                         </h4>
 
@@ -323,15 +321,13 @@ export default function FeriaLojaSection() {
                                         </div>
                                     </div>
 
-                                    <a
-                                        href={getVoteUrl(top5[2].nombre_negocio)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    <Link
+                                        href={`/feria-loja/${top5[2].slug}`}
                                         className="w-full py-3.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 hover:border-primary/40"
                                     >
-                                        <MessageCircle size={16} className="text-primary" />
-                                        Votar por WhatsApp
-                                    </a>
+                                        <Heart size={16} className="text-primary" />
+                                        Ver Ficha & Votar
+                                    </Link>
                                 </motion.div>
                             ) : (
                                 <div className="md:order-3 rounded-3xl p-6 border border-dashed border-white/10 flex flex-col items-center justify-center text-center text-white/40 min-h-[280px]">

@@ -1,40 +1,48 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        // Obtener los primeros 5 del ranking
-        const [top5]: any = await pool.query(
-            `SELECT id, slug, nombre_negocio, logo_url, total_votos
-             FROM feria_negocios
-             WHERE is_active = 1
-             ORDER BY total_votos DESC, created_at ASC
-             LIMIT 5`
-        );
+        const { searchParams } = new URL(req.url);
+        const categoria = searchParams.get('categoria');
 
-        // Obtener todos los participantes activos con logo para el muro/carrusel
-        const [participantes]: any = await pool.query(
-            `SELECT id, slug, nombre_negocio, logo_url, total_votos
+        let whereClause = 'WHERE is_active = 1';
+        const queryParams: any[] = [];
+
+        if (categoria && categoria !== 'todos') {
+            whereClause += ' AND categoria = ?';
+            queryParams.push(categoria);
+        }
+
+        // Obtener ranking ordenado por puntuación ponderada (votos simples + verificados)
+        const [ranking]: any = await pool.query(
+            `SELECT id, slug, nombre_negocio, nombre_representante, numero_stand, categoria, 
+                    origen, logo_url, total_votos, total_votos_verificados,
+                    (total_votos + (total_votos_verificados * 2)) as total_puntos
              FROM feria_negocios
-             WHERE is_active = 1
-             ORDER BY total_votos DESC, created_at ASC`
+             ${whereClause}
+             ORDER BY total_puntos DESC, total_votos DESC, created_at ASC
+             LIMIT 100`,
+            queryParams
         );
 
         const [stats]: any = await pool.query(
             `SELECT 
                 COUNT(*) as total_participantes,
-                COALESCE(SUM(total_votos), 0) as total_votos
+                COALESCE(SUM(total_votos), 0) as total_votos,
+                COALESCE(SUM(total_votos_verificados), 0) as total_votos_verificados
              FROM feria_negocios
              WHERE is_active = 1`
         );
 
         return NextResponse.json({
             success: true,
-            top5: top5 || [],
-            participantes: participantes || [],
-            stats: stats[0] || { total_participantes: 0, total_votos: 0 }
+            top5: ranking.slice(0, 5),
+            ranking: ranking || [],
+            participantes: ranking || [],
+            stats: stats[0] || { total_participantes: 0, total_votos: 0, total_votos_verificados: 0 }
         });
     } catch (error: any) {
         console.error('Error al obtener ranking público de la feria:', error);

@@ -1,51 +1,116 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    Trophy,
-    Upload,
-    Store,
-    User,
-    Phone,
-    Link2,
-    HelpCircle,
-    CheckCircle,
-    Download,
-    Sparkles,
     QrCode,
+    Upload,
+    CheckCircle,
+    Store,
+    Sparkles,
+    ShoppingBag,
+    Gift,
+    Instagram,
+    Link2,
+    Download,
+    ExternalLink,
     ArrowRight,
-    Loader2,
-    X,
-    ImageIcon,
     ArrowLeft,
-    Share2,
-    Calendar
+    Plus,
+    Trash2,
+    Loader2,
+    Image as ImageIcon,
+    MapPin,
+    Trophy,
+    X,
+    Facebook,
+    Flame,
+    Zap,
+    Globe,
+    CheckCircle2,
+    ChevronDown
 } from "lucide-react";
 import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
+import { CATEGORIAS_FERIA } from "@/lib/feriaAgendaData";
 
-const WA_NUMBER = "593963425323";
+interface ProductInput {
+    id: string;
+    nombre: string;
+    precio: string;
+    descripcion: string;
+    foto_url?: string;
+    foto_file?: File | null;
+    foto_preview?: string | null;
+}
 
 export default function FeriaPageClient() {
     const [step, setStep] = useState<"form" | "success">("form");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showGoogleTip, setShowGoogleTip] = useState(false);
+
+    // Smart Header scroll autohide
+    const [showHeader, setShowHeader] = useState(true);
+    const [lastScrollY, setLastScrollY] = useState(0);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            if (currentScrollY > 80) {
+                if (currentScrollY > lastScrollY) {
+                    setShowHeader(false); // scrolling down
+                } else {
+                    setShowHeader(true); // scrolling up
+                }
+            } else {
+                setShowHeader(true);
+            }
+            setLastScrollY(currentScrollY);
+        };
+
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, [lastScrollY]);
+
+    // Images
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [portadaPreview, setPortadaPreview] = useState<string | null>(null);
+    const [portadaFile, setPortadaFile] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     // Form fields
     const [nombreNegocio, setNombreNegocio] = useState("");
     const [nombreRepresentante, setNombreRepresentante] = useState("");
     const [telefonoNegocio, setTelefonoNegocio] = useState("");
+    const [numeroStand, setNumeroStand] = useState("");
+    const [categoria, setCategoria] = useState("artesanias");
+    const [origen, setOrigen] = useState("Loja");
+    const [aniosTrayectoria, setAniosTrayectoria] = useState("");
+    const [slogan, setSlogan] = useState("");
+    const [descripcionHistoria, setDescripcionHistoria] = useState("");
+    const [materiales, setMateriales] = useState("");
+    const [promocionFeria, setPromocionFeria] = useState("");
+    const [instagramUrl, setInstagramUrl] = useState("");
+    const [facebookUrl, setFacebookUrl] = useState("");
+    const [tiktokUrl, setTiktokUrl] = useState("");
     const [googleReviewsUrl, setGoogleReviewsUrl] = useState("");
+
+    // Products list
+    const [productos, setProductos] = useState<ProductInput[]>([
+        { id: "1", nombre: "", precio: "", descripcion: "" }
+    ]);
 
     // Success data
     const [registeredBusiness, setRegisteredBusiness] = useState<any>(null);
 
     const qrRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const formSectionRef = useRef<HTMLDivElement>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
+    const portadaInputRef = useRef<HTMLInputElement>(null);
+
+    const scrollToForm = () => {
+        formSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
 
     const handleLogoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -61,13 +126,55 @@ export default function FeriaPageClient() {
         setError(null);
     }, []);
 
-    const uploadLogo = async (): Promise<string | null> => {
-        if (!logoFile) return null;
+    const handlePortadaChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 8 * 1024 * 1024) {
+            setError("La foto de portada no debe superar los 8MB.");
+            return;
+        }
+        setPortadaFile(file);
+        const reader = new FileReader();
+        reader.onload = (ev) => setPortadaPreview(ev.target?.result as string);
+        reader.readAsDataURL(file);
+        setError(null);
+    }, []);
+
+    const handleProductImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setProductos((prev) => {
+                const copy = [...prev];
+                copy[index].foto_file = file;
+                copy[index].foto_preview = ev.target?.result as string;
+                return copy;
+            });
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const addProduct = () => {
+        if (productos.length >= 6) return;
+        setProductos((prev) => [
+            ...prev,
+            { id: Date.now().toString(), nombre: "", precio: "", descripcion: "" }
+        ]);
+    };
+
+    const removeProduct = (index: number) => {
+        setProductos((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const uploadImageToBunny = async (file: File): Promise<string> => {
         const formData = new FormData();
-        formData.append("file", logoFile);
-        formData.append("slug", "feria-loja-197");
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
-        if (!res.ok) throw new Error("Error al subir el logo.");
+        formData.append("file", file);
+        const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+        });
+        if (!res.ok) throw new Error("Error al subir imagen");
         const data = await res.json();
         return data.url;
     };
@@ -76,14 +183,38 @@ export default function FeriaPageClient() {
         e.preventDefault();
         setError(null);
 
-        if (!nombreNegocio.trim()) { setError("El nombre del negocio es obligatorio."); return; }
-        if (!nombreRepresentante.trim()) { setError("El nombre del representante es obligatorio."); return; }
+        if (!nombreNegocio.trim()) {
+            setError("El nombre del negocio es obligatorio.");
+            return;
+        }
 
         setIsSubmitting(true);
+
         try {
             let logoUrl: string | null = null;
+            let portadaUrl: string | null = null;
+
             if (logoFile) {
-                logoUrl = await uploadLogo();
+                logoUrl = await uploadImageToBunny(logoFile);
+            }
+            if (portadaFile) {
+                portadaUrl = await uploadImageToBunny(portadaFile);
+            }
+
+            const uploadedProducts: any[] = [];
+            for (const p of productos) {
+                if (p.nombre.trim()) {
+                    let pFotoUrl: string | null = null;
+                    if (p.foto_file) {
+                        pFotoUrl = await uploadImageToBunny(p.foto_file);
+                    }
+                    uploadedProducts.push({
+                        nombre: p.nombre.trim(),
+                        precio: p.precio.trim() || null,
+                        descripcion: p.descripcion.trim() || null,
+                        foto_url: pFotoUrl
+                    });
+                }
             }
 
             const res = await fetch("/api/feria/register", {
@@ -93,7 +224,20 @@ export default function FeriaPageClient() {
                     nombre_negocio: nombreNegocio.trim(),
                     nombre_representante: nombreRepresentante.trim(),
                     telefono_negocio: telefonoNegocio.trim() || null,
+                    numero_stand: numeroStand.trim() || null,
+                    categoria,
+                    origen: origen.trim() || "Loja",
+                    anios_trayectoria: aniosTrayectoria.trim() || null,
+                    slogan: slogan.trim() || null,
+                    descripcion_historia: descripcionHistoria.trim() || null,
+                    materiales_ingredientes: materiales.trim() || null,
+                    promocion_feria: promocionFeria.trim() || null,
+                    productos_json: uploadedProducts.length > 0 ? uploadedProducts : null,
+                    instagram_url: instagramUrl.trim() || null,
+                    facebook_url: facebookUrl.trim() || null,
+                    tiktok_url: tiktokUrl.trim() || null,
                     logo_url: logoUrl,
+                    portada_url: portadaUrl,
                     google_reviews_url: googleReviewsUrl.trim() || null,
                 }),
             });
@@ -111,6 +255,12 @@ export default function FeriaPageClient() {
         }
     };
 
+    const qrTargetUrl = registeredBusiness
+        ? (typeof window !== "undefined"
+            ? `${window.location.origin}/feria-loja/${registeredBusiness.slug}`
+            : `https://activaqr.com/feria-loja/${registeredBusiness.slug}`)
+        : "";
+
     const downloadQR = () => {
         const canvas = qrRef.current?.querySelector("canvas");
         if (!canvas) return;
@@ -123,14 +273,10 @@ export default function FeriaPageClient() {
         const ctx = newCanvas.getContext("2d");
         if (!ctx) return;
 
-        // White background
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, newCanvas.width, newCanvas.height);
-
-        // Draw QR
         ctx.drawImage(canvas, padding, padding);
 
-        // Add text
         ctx.fillStyle = "#0a0a0a";
         ctx.font = "bold 16px Arial";
         ctx.textAlign = "center";
@@ -141,69 +287,119 @@ export default function FeriaPageClient() {
         );
         ctx.font = "12px Arial";
         ctx.fillStyle = "#f66739";
-        ctx.fillText("Feria de Loja #197 • Escanea y vota por WhatsApp", newCanvas.width / 2, canvas.height + padding + 52);
+        ctx.fillText("197ª Feria de Loja • Escanea y vota en 1 clic", newCanvas.width / 2, canvas.height + padding + 52);
 
         const link = document.createElement("a");
-        link.download = `QR-Feria-197-${registeredBusiness?.slug || "stand"}.png`;
+        link.download = `QR-Feria-197-${registeredBusiness?.slug || "negocio"}.png`;
         link.href = newCanvas.toDataURL("image/png");
         link.click();
     };
 
-    const whatsappUrl = registeredBusiness
-        ? `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Feria de Loja #197 - Voto por: ${registeredBusiness.nombre_negocio}`)}`
-        : "";
-
     return (
-        <main className="min-h-screen bg-[#0a0a0a] text-white selection:bg-primary/30 relative overflow-hidden font-sans">
-            {/* Header de navegación */}
-            <nav className="border-b border-white/5 bg-black/40 backdrop-blur-xl sticky top-0 z-50">
+        <main className="min-h-screen bg-[#0a0a0a] text-white selection:bg-primary/30 relative overflow-hidden font-sans pb-24">
+            {/* Header de navegación sticky con autohide */}
+            <nav className={`border-b border-white/10 bg-[#0a0a0a]/80 backdrop-blur-xl sticky top-0 z-50 transition-transform duration-300 ${showHeader ? "translate-y-0" : "-translate-y-full"}`}>
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-                    <Link href="/" className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm font-semibold">
-                        <ArrowLeft size={18} className="text-primary" /> Volver al Inicio
+                    <Link href="/feria-loja" className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors text-xs sm:text-sm font-semibold">
+                        <ArrowLeft size={16} className="text-primary" />
+                        <span>Ver Directorio & Votaciones</span>
                     </Link>
+
                     <div className="flex items-center gap-2">
                         <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-[11px] font-black uppercase tracking-widest text-white/60">Edición 197</span>
+                        <span className="text-[11px] font-black uppercase tracking-widest text-white/60">
+                            197ª Feria de Loja
+                        </span>
                     </div>
                 </div>
             </nav>
 
-            {/* Glowing background */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary/10 rounded-full blur-[140px] pointer-events-none -z-10" />
-            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-[#001549]/30 rounded-full blur-[140px] pointer-events-none -z-10" />
+            {/* Glowing Ambient Lights */}
+            <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/15 rounded-full blur-[160px] pointer-events-none -z-10" />
 
-            <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 md:py-20">
-                {/* Badge & Title */}
-                <div className="text-center mb-10 md:mb-14">
-                    <motion.div
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 px-4 py-2 rounded-full mb-5"
+            {/* ═══════════════════════════════════════════════════ */}
+            {/* ═══ HERO SECTION CENTRADO & LIMPIO ═══ */}
+            {/* ═══════════════════════════════════════════════════ */}
+            <section className="relative pt-12 md:pt-16 pb-12 md:pb-16 px-4 sm:px-6 max-w-3xl mx-auto text-center space-y-6">
+                {/* Event Pill */}
+                <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="inline-flex items-center gap-2 bg-primary/10 border border-primary/30 px-4 py-2 rounded-full shadow-[0_0_20px_rgba(246,103,57,0.2)]"
+                >
+                    <Trophy size={15} className="text-primary" />
+                    <span className="text-xs font-black uppercase tracking-widest text-primary">
+                        Inscripción Oficial de Negocios • 197ª Feria
+                    </span>
+                </motion.div>
+
+                {/* Main Title */}
+                <motion.h1
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 }}
+                    className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight"
+                >
+                    Crea la Página Web de tu Negocio
+                </motion.h1>
+
+                {/* Subtitle Reducido y Conciso */}
+                <motion.p
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-white/70 text-sm sm:text-base max-w-xl mx-auto font-medium leading-relaxed"
+                >
+                    Crea tu página oficial en 1 minuto, descarga tu código QR para tus mesas o mostrador y recibe votos de miles de visitantes.
+                </motion.p>
+
+                {/* Value Pills Grid */}
+                <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 max-w-2xl mx-auto"
+                >
+                    <div className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-center">
+                        <Zap size={15} className="text-primary shrink-0" />
+                        <span className="text-xs font-bold text-white/90">Voto en 1 Clic</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-center">
+                        <QrCode size={15} className="text-sky shrink-0" />
+                        <span className="text-xs font-bold text-white/90">QR Listo en HD</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-center">
+                        <ShoppingBag size={15} className="text-green-400 shrink-0" />
+                        <span className="text-xs font-bold text-white/90">Catálogo con Fotos</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-center">
+                        <Globe size={15} className="text-amber-400 shrink-0" />
+                        <span className="text-xs font-bold text-white/90">Google Reseñas</span>
+                    </div>
+                </motion.div>
+
+                {/* CTA Scroll Button */}
+                <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="pt-2"
+                >
+                    <button
+                        onClick={scrollToForm}
+                        className="inline-flex items-center justify-center gap-2.5 bg-primary hover:bg-primary-dark text-white font-black text-sm px-8 py-3.5 rounded-2xl shadow-xl transition-all hover:scale-105"
+                        style={{ boxShadow: "0 10px 30px rgba(246,103,57,0.4)" }}
                     >
-                        <Trophy size={16} className="text-primary" />
-                        <span className="text-xs font-black uppercase tracking-widest text-primary">Inscripción Oficial</span>
-                    </motion.div>
+                        <span>Comenzar Registro Gratis</span>
+                        <ChevronDown size={18} className="animate-bounce" />
+                    </button>
+                </motion.div>
+            </section>
 
-                    <motion.h1
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="text-3xl md:text-5xl font-black tracking-tighter leading-tight mb-4"
-                    >
-                        Inscribe tu Stand en la <br />
-                        <span className="text-primary italic">197 Feria de Loja</span>
-                    </motion.h1>
-
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="text-white/60 text-base md:text-lg max-w-xl mx-auto font-medium"
-                    >
-                        Llena el formulario con los datos de tu negocio, obtén tu código QR exclusivo y que tus visitantes voten por ti vía WhatsApp.
-                    </motion.p>
-                </div>
-
+            {/* ═══════════════════════════════════════════════════ */}
+            {/* ═══ FORMULARIO DE REGISTRO ENRIQUECIDO ═══ */}
+            {/* ═══════════════════════════════════════════════════ */}
+            <div ref={formSectionRef} className="max-w-3xl mx-auto px-4 sm:px-6">
                 <AnimatePresence mode="wait">
                     {step === "form" ? (
                         <motion.div
@@ -213,181 +409,372 @@ export default function FeriaPageClient() {
                             exit={{ opacity: 0, y: -20 }}
                         >
                             <form onSubmit={handleSubmit} className="space-y-6">
-                                <div className="rounded-3xl p-6 md:p-10" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(24px)" }}>
-                                    
-                                    {/* Logo Upload */}
-                                    <div className="mb-8">
-                                        <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-3">
-                                            <ImageIcon size={14} className="inline mr-2 text-primary" />
-                                            Logo del Negocio o Foto del Stand
-                                        </label>
-                                        <div
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="relative group cursor-pointer rounded-2xl border-2 border-dashed border-white/10 hover:border-primary/40 transition-all duration-300 flex items-center justify-center overflow-hidden bg-white/[0.02]"
-                                            style={{ height: logoPreview ? "180px" : "130px" }}
-                                        >
-                                            {logoPreview ? (
-                                                <>
-                                                    <img src={logoPreview} alt="Logo preview" className="w-full h-full object-contain p-4" />
-                                                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <span className="text-white text-xs font-bold uppercase tracking-wider">Cambiar imagen</span>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="text-center p-6">
-                                                    <Upload size={28} className="mx-auto text-white/30 group-hover:text-primary transition-colors mb-2" />
-                                                    <p className="text-white/60 text-sm font-semibold">Toca para subir tu logo</p>
-                                                    <p className="text-white/30 text-xs mt-1">Formatos PNG, JPG, WEBP (máx. 5MB)</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleLogoChange}
-                                            className="hidden"
-                                        />
+                                {/* ═══ SECCIÓN 1: FOTOS & IDENTIDAD VISUAL ═══ */}
+                                <div className="rounded-3xl p-6 md:p-8 bg-white/[0.03] border border-white/10 space-y-5 backdrop-blur-xl">
+                                    <div className="flex items-center gap-2 border-b border-white/10 pb-4">
+                                        <ImageIcon size={18} className="text-primary" />
+                                        <h3 className="font-black text-lg text-white">1. Fotos & Identidad de tu Negocio</h3>
                                     </div>
 
-                                    {/* Business Name */}
-                                    <div className="mb-5">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        {/* Logo Uploader */}
+                                        <div>
+                                            <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
+                                                Logo o Foto de Perfil
+                                            </label>
+                                            <div
+                                                onClick={() => logoInputRef.current?.click()}
+                                                className="relative group cursor-pointer rounded-2xl border-2 border-dashed border-white/10 hover:border-primary/40 transition-all flex items-center justify-center overflow-hidden bg-white/[0.02]"
+                                                style={{ height: "130px" }}
+                                            >
+                                                {logoPreview ? (
+                                                    <>
+                                                        <img src={logoPreview} alt="Logo" className="w-full h-full object-contain p-3" />
+                                                        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <span className="text-white text-xs font-bold uppercase">Cambiar</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="text-center p-4">
+                                                        <Upload size={22} className="mx-auto text-white/30 group-hover:text-primary mb-1" />
+                                                        <p className="text-white/60 text-xs font-bold">Subir Logo / Avatar</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
+                                        </div>
+
+                                        {/* Portada / Banner Uploader */}
+                                        <div>
+                                            <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
+                                                Foto Panorámica del Local o Stand
+                                            </label>
+                                            <div
+                                                onClick={() => portadaInputRef.current?.click()}
+                                                className="relative group cursor-pointer rounded-2xl border-2 border-dashed border-white/10 hover:border-primary/40 transition-all flex items-center justify-center overflow-hidden bg-white/[0.02]"
+                                                style={{ height: "130px" }}
+                                            >
+                                                {portadaPreview ? (
+                                                    <>
+                                                        <img src={portadaPreview} alt="Portada" className="w-full h-full object-cover" />
+                                                        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <span className="text-white text-xs font-bold uppercase">Cambiar Portada</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="text-center p-4">
+                                                        <ImageIcon size={22} className="mx-auto text-white/30 group-hover:text-primary mb-1" />
+                                                        <p className="text-white/60 text-xs font-bold">Foto de Portada / Banner</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <input ref={portadaInputRef} type="file" accept="image/*" onChange={handlePortadaChange} className="hidden" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ═══ SECCIÓN 2: DATOS DEL NEGOCIO ═══ */}
+                                <div className="rounded-3xl p-6 md:p-8 bg-white/[0.03] border border-white/10 space-y-5 backdrop-blur-xl">
+                                    <div className="flex items-center gap-2 border-b border-white/10 pb-4">
+                                        <Store size={18} className="text-primary" />
+                                        <h3 className="font-black text-lg text-white">2. Datos del Negocio</h3>
+                                    </div>
+
+                                    <div>
                                         <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
-                                            <Store size={14} className="inline mr-2 text-primary" />
-                                            Nombre del Negocio / Stand <span className="text-primary">*</span>
+                                            Nombre del Negocio / Marca <span className="text-primary">*</span>
                                         </label>
                                         <input
                                             type="text"
                                             value={nombreNegocio}
                                             onChange={(e) => setNombreNegocio(e.target.value)}
-                                            placeholder="Ej: Artesanías El Lojano"
-                                            className="w-full px-5 py-4 rounded-xl text-white text-base font-medium placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                                            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+                                            placeholder="Ej: Café Don Pedro Lojano"
+                                            className="w-full px-4 py-3 rounded-xl text-white text-sm bg-white/[0.05] border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50"
                                             required
                                         />
                                     </div>
 
-                                    {/* Representative Name */}
-                                    <div className="mb-5">
+                                    <div>
                                         <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
-                                            <User size={14} className="inline mr-2 text-primary" />
-                                            Nombre del Representante o Dueño <span className="text-primary">*</span>
+                                            Slogan o Frase de Impacto
                                         </label>
                                         <input
                                             type="text"
-                                            value={nombreRepresentante}
-                                            onChange={(e) => setNombreRepresentante(e.target.value)}
-                                            placeholder="Ej: Carmen Valdivieso"
-                                            className="w-full px-5 py-4 rounded-xl text-white text-base font-medium placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                                            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
-                                            required
+                                            value={slogan}
+                                            onChange={(e) => setSlogan(e.target.value)}
+                                            placeholder="Ej: El auténtico sabor del café de especialidad de Vilcabamba"
+                                            className="w-full px-4 py-3 rounded-xl text-white text-sm bg-white/[0.05] border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         />
                                     </div>
 
-                                    {/* Phone */}
-                                    <div className="mb-5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
+                                                <MapPin size={13} className="inline mr-1 text-primary" />
+                                                N° de Stand o Ubicación (Opcional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={numeroStand}
+                                                onChange={(e) => setNumeroStand(e.target.value)}
+                                                placeholder="Ej: Stand 42, Pabellón A"
+                                                className="w-full px-4 py-3 rounded-xl text-white text-sm bg-white/[0.05] border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
+                                                Categoría
+                                            </label>
+                                            <select
+                                                value={categoria}
+                                                onChange={(e) => setCategoria(e.target.value)}
+                                                className="w-full px-4 py-3 rounded-xl text-white text-sm bg-[#15151f] border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            >
+                                                {CATEGORIAS_FERIA.map((c) => (
+                                                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
+                                                Nombre del Emprendedor / Representante
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={nombreRepresentante}
+                                                onChange={(e) => setNombreRepresentante(e.target.value)}
+                                                placeholder="Ej: Pedro Valdivieso"
+                                                className="w-full px-4 py-3 rounded-xl text-white text-sm bg-white/[0.05] border border-white/10"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
+                                                WhatsApp de Contacto / Ventas
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                value={telefonoNegocio}
+                                                onChange={(e) => setTelefonoNegocio(e.target.value)}
+                                                placeholder="Ej: 0991234567"
+                                                className="w-full px-4 py-3 rounded-xl text-white text-sm bg-white/[0.05] border border-white/10"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ═══ SECCIÓN 3: HISTORIA & OFICIO ═══ */}
+                                <div className="rounded-3xl p-6 md:p-8 bg-white/[0.03] border border-white/10 space-y-4 backdrop-blur-xl">
+                                    <div className="flex items-center gap-2 border-b border-white/10 pb-4">
+                                        <Sparkles size={18} className="text-primary" />
+                                        <h3 className="font-black text-lg text-white">3. Historia & Oficio</h3>
+                                    </div>
+
+                                    <div>
                                         <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
-                                            <Phone size={14} className="inline mr-2 text-primary" />
-                                            WhatsApp de Contacto del Negocio
+                                            Historia de la Marca & Elaboración (Opcional)
+                                        </label>
+                                        <textarea
+                                            value={descripcionHistoria}
+                                            onChange={(e) => setDescripcionHistoria(e.target.value)}
+                                            rows={3}
+                                            placeholder="Describe tu oficio: cómo nació tu emprendimiento y qué experiencia ofreces..."
+                                            className="w-full px-4 py-3 rounded-xl text-white text-sm bg-white/[0.05] border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* ═══ SECCIÓN 4: MINI CATÁLOGO DE PRODUCTOS ═══ */}
+                                <div className="rounded-3xl p-6 md:p-8 bg-white/[0.03] border border-white/10 space-y-5 backdrop-blur-xl">
+                                    <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                                        <div className="flex items-center gap-2">
+                                            <ShoppingBag size={18} className="text-primary" />
+                                            <h3 className="font-black text-lg text-white">4. Productos Destacados (Top 3)</h3>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={addProduct}
+                                            disabled={productos.length >= 3}
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary text-xs font-bold transition-all disabled:opacity-30"
+                                        >
+                                            <Plus size={14} /> Añadir
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {productos.map((prod, idx) => (
+                                            <div key={prod.id} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 relative flex flex-col gap-3">
+                                                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                                                    <label className="w-16 h-16 rounded-xl bg-white/5 border border-dashed border-white/15 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden relative group">
+                                                        {prod.foto_preview ? (
+                                                            <img src={prod.foto_preview} alt="Prod" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="text-center p-1">
+                                                                <Upload size={14} className="mx-auto text-white/30 mb-0.5" />
+                                                                <span className="text-[10px] text-white/40 block">Foto</span>
+                                                            </div>
+                                                        )}
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={(e) => handleProductImageChange(idx, e)}
+                                                            className="hidden"
+                                                        />
+                                                    </label>
+
+                                                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                                                        <input
+                                                            type="text"
+                                                            value={prod.nombre}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                setProductos((prev) => { const copy = [...prev]; copy[idx].nombre = val; return copy; });
+                                                            }}
+                                                            placeholder="Nombre del producto..."
+                                                            className="sm:col-span-2 px-3.5 py-2 rounded-xl text-white text-xs bg-white/5 border border-white/10"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={prod.precio}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                setProductos((prev) => { const copy = [...prev]; copy[idx].precio = val; return copy; });
+                                                            }}
+                                                            placeholder="Precio (Ej: 12.50)"
+                                                            className="px-3.5 py-2 rounded-xl text-white text-xs bg-white/5 border border-white/10"
+                                                        />
+                                                    </div>
+
+                                                    {productos.length > 1 && (
+                                                        <button type="button" onClick={() => removeProduct(idx)} className="p-2 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors self-start sm:self-center">
+                                                            <Trash2 size={15} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    value={prod.descripcion}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setProductos((prev) => { const copy = [...prev]; copy[idx].descripcion = val; return copy; });
+                                                    }}
+                                                    placeholder="Descripción breve del producto..."
+                                                    className="w-full px-3.5 py-2 rounded-xl text-white text-xs bg-white/5 border border-white/10"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* ═══ SECCIÓN 5: PROMO & REDES ═══ */}
+                                <div className="rounded-3xl p-6 md:p-8 bg-white/[0.03] border border-white/10 space-y-4 backdrop-blur-xl">
+                                    <div className="flex items-center gap-2 border-b border-white/10 pb-4">
+                                        <Gift size={18} className="text-primary" />
+                                        <h3 className="font-black text-lg text-white">5. Promoción & Redes Sociales</h3>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
+                                            Promoción o Descuento de Feria (Opcional)
                                         </label>
                                         <input
-                                            type="tel"
-                                            value={telefonoNegocio}
-                                            onChange={(e) => setTelefonoNegocio(e.target.value)}
-                                            placeholder="Ej: 0963425323"
-                                            className="w-full px-5 py-4 rounded-xl text-white text-base font-medium placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                                            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+                                            type="text"
+                                            value={promocionFeria}
+                                            onChange={(e) => setPromocionFeria(e.target.value)}
+                                            placeholder="Ej: 15% de descuento mencionando ActivaQR en el stand"
+                                            className="w-full px-4 py-3 rounded-xl text-white text-sm bg-white/[0.05] border border-white/10"
                                         />
                                     </div>
 
-                                    {/* Google Reviews URL */}
-                                    <div className="mb-6">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <label className="flex items-center gap-2 text-white/80 text-xs font-bold uppercase tracking-widest">
-                                                <Link2 size={14} className="text-primary" />
-                                                Enlace para Calificar en Google Reseñas
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
+                                                <Instagram size={13} className="inline mr-1 text-primary" />
+                                                Instagram
                                             </label>
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowGoogleTip(!showGoogleTip)}
-                                                className="text-primary hover:underline text-xs font-bold flex items-center gap-1"
-                                            >
-                                                <HelpCircle size={14} /> ¿Cómo obtenerlo?
-                                            </button>
+                                            <input
+                                                type="text"
+                                                value={instagramUrl}
+                                                onChange={(e) => setInstagramUrl(e.target.value)}
+                                                placeholder="https://instagram.com/tu-marca"
+                                                className="w-full px-4 py-3 rounded-xl text-white text-sm bg-white/[0.05] border border-white/10"
+                                            />
                                         </div>
 
-                                        <AnimatePresence>
-                                            {showGoogleTip && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: "auto" }}
-                                                    exit={{ opacity: 0, height: 0 }}
-                                                    className="mb-3 overflow-hidden"
-                                                >
-                                                    <div className="p-4 rounded-2xl text-sm" style={{ background: "rgba(246,103,57,0.08)", border: "1px solid rgba(246,103,57,0.2)" }}>
-                                                        <div className="flex items-start gap-2.5">
-                                                            <Sparkles size={18} className="text-primary mt-0.5 shrink-0" />
-                                                            <div>
-                                                                <p className="text-white font-bold mb-2">💡 ¿Cómo sacar el link de Google Reseñas?</p>
-                                                                <ol className="text-white/70 space-y-1.5 list-decimal list-inside text-xs leading-relaxed">
-                                                                    <li>Abre <strong className="text-white">Google Maps</strong> y busca tu negocio.</li>
-                                                                    <li>Toca en <strong className="text-white">"Solicitar reseñas"</strong> o el botón de compartir enlace de opiniones.</li>
-                                                                    <li>Pega el enlace en este campo.</li>
-                                                                </ol>
-                                                                <div className="mt-3 p-2.5 rounded-xl bg-black/40 border border-white/5">
-                                                                    <p className="text-primary text-xs font-semibold">
-                                                                        🤖 También puedes pedirle a ChatGPT: <br />
-                                                                        <span className="text-white/80 italic">"¿Cómo obtener el link directo de Google Reseñas para mi negocio [Nombre de tu negocio]?"</span>
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
+                                        <div>
+                                            <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
+                                                <Facebook size={13} className="inline mr-1 text-primary" />
+                                                Facebook
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={facebookUrl}
+                                                onChange={(e) => setFacebookUrl(e.target.value)}
+                                                placeholder="https://facebook.com/tu-pagina"
+                                                className="w-full px-4 py-3 rounded-xl text-white text-sm bg-white/[0.05] border border-white/10"
+                                            />
+                                        </div>
 
-                                        <input
-                                            type="url"
-                                            value={googleReviewsUrl}
-                                            onChange={(e) => setGoogleReviewsUrl(e.target.value)}
-                                            placeholder="https://g.page/r/tu-negocio/review"
-                                            className="w-full px-5 py-4 rounded-xl text-white text-base font-medium placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                                            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
-                                        />
-                                        <p className="text-white/30 text-xs mt-2">
-                                            Opcional. Si lo colocas, el bot le enviará tu enlace de reseñas a cada persona que vote por ti.
-                                        </p>
+                                        <div>
+                                            <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
+                                                <span className="text-[11px] font-black mr-1">🎵</span>
+                                                TikTok
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={tiktokUrl}
+                                                onChange={(e) => setTiktokUrl(e.target.value)}
+                                                placeholder="https://tiktok.com/@tu-usuario"
+                                                className="w-full px-4 py-3 rounded-xl text-white text-sm bg-white/[0.05] border border-white/10"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-white/80 text-xs font-bold uppercase tracking-widest mb-2">
+                                                <Link2 size={13} className="inline mr-1 text-primary" />
+                                                Link de Google Reseñas
+                                            </label>
+                                            <input
+                                                type="url"
+                                                value={googleReviewsUrl}
+                                                onChange={(e) => setGoogleReviewsUrl(e.target.value)}
+                                                placeholder="https://g.page/r/..."
+                                                className="w-full px-4 py-3 rounded-xl text-white text-sm bg-white/[0.05] border border-white/10"
+                                            />
+                                        </div>
                                     </div>
-
-                                    {/* Error Message */}
-                                    {error && (
-                                        <div className="mb-4 p-4 rounded-xl text-sm font-semibold flex items-center gap-2 text-red-400 bg-red-500/10 border border-red-500/20">
-                                            <X size={16} /> {error}
-                                        </div>
-                                    )}
-
-                                    {/* Submit Button */}
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="w-full bg-primary hover:bg-primary-dark text-white font-black text-lg py-5 rounded-2xl shadow-xl transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01]"
-                                        style={{ boxShadow: "0 12px 40px rgba(246,103,57,0.35)" }}
-                                    >
-                                        {isSubmitting ? (
-                                            <>
-                                                <Loader2 size={22} className="animate-spin" />
-                                                Generando tu QR Oficial...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <QrCode size={22} />
-                                                Inscribir Stand y Descargar QR
-                                                <ArrowRight size={20} />
-                                            </>
-                                        )}
-                                    </button>
                                 </div>
+
+                                {error && (
+                                    <div className="p-4 rounded-xl text-xs font-semibold flex items-center gap-2 text-red-400 bg-red-500/10 border border-red-500/20">
+                                        <X size={16} /> {error}
+                                    </div>
+                                )}
+
+                                {/* Submit Button */}
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="w-full bg-primary hover:bg-primary-dark text-white font-black text-base md:text-lg py-4.5 rounded-2xl shadow-2xl transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 hover:scale-[1.01]"
+                                    style={{ boxShadow: "0 12px 40px rgba(246,103,57,0.45)" }}
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 size={22} className="animate-spin" />
+                                            Creando Landing Page & Generando QR...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <QrCode size={22} />
+                                            Crear Landing Oficial y Descargar QR
+                                            <ArrowRight size={20} />
+                                        </>
+                                    )}
+                                </button>
                             </form>
                         </motion.div>
                     ) : (
@@ -395,28 +782,27 @@ export default function FeriaPageClient() {
                             key="success"
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="text-center"
+                            className="text-center py-6"
                         >
-                            <div className="rounded-3xl p-8 md:p-12" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(24px)" }}>
-                                
+                            <div className="rounded-3xl p-8 md:p-12 bg-white/[0.03] border border-white/10 backdrop-blur-2xl">
                                 <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center bg-green-500/10 border-2 border-green-500/30">
                                     <CheckCircle size={44} className="text-green-400" />
                                 </div>
 
                                 <h2 className="text-2xl md:text-4xl font-black text-white mb-2">
-                                    ¡Stand Registrado con Éxito!
+                                    ¡Página Web Creada con Éxito!
                                 </h2>
                                 <p className="text-primary font-bold text-lg mb-1">
                                     {registeredBusiness?.nombre_negocio}
                                 </p>
                                 <p className="text-white/50 text-sm max-w-md mx-auto mb-8">
-                                    Coloca este código QR en tu stand o mesas. Cada escaneo enviará automáticamente el voto a WhatsApp.
+                                    Tu QR oficial apunta a tu página web. Al escanearlo, tus clientes podrán ver tus productos, fotos y votar en 1 clic.
                                 </p>
 
                                 {/* QR Card */}
                                 <div className="inline-block p-6 rounded-3xl bg-white shadow-2xl mb-8" ref={qrRef}>
                                     <QRCodeCanvas
-                                        value={whatsappUrl}
+                                        value={qrTargetUrl}
                                         size={240}
                                         level="H"
                                         includeMargin={false}
@@ -428,7 +814,7 @@ export default function FeriaPageClient() {
                                             {registeredBusiness?.nombre_negocio}
                                         </p>
                                         <p className="text-primary font-bold text-[10px] uppercase tracking-widest mt-0.5">
-                                            Feria de Loja 197
+                                            197ª Feria de Loja • Vota en 1 Clic
                                         </p>
                                     </div>
                                 </div>
@@ -437,21 +823,19 @@ export default function FeriaPageClient() {
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto mb-8">
                                     <button
                                         onClick={downloadQR}
-                                        className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-primary hover:bg-primary-dark text-white font-black text-base px-8 py-4 rounded-2xl shadow-xl transition-all hover:scale-[1.02]"
+                                        className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-primary hover:bg-primary-dark text-white font-black text-base px-8 py-4 rounded-2xl shadow-xl transition-all hover:scale-105"
                                         style={{ boxShadow: "0 10px 40px rgba(246,103,57,0.35)" }}
                                     >
                                         <Download size={20} />
                                         Descargar QR para Imprimir
                                     </button>
 
-                                    <a
-                                        href={whatsappUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    <Link
+                                        href={`/feria-loja/${registeredBusiness?.slug}`}
                                         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 text-white font-bold text-base px-6 py-4 rounded-2xl border border-white/10 transition-colors"
                                     >
-                                        <Share2 size={18} /> Probar Voto
-                                    </a>
+                                        <ExternalLink size={18} /> Ver mi Página Web
+                                    </Link>
                                 </div>
 
                                 <button
@@ -460,9 +844,17 @@ export default function FeriaPageClient() {
                                         setNombreNegocio("");
                                         setNombreRepresentante("");
                                         setTelefonoNegocio("");
+                                        setNumeroStand("");
+                                        setSlogan("");
+                                        setDescripcionHistoria("");
+                                        setMateriales("");
+                                        setPromocionFeria("");
                                         setGoogleReviewsUrl("");
                                         setLogoPreview(null);
                                         setLogoFile(null);
+                                        setPortadaPreview(null);
+                                        setPortadaFile(null);
+                                        setProductos([{ id: "1", nombre: "", precio: "", descripcion: "" }]);
                                         setRegisteredBusiness(null);
                                         setError(null);
                                     }}

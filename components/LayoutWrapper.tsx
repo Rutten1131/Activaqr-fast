@@ -20,8 +20,11 @@ const HIDDEN_LAYOUT_ROUTES = [
     '/card',
     '/catalog',
     '/menu',
-    '/solidario-nestor'
+    '/solidario-nestor',
+    '/feria',
+    '/feria-loja'
 ];
+
 
 function isHiddenRoute(pathname: string | null): boolean {
     return HIDDEN_LAYOUT_ROUTES.some(r => pathname?.startsWith(r));
