@@ -3,8 +3,19 @@ import pool from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+// ═══ CIERRE AUTOMÁTICO DE VOTACIÓN ═══
+const CIERRE_VOTACION = new Date('2025-09-14T00:00:00-05:00');
+
 export async function POST(req: NextRequest) {
     try {
+        // ═══ VERIFICAR SI LA VOTACIÓN SIGUE ABIERTA ═══
+        if (new Date() >= CIERRE_VOTACION) {
+            return NextResponse.json({
+                error: 'La votación de la 197ª Feria de Loja ha finalizado. ¡Gracias por participar!',
+                votacion_cerrada: true
+            }, { status: 403 });
+        }
+
         const body = await req.json();
         const { negocio_id, negocio_nombre, telefono_votante, nombre_votante, mensaje_recibido } = body;
 

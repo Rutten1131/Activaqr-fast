@@ -33,6 +33,7 @@ import {
 import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
 import { CATEGORIAS_FERIA } from "@/lib/feriaAgendaData";
+import { compressImage } from "@/lib/imageCompress";
 
 interface ProductInput {
     id: string;
@@ -112,47 +113,54 @@ export default function FeriaPageClient() {
         formSectionRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    const handleLogoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            setError("El logo no debe superar los 5MB.");
-            return;
+    const handleLogoChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawFile = e.target.files?.[0];
+        if (!rawFile) return;
+        try {
+            const file = await compressImage(rawFile, 1200, 0.85);
+            setLogoFile(file);
+            const reader = new FileReader();
+            reader.onload = (ev) => setLogoPreview(ev.target?.result as string);
+            reader.readAsDataURL(file);
+            setError(null);
+        } catch (err) {
+            console.error("Error procesando logo:", err);
         }
-        setLogoFile(file);
-        const reader = new FileReader();
-        reader.onload = (ev) => setLogoPreview(ev.target?.result as string);
-        reader.readAsDataURL(file);
-        setError(null);
     }, []);
 
-    const handlePortadaChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (file.size > 8 * 1024 * 1024) {
-            setError("La foto de portada no debe superar los 8MB.");
-            return;
+    const handlePortadaChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawFile = e.target.files?.[0];
+        if (!rawFile) return;
+        try {
+            const file = await compressImage(rawFile, 1400, 0.80);
+            setPortadaFile(file);
+            const reader = new FileReader();
+            reader.onload = (ev) => setPortadaPreview(ev.target?.result as string);
+            reader.readAsDataURL(file);
+            setError(null);
+        } catch (err) {
+            console.error("Error procesando portada:", err);
         }
-        setPortadaFile(file);
-        const reader = new FileReader();
-        reader.onload = (ev) => setPortadaPreview(ev.target?.result as string);
-        reader.readAsDataURL(file);
-        setError(null);
     }, []);
 
-    const handleProductImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            setProductos((prev) => {
-                const copy = [...prev];
-                copy[index].foto_file = file;
-                copy[index].foto_preview = ev.target?.result as string;
-                return copy;
-            });
-        };
-        reader.readAsDataURL(file);
+    const handleProductImageChange = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawFile = e.target.files?.[0];
+        if (!rawFile) return;
+        try {
+            const file = await compressImage(rawFile, 1200, 0.80);
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                setProductos((prev) => {
+                    const copy = [...prev];
+                    copy[index].foto_file = file;
+                    copy[index].foto_preview = ev.target?.result as string;
+                    return copy;
+                });
+            };
+            reader.readAsDataURL(file);
+        } catch (err) {
+            console.error("Error procesando imagen de producto:", err);
+        }
     };
 
     const addProduct = () => {
@@ -168,8 +176,11 @@ export default function FeriaPageClient() {
     };
 
     const uploadImageToBunny = async (file: File): Promise<string> => {
+        // Asegurar compresión a WebP antes del envío
+        const compressed = await compressImage(file, 1400, 0.80);
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", compressed);
+        formData.append("slug", "feria-loja-197");
         const res = await fetch("/api/upload", {
             method: "POST",
             body: formData,

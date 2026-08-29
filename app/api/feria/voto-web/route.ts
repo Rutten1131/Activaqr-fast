@@ -6,6 +6,13 @@ export const dynamic = 'force-dynamic';
 
 const WA_NUMBER = '593963425323';
 
+// ═══ CIERRE AUTOMÁTICO DE VOTACIÓN ═══
+// La votación cierra a la medianoche del 14 de septiembre de 2025 (hora Ecuador)
+const CIERRE_VOTACION = new Date('2025-09-14T00:00:00-05:00');
+
+// ═══ PROTECCIÓN ANTIFRAUDE: MÁXIMO DE VOTOS POR IP EN VENTANA DE TIEMPO ═══
+const MAX_VOTOS_POR_IP_POR_HORA = 15; // Si una IP vota más de 15 veces en 1 hora → sospechoso
+
 function getIp(req: NextRequest): string {
     const forwarded = req.headers.get('x-forwarded-for');
     if (forwarded) return forwarded.split(',')[0].trim();
@@ -14,6 +21,14 @@ function getIp(req: NextRequest): string {
 
 export async function POST(req: NextRequest) {
     try {
+        // ═══ VERIFICAR SI LA VOTACIÓN SIGUE ABIERTA ═══
+        if (new Date() >= CIERRE_VOTACION) {
+            return NextResponse.json({
+                error: 'La votación de la 197ª Feria de Loja ha finalizado. ¡Gracias por participar!',
+                votacion_cerrada: true
+            }, { status: 403 });
+        }
+
         const body = await req.json();
         const { expositor_id, slug, device_fingerprint } = body;
 
@@ -38,6 +53,20 @@ export async function POST(req: NextRequest) {
         const ip = getIp(req);
         const ipHash = crypto.createHash('sha256').update(ip).digest('hex').substring(0, 32);
         const deviceHash = device_fingerprint ? String(device_fingerprint).substring(0, 64) : ipHash;
+
+        // ═══ ANTIFRAUDE: Detectar ráfagas sospechosas desde la misma IP ═══
+        const [rateCheck]: any = await pool.query(
+            `SELECT COUNT(*) as votos_recientes FROM feria_votos
+             WHERE ip_hash = ? AND created_at >= NOW() - INTERVAL 1 HOUR`,
+            [ipHash]
+        );
+        if (rateCheck[0]?.votos_recientes >= MAX_VOTOS_POR_IP_POR_HORA) {
+            console.warn(`[ANTIFRAUDE] IP ${ipHash} superó ${MAX_VOTOS_POR_IP_POR_HORA} votos/hora`);
+            return NextResponse.json({
+                error: 'Has alcanzado el límite de votos por hora. Intenta más tarde.',
+                rate_limited: true
+            }, { status: 429 });
+        }
 
         // Verificar si ya votó por ESTE expositor desde este dispositivo en las últimas 24 horas
         const [existing]: any = await pool.query(
@@ -86,7 +115,7 @@ export async function POST(req: NextRequest) {
             token_wa: tokenWa,
             whatsapp_verify_url: waVerifyUrl,
             message: alreadyVoted
-                ? `Ya habías votado por ${expositor.nombre_negocio}. ¡Puedes verificar tu voto para que valga el triple!`
+                ? `Ya habías votado por ${expositor.nombre_negocio}. ¡Puedes verificar tu voto en WhatsApp!`
                 : `🎉 ¡Tu voto por ${expositor.nombre_negocio} ha sido registrado!`
         });
 

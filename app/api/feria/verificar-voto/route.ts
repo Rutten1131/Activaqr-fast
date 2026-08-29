@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: `🎉 ¡Voto verificado con éxito! Ahora tu voto por ${voto.nombre_negocio} vale el triple.`,
+            message: `🎉 ¡Voto verificado con éxito! Tu voto por ${voto.nombre_negocio} ha sido confirmado.`,
             negocio: {
                 id: voto.negocio_id,
                 nombre_negocio: voto.nombre_negocio,
