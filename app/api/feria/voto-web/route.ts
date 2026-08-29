@@ -7,8 +7,8 @@ export const dynamic = 'force-dynamic';
 const WA_NUMBER = '593963425323';
 
 // ═══ CIERRE AUTOMÁTICO DE VOTACIÓN ═══
-// La votación cierra a la medianoche del 14 de septiembre de 2025 (hora Ecuador)
-const CIERRE_VOTACION = new Date('2025-09-14T00:00:00-05:00');
+// La votación cierra a la medianoche del 14 de septiembre de 2026 (hora Ecuador)
+const CIERRE_VOTACION = new Date('2026-09-14T00:00:00-05:00');
 
 // ═══ PROTECCIÓN ANTIFRAUDE: MÁXIMO DE VOTOS POR IP EN VENTANA DE TIEMPO ═══
 const MAX_VOTOS_POR_IP_POR_HORA = 15; // Si una IP vota más de 15 veces en 1 hora → sospechoso

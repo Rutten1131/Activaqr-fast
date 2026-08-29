@@ -268,69 +268,32 @@ export default function FichaClient({ expositor, related, productos }: FichaClie
             </section>
 
             <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 relative z-20 space-y-8">
-                {/* ═══ MÓDULO DE VOTACIÓN 1-CLIC GAMIFICADO ═══ */}
+                {/* ═══ MÓDULO DE VOTACIÓN DIRECTA EN WHATSAPP ═══ */}
                 <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-b from-white/[0.08] to-white/[0.03] border border-primary/40 backdrop-blur-2xl shadow-2xl shadow-primary/10">
-                    <AnimatePresence mode="wait">
-                        {!voted ? (
-                            <motion.div
-                                key="vote-call"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left"
-                            >
-                                <div>
-                                    <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary mb-1">
-                                        <Sparkles size={14} /> Votación Oficial de la Feria
-                                    </div>
-                                    <h3 className="text-xl sm:text-2xl font-black text-white">
-                                        ¿Te gusta el trabajo de {expositor.nombre_negocio}?
-                                    </h3>
-                                    <p className="text-white/60 text-xs sm:text-sm mt-0.5 max-w-md">
-                                        Vota gratis en 1 clic y ayúdalos a ganar el reconocimiento al negocio favorito del público.
-                                    </p>
-                                </div>
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+                        <div>
+                            <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary mb-1">
+                                <Sparkles size={14} /> Votación Oficial de la Feria
+                            </div>
+                            <h3 className="text-xl sm:text-2xl font-black text-white">
+                                ¿Te gusta el trabajo de {expositor.nombre_negocio}?
+                            </h3>
+                            <p className="text-white/60 text-xs sm:text-sm mt-0.5 max-w-md">
+                                Vota gratis en 1 clic y ayúdalos a ganar el reconocimiento al negocio favorito del público.
+                            </p>
+                        </div>
 
-                                <button
-                                    onClick={handleVote}
-                                    disabled={isVoting}
-                                    className="w-full sm:w-auto px-9 py-4 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-base transition-all shadow-xl flex items-center justify-center gap-2.5 hover:scale-105 active:scale-95 shrink-0"
-                                    style={{ boxShadow: "0 10px 30px rgba(246,103,57,0.4)" }}
-                                >
-                                    <Heart size={20} className="fill-white animate-bounce" />
-                                    <span>VOTAR EN 1 CLIC</span>
-                                </button>
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="vote-success"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="text-center py-2"
-                            >
-                                <div className="inline-flex items-center gap-2 text-green-400 font-black text-lg sm:text-xl mb-2">
-                                    <CheckCircle2 size={24} /> ¡Tu voto por {expositor.nombre_negocio} fue registrado!
-                                </div>
-                                <p className="text-white/80 text-sm max-w-lg mx-auto mb-6">
-                                    ¿Deseas <strong>verificar tu voto</strong> y recibir la tarjeta de presentación de este negocio en WhatsApp?
-                                </p>
-
-                                {waVerifyUrl && (
-                                    <a
-                                        href={waVerifyUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2.5 bg-green-500 hover:bg-green-600 text-white font-black text-sm sm:text-base px-8 py-4 rounded-2xl shadow-xl transition-all hover:scale-105"
-                                        style={{ boxShadow: "0 10px 30px rgba(34,197,94,0.35)" }}
-                                    >
-                                        <MessageCircle size={18} />
-                                        <span>Verificar mi Voto en WhatsApp</span>
-                                        <ArrowRight size={18} />
-                                    </a>
-                                )}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                        <a
+                            href={`https://wa.me/593963425323?text=${encodeURIComponent(`🗳️ Voto Feria 197 por: ${expositor.nombre_negocio} [ID: ${expositor.id}] ⭐`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full sm:w-auto px-9 py-4 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-base transition-all shadow-xl flex items-center justify-center gap-2.5 hover:scale-105 active:scale-95 shrink-0"
+                            style={{ boxShadow: "0 10px 30px rgba(246,103,57,0.4)" }}
+                        >
+                            <Heart size={20} className="fill-white animate-bounce" />
+                            <span>VOTAR EN 1 CLIC</span>
+                        </a>
+                    </div>
                 </div>
 
                 {/* ═══ BANNER DE PROMOCIÓN EXCLUSIVA DE FERIA (Si existe) ═══ */}
