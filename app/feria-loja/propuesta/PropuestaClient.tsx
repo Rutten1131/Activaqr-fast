@@ -24,23 +24,32 @@ import {
     MessageSquare,
     Building2,
     Users,
-    Vote
+    Vote,
+    ChevronDown
 } from 'lucide-react';
 
 export default function PropuestaClient() {
     const [copied, setCopied] = useState(false);
 
-    const handleCopy = () => {
+    const handleShare = async () => {
         if (typeof window !== 'undefined') {
-            navigator.clipboard.writeText(window.location.href);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2500);
-        }
-    };
+            const shareData = {
+                title: 'Propuesta de Colaboración — 197.ª Feria de Loja | ActivaQR',
+                text: 'Propuesta oficial de concurso para artesanos con votación digital y directorio de expositores para la 197.ª Feria de Loja.',
+                url: window.location.href,
+            };
 
-    const handlePrint = () => {
-        if (typeof window !== 'undefined') {
-            window.print();
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                } catch (err) {
+                    // Compartir cancelado por el usuario
+                }
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2500);
+            }
         }
     };
 
@@ -59,54 +68,78 @@ export default function PropuestaClient() {
 
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={handleCopy}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold hover:bg-white/10 transition-all text-white/90"
+                            onClick={handleShare}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-[#ff7b52] text-white text-xs font-bold transition-all shadow-md shadow-primary/20 hover:scale-105"
                         >
-                            {copied ? <Check size={14} className="text-emerald-400" /> : <Share2 size={14} />}
-                            <span>{copied ? '¡Enlace Copiado!' : 'Compartir'}</span>
-                        </button>
-                        <button
-                            onClick={handlePrint}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary hover:bg-[#ff7b52] text-white text-xs font-bold transition-all shadow-md shadow-primary/20"
-                        >
-                            <Printer size={14} />
-                            <span className="hidden sm:inline">Imprimir / PDF</span>
+                            {copied ? <Check size={14} className="text-white" /> : <Share2 size={14} />}
+                            <span>{copied ? '¡Enlace Copiado!' : 'Compartir Propuesta'}</span>
                         </button>
                     </div>
                 </div>
             </div>
 
+            {/* ═══ HERO BANNER FULLSCREEN CON FOTO REAL DE LA FERIA ═══ */}
+            <section className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
+                {/* Real Feria de Loja Photo Background */}
+                <div className="absolute inset-0 z-0">
+                    <img
+                        src="/images/feria-loja-aisle.jpg"
+                        alt="197ª Feria de Loja"
+                        className="w-full h-full object-cover object-center scale-105 filter brightness-[0.55]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#050B1C] via-transparent to-black/20" />
+                </div>
+
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 text-center space-y-6">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs font-black uppercase tracking-widest backdrop-blur-md shadow-lg">
+                        <Trophy size={14} className="text-orange-400" />
+                        <span>197.ª Feria de Loja • Iniciativa Oficial</span>
+                    </div>
+
+                    <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.1] text-white drop-shadow-2xl">
+                        Propuesta de Colaboración<br className="hidden sm:block" /> e Innovación Digital
+                    </h1>
+                    
+                    <p className="text-white/90 text-sm sm:text-lg max-w-2xl mx-auto font-medium drop-shadow-lg">
+                        Concurso para artesanos con votación digital, directorio interactivo y <strong className="text-primary font-black">$600 USD en premios tecnológicos</strong> aportados por ActivaQR.
+                    </p>
+
+                    <div className="pt-4">
+                        <a
+                            href="#propuesta"
+                            className="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-primary hover:bg-[#ff7b52] text-white font-black text-sm uppercase tracking-widest transition-all shadow-[0_10px_30px_rgba(246,103,57,0.4)] hover:scale-105 hover:shadow-[0_15px_40px_rgba(246,103,57,0.5)]"
+                        >
+                            Ver Propuesta Completa
+                            <ChevronDown size={18} />
+                        </a>
+                    </div>
+                </div>
+
+                {/* Bottom fade into content */}
+                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#050B1C] to-transparent z-10 pointer-events-none" />
+            </section>
+
             {/* Document Container */}
-            <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
+            <main id="propuesta" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 scroll-mt-4">
                 {/* Official Letter Header */}
                 <header className="bg-gradient-to-b from-[#0e1938] to-[#081026] border border-white/10 rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden mb-8">
                     <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
                     
                     {/* Header Badges */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b border-white/10">
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-6 border-b border-white/10">
                         <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/40 flex items-center justify-center text-primary font-black shadow-inner">
                                 <QrCode size={26} />
                             </div>
                             <div>
-                                <span className="text-xs font-black uppercase tracking-widest text-primary">Documento Oficial</span>
-                                <h2 className="text-lg font-black tracking-tight text-white">ActivaQR • Innovación Digital</h2>
+                                <span className="text-xs font-black uppercase tracking-widest text-primary">Documento Formal</span>
+                                <h2 className="text-lg font-black tracking-tight text-white">ActivaQR • Propuesta Institucional</h2>
                             </div>
                         </div>
-                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-bold">
-                            <Trophy size={14} />
-                            <span>197.ª Feria de Loja</span>
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                            <CheckCircle2 size={13} />
+                            <span>100% Gratuito para la Feria</span>
                         </div>
-                    </div>
-
-                    {/* Title */}
-                    <div className="mb-8">
-                        <span className="text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-md bg-white/10 text-white/80 inline-block mb-3">
-                            Propuesta de Colaboración
-                        </span>
-                        <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight text-white">
-                            Concurso para artesanos con dinámica de votación digital y directorio de expositores
-                        </h1>
                     </div>
 
                     {/* Recipient & Metadata Grid */}
@@ -121,7 +154,7 @@ export default function PropuestaClient() {
                             <p className="font-bold text-white/90">Loja, septiembre de 2026</p>
                             <p className="text-xs text-primary font-semibold flex items-center sm:justify-end gap-1 mt-0.5">
                                 <CheckCircle2 size={13} />
-                                Plataforma 100% Desarrollada y Operativa
+                                Plataforma Lista y Operativa
                             </p>
                         </div>
                     </div>

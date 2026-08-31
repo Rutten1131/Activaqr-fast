@@ -1,5 +1,5 @@
 import { BLOG_POSTS } from '@/lib/blog-data';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { ChevronLeft, Calendar, User, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -59,6 +59,10 @@ function renderInline(text: string): React.ReactNode[] {
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
     const slug = (await params).slug;
+    if (slug === 'propuesta-colaboracion-feria-loja-197') {
+        redirect('/feria-loja/propuesta');
+    }
+
     const post = BLOG_POSTS.find(p => p.slug === slug);
 
     if (!post) notFound();

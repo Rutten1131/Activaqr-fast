@@ -1,35 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     Trophy,
     Medal,
     Flame,
     ArrowRight,
     Store,
-    Users,
-    Vote,
-    Sparkles,
-    CheckCircle2,
     RefreshCw,
-    MessageCircle,
-    ImageIcon,
-    QrCode,
-    Share2,
-    ExternalLink,
-    Heart
+    Heart,
+    ChevronLeft,
+    ChevronRight,
+    Sparkles
 } from "lucide-react";
 import Link from "next/link";
 
 const FERIA_DEADLINE = new Date("2026-09-20T23:59:59-05:00");
-const WA_NUMBER = "593963425323";
 
 interface Participante {
     id: number;
     slug: string;
     nombre_negocio: string;
     logo_url: string | null;
+    portada_url?: string | null;
     total_votos: number;
 }
 
@@ -38,6 +32,8 @@ export default function FeriaLojaSection() {
     const [participantes, setParticipantes] = useState<Participante[]>([]);
     const [stats, setStats] = useState({ total_participantes: 0, total_votos: 0 });
     const [isLoading, setIsLoading] = useState(true);
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
 
     const fetchRanking = async () => {
         try {
@@ -60,19 +56,22 @@ export default function FeriaLojaSection() {
     useEffect(() => {
         if (new Date() > FERIA_DEADLINE) return;
         fetchRanking();
-        // Polling cada 30 segundos para votos en vivo
         const interval = setInterval(fetchRanking, 30000);
         return () => clearInterval(interval);
     }, []);
 
+    const displayList = top5.length > 0 ? top5 : participantes;
+
+    // Auto-play del carrusel 3D cada 3.5 segundos
+    useEffect(() => {
+        if (isPaused || displayList.length <= 1) return;
+        const timer = setInterval(() => {
+            setActiveIndex((curr) => (curr + 1) % displayList.length);
+        }, 3500);
+        return () => clearInterval(timer);
+    }, [isPaused, displayList.length]);
+
     if (new Date() > FERIA_DEADLINE) return null;
-
-    const getVoteUrl = (nombre: string) => {
-        const msg = `Feria de Loja #197 - Voto por: ${nombre}`;
-        return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
-    };
-
-    const maxVotes = top5.length > 0 ? Math.max(...top5.map((p) => p.total_votos), 1) : 1;
 
     return (
         <section
@@ -81,33 +80,23 @@ export default function FeriaLojaSection() {
             style={{
                 background: "linear-gradient(180deg, #0a0a0a 0%, #0d121d 50%, #0a0a0a 100%)",
             }}
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
         >
             {/* Ambient Lighting & Grid */}
             <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary/15 rounded-full blur-[140px] pointer-events-none" />
             <div className="absolute bottom-0 right-10 w-96 h-96 bg-[#001549]/50 rounded-full blur-[120px] pointer-events-none" />
 
             <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
-                {/* Header Badge */}
-                <div className="text-center mb-12 md:mb-16">
-                    <motion.div
-                        initial={{ opacity: 0, y: 15 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        className="inline-flex items-center gap-2 bg-primary/10 border border-primary/30 px-5 py-2 rounded-full mb-5 shadow-[0_0_20px_rgba(246,103,57,0.15)]"
-                    >
-                        <Flame size={16} className="text-primary animate-pulse" />
-                        <span className="text-xs font-black uppercase tracking-widest text-primary">
-                            197 Feria de Loja • Competencia Oficial
-                        </span>
-                    </motion.div>
-
+                {/* Header */}
+                <div className="text-center mb-10 md:mb-14">
                     <motion.h2
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         className="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-tight mb-4"
                     >
-                        Ranking de Stands <span className="text-primary italic">Más Votados</span>
+                        197.ª Feria de Loja • <span className="text-primary italic">Competencia Oficial</span>
                     </motion.h2>
 
                     <motion.p
@@ -116,36 +105,16 @@ export default function FeriaLojaSection() {
                         viewport={{ once: true }}
                         className="text-white/70 text-base md:text-lg max-w-2xl mx-auto font-medium"
                     >
-                        Descubre quién lidera la feria. ¡Apoya a tu favorito escaneando su QR en el stand o votando directamente por WhatsApp!
+                        Vota aquí por el negocio o artesano que quieras apoyar. ¡Cada voto cuenta en tiempo real!
                     </motion.p>
-
-                    {/* Stats pills & Refresh */}
-                    <div className="flex flex-wrap justify-center items-center gap-4 mt-6">
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white/80">
-                            <Store size={15} className="text-primary" />
-                            <span>{stats.total_participantes} Stands inscritos</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white/80">
-                            <Vote size={15} className="text-green-400" />
-                            <span>{stats.total_votos} Votos totales</span>
-                        </div>
-                        <button
-                            onClick={fetchRanking}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white/50 hover:text-white transition-all"
-                            title="Actualizar votos"
-                        >
-                            <RefreshCw size={13} className={isLoading ? "animate-spin text-primary" : ""} />
-                            <span>En vivo</span>
-                        </button>
-                    </div>
                 </div>
 
                 {/* Main Content Area */}
-                {isLoading && top5.length === 0 ? (
+                {isLoading && displayList.length === 0 ? (
                     <div className="flex items-center justify-center py-20">
                         <RefreshCw size={36} className="animate-spin text-primary" />
                     </div>
-                ) : top5.length === 0 ? (
+                ) : displayList.length === 0 ? (
                     /* Fallback sin registros */
                     <div className="text-center py-16 px-6 rounded-3xl bg-white/[0.03] border border-white/10 max-w-xl mx-auto mb-16">
                         <Trophy size={56} className="text-primary mx-auto mb-4" />
@@ -162,240 +131,180 @@ export default function FeriaLojaSection() {
                     </div>
                 ) : (
                     <>
-                        {/* Podio / Leaderboard Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 items-stretch">
-                            {/* Card 1st Place (Center on desktop, 1st in visual weight) */}
-                            {top5[0] && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    className="md:order-2 rounded-3xl p-6 md:p-8 flex flex-col justify-between text-center relative overflow-hidden group shadow-2xl"
-                                    style={{
-                                        background: "linear-gradient(180deg, rgba(246,103,57,0.18) 0%, rgba(255,255,255,0.04) 100%)",
-                                        border: "2px solid rgba(246,103,57,0.5)",
-                                        boxShadow: "0 20px 60px rgba(246,103,57,0.2)",
-                                    }}
-                                >
-                                    {/* Top Leader Banner */}
-                                    <div className="absolute top-0 inset-x-0 bg-primary text-white text-[11px] font-black uppercase tracking-widest py-1.5 flex items-center justify-center gap-2 shadow-md">
-                                        <Trophy size={14} /> 🥇 1er Lugar • Líder de la Feria
-                                    </div>
-
-                                    <div className="mt-6">
-                                        {/* Logo Container */}
-                                        <div className="w-24 h-24 mx-auto rounded-2xl bg-white/10 border-2 border-primary/40 p-2 flex items-center justify-center mb-4 shadow-xl overflow-hidden group-hover:scale-105 transition-transform duration-300">
-                                            {top5[0].logo_url ? (
-                                                <img
-                                                    src={top5[0].logo_url}
-                                                    alt={top5[0].nombre_negocio}
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex flex-col items-center justify-center bg-primary/20 text-primary font-black text-2xl rounded-xl">
-                                                    {top5[0].nombre_negocio.charAt(0).toUpperCase()}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <h3 className="font-black text-2xl md:text-3xl text-white mb-2 line-clamp-2">
-                                            {top5[0].nombre_negocio}
-                                        </h3>
-
-                                        {/* Vote Pill */}
-                                        <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary/20 border border-primary/40 text-primary font-black text-base uppercase tracking-wider mb-6">
-                                            <Flame size={18} className="animate-pulse" />
-                                            <span>{top5[0].total_votos} Votos</span>
-                                        </div>
-                                    </div>
-
-                                    <Link
-                                        href={`/feria-loja/${top5[0].slug}`}
-                                        className="w-full py-4 px-6 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-base transition-all shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02]"
-                                        style={{ boxShadow: "0 10px 30px rgba(246,103,57,0.4)" }}
+                        {/* ═══ 3D ROTATING CAROUSEL SLIDER (ESTILO "EL SISTEMA QUE SE PAGA SOLO") ═══ */}
+                        <div className="relative h-[620px] sm:h-[660px] flex items-center justify-center overflow-hidden mb-12">
+                            {/* Navigation Buttons */}
+                            {displayList.length > 1 && (
+                                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-between px-2 sm:px-4 z-50 pointer-events-none">
+                                    <button
+                                        onClick={() => {
+                                            setActiveIndex((prev) => (prev === 0 ? displayList.length - 1 : prev - 1));
+                                            setIsPaused(true);
+                                        }}
+                                        className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white pointer-events-auto transition-all hover:bg-primary hover:border-primary shadow-xl"
+                                        aria-label="Anterior"
                                     >
-                                        <Heart size={18} className="fill-white" />
-                                        Ver Ficha & Votar en 1 Clic
-                                    </Link>
-                                </motion.div>
-                            )}
-
-
-                            {/* Card 2nd Place */}
-                            {top5[1] ? (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ delay: 0.1 }}
-                                    className="md:order-1 rounded-3xl p-6 md:p-7 flex flex-col justify-between text-center relative overflow-hidden group hover:border-white/20 transition-all duration-300"
-                                    style={{
-                                        background: "rgba(255, 255, 255, 0.04)",
-                                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                                        backdropFilter: "blur(20px)",
-                                    }}
-                                >
-                                    <div>
-                                        <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-300/10 border border-slate-300/30 text-slate-200 text-xs font-black uppercase tracking-wider mb-4">
-                                            🥈 2do Lugar
-                                        </div>
-
-                                        <div className="w-20 h-20 mx-auto rounded-2xl bg-white/5 border border-white/10 p-2 flex items-center justify-center mb-3 shadow-lg overflow-hidden group-hover:scale-105 transition-transform duration-300">
-                                            {top5[1].logo_url ? (
-                                                <img
-                                                    src={top5[1].logo_url}
-                                                    alt={top5[1].nombre_negocio}
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-white/10 text-white font-black text-xl rounded-xl">
-                                                    {top5[1].nombre_negocio.charAt(0).toUpperCase()}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <h4 className="font-black text-xl text-white mb-2 line-clamp-1">
-                                            {top5[1].nombre_negocio}
-                                        </h4>
-
-                                        <div className="inline-flex items-center gap-1.5 text-slate-300 text-sm font-bold uppercase tracking-wider mb-6">
-                                            <Medal size={16} /> {top5[1].total_votos} Votos
-                                        </div>
-                                    </div>
-
-                                    <Link
-                                        href={`/feria-loja/${top5[1].slug}`}
-                                        className="w-full py-3.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 hover:border-primary/40"
+                                        <ChevronLeft size={22} />
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setActiveIndex((prev) => (prev === displayList.length - 1 ? 0 : prev + 1));
+                                            setIsPaused(true);
+                                        }}
+                                        className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white pointer-events-auto transition-all hover:bg-primary hover:border-primary shadow-xl"
+                                        aria-label="Siguiente"
                                     >
-                                        <Heart size={16} className="text-primary" />
-                                        Ver Ficha & Votar
-                                    </Link>
-                                </motion.div>
-                            ) : (
-                                <div className="md:order-1 rounded-3xl p-6 border border-dashed border-white/10 flex flex-col items-center justify-center text-center text-white/40 min-h-[280px]">
-                                    <Medal size={32} className="mb-2 opacity-30" />
-                                    <p className="font-bold text-sm">Puesto #2 Disponible</p>
-                                    <p className="text-xs text-white/30 mt-1">¡Inscribe tu negocio!</p>
+                                        <ChevronRight size={22} />
+                                    </button>
                                 </div>
                             )}
 
-                            {/* Card 3rd Place */}
-                            {top5[2] ? (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ delay: 0.2 }}
-                                    className="md:order-3 rounded-3xl p-6 md:p-7 flex flex-col justify-between text-center relative overflow-hidden group hover:border-white/20 transition-all duration-300"
-                                    style={{
-                                        background: "rgba(255, 255, 255, 0.04)",
-                                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                                        backdropFilter: "blur(20px)",
-                                    }}
-                                >
-                                    <div>
-                                        <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-700/20 border border-amber-700/40 text-amber-400 text-xs font-black uppercase tracking-wider mb-4">
-                                            🥉 3er Lugar
-                                        </div>
+                            {/* Cards Track */}
+                            <div className="relative w-full max-w-5xl flex items-center justify-center h-full">
+                                <AnimatePresence mode="popLayout">
+                                    {displayList.map((item, index) => {
+                                        // Circular position mapping
+                                        let position = index - activeIndex;
+                                        const half = displayList.length / 2;
+                                        if (position > half) {
+                                            position -= displayList.length;
+                                        } else if (position < -half) {
+                                            position += displayList.length;
+                                        }
+                                        const isActive = index === activeIndex;
+                                        const isVisible = Math.abs(position) <= 2;
 
-                                        <div className="w-20 h-20 mx-auto rounded-2xl bg-white/5 border border-white/10 p-2 flex items-center justify-center mb-3 shadow-lg overflow-hidden group-hover:scale-105 transition-transform duration-300">
-                                            {top5[2].logo_url ? (
-                                                <img
-                                                    src={top5[2].logo_url}
-                                                    alt={top5[2].nombre_negocio}
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-white/10 text-white font-black text-xl rounded-xl">
-                                                    {top5[2].nombre_negocio.charAt(0).toUpperCase()}
-                                                </div>
-                                            )}
-                                        </div>
+                                        if (!isVisible) return null;
 
-                                        <h4 className="font-black text-xl text-white mb-1 line-clamp-1">
-                                            {top5[2].nombre_negocio}
-                                        </h4>
-
-                                        <div className="inline-flex items-center gap-1.5 text-amber-400/90 text-sm font-bold uppercase tracking-wider mb-6">
-                                            <Medal size={16} /> {top5[2].total_votos} Votos
-                                        </div>
-                                    </div>
-
-                                    <Link
-                                        href={`/feria-loja/${top5[2].slug}`}
-                                        className="w-full py-3.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 hover:border-primary/40"
-                                    >
-                                        <Heart size={16} className="text-primary" />
-                                        Ver Ficha & Votar
-                                    </Link>
-                                </motion.div>
-                            ) : (
-                                <div className="md:order-3 rounded-3xl p-6 border border-dashed border-white/10 flex flex-col items-center justify-center text-center text-white/40 min-h-[280px]">
-                                    <Medal size={32} className="mb-2 opacity-30" />
-                                    <p className="font-bold text-sm">Puesto #3 Disponible</p>
-                                    <p className="text-xs text-white/30 mt-1">¡Inscribe tu negocio!</p>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* 4th and 5th Place List */}
-                        {top5.length > 3 && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto mb-14">
-                                {top5.slice(3, 5).map((neg, idx) => (
-                                    <div
-                                        key={neg.id}
-                                        className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-white/20 transition-colors"
-                                    >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <span className="w-8 h-8 rounded-full bg-white/10 text-white font-black text-xs flex items-center justify-center shrink-0">
-                                                #{idx + 4}
-                                            </span>
-                                            <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 p-1 flex items-center justify-center shrink-0 overflow-hidden">
-                                                {neg.logo_url ? (
-                                                    <img src={neg.logo_url} alt={neg.nombre_negocio} className="w-full h-full object-contain" />
-                                                ) : (
-                                                    <Store size={16} className="text-white/40" />
-                                                )}
-                                            </div>
-                                            <span className="font-bold text-white text-sm truncate">{neg.nombre_negocio}</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 shrink-0 ml-3">
-                                            <span className="text-xs font-black text-primary">{neg.total_votos} Votos</span>
-                                            <a
-                                                href={getVoteUrl(neg.nombre_negocio)}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
-                                                title="Votar"
+                                        return (
+                                            <motion.div
+                                                key={item.id}
+                                                initial={false}
+                                                animate={{
+                                                    x: `calc(-50% + ${position * 320}px)`,
+                                                    scale: isActive ? 1.05 : Math.abs(position) === 1 ? 0.85 : 0.7,
+                                                    zIndex: 30 - Math.abs(position) * 10,
+                                                    opacity: isActive ? 1 : Math.abs(position) === 1 ? 0.45 : 0,
+                                                    filter: isActive ? "blur(0px)" : Math.abs(position) === 1 ? "blur(3px)" : "blur(8px)",
+                                                    left: "50%",
+                                                    pointerEvents: isActive || Math.abs(position) === 1 ? "auto" : "none",
+                                                }}
+                                                transition={{
+                                                    type: "spring",
+                                                    stiffness: 260,
+                                                    damping: 25,
+                                                }}
+                                                onClick={() => {
+                                                    setActiveIndex(index);
+                                                    setIsPaused(true);
+                                                }}
+                                                className={`absolute cursor-pointer group w-[300px] sm:w-[325px] h-[550px] sm:h-[590px] rounded-[3.5rem] overflow-hidden border shadow-2xl transition-all duration-700 ${
+                                                    isActive
+                                                        ? "border-primary/60 ring-4 ring-primary/30"
+                                                        : "border-white/20"
+                                                }`}
                                             >
-                                                <MessageCircle size={14} />
-                                            </a>
-                                        </div>
-                                    </div>
-                                ))}
+                                                {/* Background Cover Photo - Logo del Negocio */}
+                                                <div className="absolute inset-0 z-0 bg-[#070E20] overflow-hidden flex items-center justify-center">
+                                                    {item.logo_url ? (
+                                                        <>
+                                                            {/* Logo difuminado de fondo para ambientación */}
+                                                            <img
+                                                                src={item.logo_url}
+                                                                alt={item.nombre_negocio}
+                                                                className="absolute inset-0 w-full h-full object-cover scale-150 filter blur-2xl opacity-25"
+                                                            />
+                                                            {/* Logo principal nítido y centrado */}
+                                                            <div className="w-44 h-44 sm:w-52 sm:h-52 p-4 rounded-3xl bg-white/[0.06] border border-white/10 backdrop-blur-md flex items-center justify-center -translate-y-14 shadow-2xl transition-transform duration-700 group-hover:scale-110">
+                                                                <img
+                                                                    src={item.logo_url}
+                                                                    alt={item.nombre_negocio}
+                                                                    className="w-full h-full object-contain drop-shadow-2xl"
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <div className="w-44 h-44 sm:w-52 sm:h-52 rounded-3xl bg-primary/20 border border-primary/40 flex items-center justify-center text-primary font-black text-6xl -translate-y-14 shadow-2xl">
+                                                            {item.nombre_negocio.charAt(0).toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                    {/* Degradado inferior hacia el contenido */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-[#050B1C] via-[#050B1C]/50 to-transparent" />
+                                                </div>
+
+                                                {/* Top Position Tag */}
+                                                <div className="absolute top-4 inset-x-0 flex justify-center z-20">
+                                                    {index === 0 ? (
+                                                        <span className="bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5">
+                                                            <Trophy size={13} /> 🥇 1er Lugar • Líder
+                                                        </span>
+                                                    ) : index === 1 ? (
+                                                        <span className="bg-slate-300/20 backdrop-blur-md border border-slate-300/30 text-slate-200 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5">
+                                                            🥈 2do Lugar
+                                                        </span>
+                                                    ) : index === 2 ? (
+                                                        <span className="bg-amber-700/30 backdrop-blur-md border border-amber-700/40 text-amber-300 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5">
+                                                            🥉 3er Lugar
+                                                        </span>
+                                                    ) : (
+                                                        <span className="bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full shadow-2xl">
+                                                            Puesto #{index + 1}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Bottom Floating Glass Card */}
+                                                <div className="absolute bottom-0 left-0 w-full p-4 sm:p-5 z-10">
+                                                    <div className="bg-[#050B1C]/85 backdrop-blur-[30px] border border-white/20 p-5 sm:p-6 rounded-[2.8rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]">
+                                                        {/* Title */}
+                                                        <h3 className="font-black text-white text-lg sm:text-xl text-center leading-snug line-clamp-1 mb-2">
+                                                            {item.nombre_negocio}
+                                                        </h3>
+
+                                                        {/* Votes Pill */}
+                                                        <div className="flex justify-center mb-4">
+                                                            <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-primary/20 border border-primary/40 text-primary font-black text-xs uppercase tracking-wider">
+                                                                <Flame size={14} className="animate-pulse" />
+                                                                <span>{item.total_votos} {item.total_votos === 1 ? 'Voto' : 'Votos'}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* CTA Button */}
+                                                        <Link
+                                                            href={`/feria-loja/${item.slug}`}
+                                                            className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest text-center transition-all shadow-xl bg-primary hover:bg-[#ff7b52] text-white flex items-center justify-center gap-2 hover:scale-[1.02]"
+                                                            style={{ boxShadow: "0 10px 25px rgba(246,103,57,0.35)" }}
+                                                        >
+                                                            <Heart size={15} className="fill-white" />
+                                                            <span>Ver Ficha & Votar</span>
+                                                        </Link>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </AnimatePresence>
                             </div>
-                        )}
+                        </div>
                     </>
                 )}
 
-                {/* Muro de Logos de Todos los Participantes */}
+                {/* Muro de Logos de Todos los Participantes -> Enlace directo a la página de cada negocio */}
                 {participantes.length > 0 && (
                     <div className="mb-14 rounded-3xl p-6 md:p-8 bg-white/[0.02] border border-white/5">
                         <div className="text-center mb-6">
                             <h4 className="text-sm md:text-base font-black uppercase tracking-widest text-white/90">
                                 🎪 Todos los Negocios y Stands Participantes
                             </h4>
-                            <p className="text-white/50 text-xs mt-1">Haz clic en cualquier stand para votar por él</p>
+                            <p className="text-white/50 text-xs mt-1">Haz clic en cualquier stand para ver su ficha y apoyarlo</p>
                         </div>
 
                         <div className="flex flex-wrap items-center justify-center gap-3 max-w-4xl mx-auto">
                             {participantes.map((part) => (
-                                <a
+                                <Link
                                     key={part.id}
-                                    href={getVoteUrl(part.nombre_negocio)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title={`Votar por ${part.nombre_negocio} (${part.total_votos} votos)`}
+                                    href={`/feria-loja/${part.slug}`}
+                                    title={`Ver ficha y votar por ${part.nombre_negocio} (${part.total_votos} votos)`}
                                     className="px-4 py-2.5 rounded-2xl bg-white/[0.05] hover:bg-primary/15 border border-white/10 hover:border-primary/50 transition-all flex items-center gap-2.5 group shadow-sm hover:scale-105"
                                 >
                                     <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center shrink-0 overflow-hidden p-0.5">
@@ -411,40 +320,11 @@ export default function FeriaLojaSection() {
                                     <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                                         {part.total_votos}
                                     </span>
-                                </a>
+                                </Link>
                             ))}
                         </div>
                     </div>
                 )}
-
-                {/* Call To Action Box to Register at /feria */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="rounded-3xl p-8 md:p-12 relative overflow-hidden text-center shadow-2xl"
-                    style={{
-                        background: "linear-gradient(135deg, rgba(246,103,57,0.2) 0%, rgba(0,21,73,0.5) 100%)",
-                        border: "1px solid rgba(246,103,57,0.4)",
-                    }}
-                >
-                    <div className="max-w-2xl mx-auto relative z-10">
-                        <Sparkles size={36} className="text-primary mx-auto mb-4" />
-                        <h3 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3">
-                            ¿Tienes un Stand en la 197 Feria de Loja?
-                        </h3>
-                        <p className="text-white/80 text-sm md:text-base mb-8 font-medium">
-                            Inscribe tu negocio gratis en menos de 1 minuto, descarga tu código QR exclusivo y compite por ser el negocio más votado del evento.
-                        </p>
-                        <Link
-                            href="/feria"
-                            className="inline-flex items-center gap-3 bg-primary hover:bg-primary-dark text-white font-black text-base md:text-lg px-10 py-5 rounded-2xl shadow-2xl transition-all hover:scale-105"
-                            style={{ boxShadow: "0 12px 40px rgba(246,103,57,0.45)" }}
-                        >
-                            Inscribir mi Negocio en /feria <ArrowRight size={22} />
-                        </Link>
-                    </div>
-                </motion.div>
             </div>
         </section>
     );
