@@ -18,12 +18,13 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (key === expectedKey) {
+        if (key && expectedKey && key.trim() === expectedKey.trim()) {
             return NextResponse.json({ valid: true });
         } else {
             return NextResponse.json({ valid: false, error: 'Clave incorrecta' }, { status: 401 });
         }
-    } catch {
-        return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
+    } catch (err: any) {
+        console.error('Validate route error:', err);
+        return NextResponse.json({ error: 'Error del servidor', message: err?.message }, { status: 500 });
     }
 }
