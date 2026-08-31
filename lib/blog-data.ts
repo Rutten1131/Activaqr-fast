@@ -13,6 +13,147 @@ export const BLOG_CATEGORIES = ['Todos', 'Educación', 'Negocios', 'Industrias']
 
 export const BLOG_POSTS: BlogPost[] = [
     {
+        slug: 'propuesta-colaboracion-feria-loja-197',
+        title: 'Propuesta de Colaboración: Concurso de Artesanos y Directorio Digital — 197.ª Feria de Loja',
+        excerpt: 'Propuesta oficial dirigida al Dr. Diego Guzmán: Dinámica de votación digital, directorio interactivo y $600 en premios tecnológicos para artesanos y expositores.',
+        date: '2026-08-31',
+        image: '/images/ActivaQR_hero.webp',
+        category: 'Negocios',
+        keywords: 'feria de loja, artesanos loja, directorio digital feria, concurso feria de loja, activaqr',
+        content: `
+# PROPUESTA DE COLABORACIÓN
+## Concurso para artesanos con dinámica de votación digital y directorio de expositores de la 197.ª Feria de Loja
+
+**Dirigida al:** Dr. Diego Guzmán  
+**Cargo:** Director — 197.ª Feria de Loja  
+**Fecha:** Loja, septiembre de 2026  
+
+---
+
+### De mi consideración:
+Por medio de la presente, me permito poner a consideración de la organización de la **197.ª Feria de Loja** una iniciativa que busca contribuir a la **promoción y visibilidad digital de los artesanos, emprendedores y expositores participantes**, mediante una dinámica de votación digital sencilla, participativa y **completamente gratuita para ellos y para la organización**.
+
+La propuesta nace con la intención de generar una experiencia adicional para los visitantes de la feria y, al mismo tiempo, brindar a los expositores herramientas digitales que puedan continuar siendo útiles después del evento.
+
+---
+
+### 1. ¿En qué consiste la propuesta?
+Cada expositor participante contará con un **código QR personalizado** que conducirá a su **ficha digital**: una página con su información, fotografía, descripción de su trabajo, productos y ubicación dentro de la feria.
+
+Durante los días restantes del evento, los visitantes podrán escanear el código del expositor que deseen apoyar y registrar un **voto digital, contabilizado automáticamente y en tiempo real**.
+
+De esta manera, los propios artesanos y expositores podrán invitar a sus clientes y visitantes a conocerlos y apoyarlos mediante esta dinámica.
+
+---
+
+### 2. Un directorio digital de la feria
+Las fichas de todos los expositores conformarán un **directorio digital navegable de la 197.ª Feria de Loja**: una guía en línea donde los visitantes podrán explorar participantes por categoría (artesanías, gastronomía, productos naturales, emprendimientos, etc.), conocer su historia y ubicarlos dentro del evento.
+
+Este directorio quedará disponible en línea incluso después de finalizada la feria, constituyendo un registro digital del evento y de sus participantes.
+
+> 🌐 **[Ver Directorio Demo en Vivo de la Feria](/feria-loja)**
+
+---
+
+### 3. Un ranking visible durante la feria
+Los resultados se contabilizarán automáticamente en una plataforma desarrollada para esta iniciativa. Mediante un tablero público, participantes y visitantes podrán observar cómo avanza la dinámica y qué expositores lideran la votación.
+
+La votación permanecerá abierta hasta el cierre de la feria, el domingo 13 de septiembre.
+
+Esto permitirá generar una competencia sana e incentivar a cada expositor a promover activamente su participación, con mensajes como:  
+*"¡Apoya a tu expositor favorito! Escanea su código QR y dale tu voto."*
+
+---
+
+### 4. Transparencia y validación de los votos
+Para procurar una dinámica transparente, el sistema contará con mecanismos de control:
+* **Restricción de votaciones repetidas** desde un mismo dispositivo/número.
+* **Registro y trazabilidad** de cada interacción en el sistema.
+* **Detección de patrones** que puedan alterar artificialmente los resultados.
+* **Cierre automático** de la votación al término de la jornada de clausura.
+
+Adicionalmente, previo al anuncio oficial de los ganadores, los resultados finales serán revisados y validados conjuntamente con la organización, de modo que el cierre de la dinámica se realice con total transparencia.
+
+---
+
+### 5. Después de la feria: un beneficio que permanece
+La interacción no termina con el evento. Días después, las personas que participaron en la dinámica podrán recibir —de manera totalmente voluntaria y sin ningún tipo de incentivo, en cumplimiento de las políticas de Google— una invitación a compartir su experiencia con los expositores que conozcan y tengan presencia en Google.
+
+De esta forma, la iniciativa puede ayudar a que los artesanos y productores participantes no solo obtengan votos durante la feria, sino que comiencen a **construir una reputación digital en Google** que permanece después del evento.
+
+---
+
+### 6. Reconocimiento a los participantes ($600 en Premios)
+Como incentivo adicional, se propone entregar **premios a los expositores con mejores resultados, aportados íntegramente por ActivaQR** (valor referencial de los premios: aproximadamente **$600 USD**):
+
+* 🥇 **Primer premio:** Un sitio web completo, con dominio propio, con catálogo o menú digital para presentar sus productos.
+* 🥈 **Segundo y tercer premio:** Dos landing pages individuales para promocionar al artesano, emprendimiento o negocio y sus productos.
+* 🎁 **Cuatro premios adicionales:** Cuatro Contactos Digitales, que permitirán a los ganadores contar con una presencia digital profesional y facilitar el acceso de sus clientes a su información de contacto.
+
+Los premios se otorgarán a los siete expositores más votados al cierre de la votación. En caso de empate, se considerará el orden en que cada expositor alcanzó la cifra de votos.
+
+---
+
+### 7. Beneficios para los expositores
+* Mayor visibilidad durante la feria.
+* Interacción directa de los visitantes con su negocio.
+* Posibilidad de recibir reseñas auténticas en Google.
+* Una ficha digital propia dentro del directorio de la feria.
+* La posibilidad de obtener uno de los siete premios.
+* Herramientas digitales que podrán seguir aprovechando después del evento.
+
+---
+
+### 8. Beneficios para la 197.ª Feria de Loja
+* Una dinámica digital inédita que posicionaría a la feria como un evento pionero en la región en la integración de herramientas digitales.
+* Mayor participación e interacción de los visitantes con los expositores.
+* Un directorio digital público de la feria y sus participantes, con permanencia después del evento.
+* Contenido e interés permanente alrededor de los expositores durante los días de feria.
+* Un informe de participación e interacción al cierre del evento, como insumo para la organización.
+* **Todo ello sin costo ni esfuerzo de desarrollo para la organización.**
+
+---
+
+### 9. Aportes y coordinación
+**ActivaQR aporta, sin costo alguno para la feria ni para los expositores:**
+* El desarrollo y la operación completa de la plataforma digital.
+* El sistema de votación con sus mecanismos de control.
+* Los siete premios para los expositores.
+* El directorio digital con la ficha de cada participante.
+* Un informe de participación al cierre del evento.
+
+Aspectos a coordinar con la organización:
+* Difusión en canales oficiales de la feria.
+* Entrega coordinada de códigos QR.
+* Validación conjunta de resultados y anuncio de ganadores durante los actos de clausura.
+
+---
+
+### 10. Sobre ActivaQR
+La iniciativa será desarrollada y operada por **ActivaQR** como aporte tecnológico a la 197.ª Feria de Loja, permitiendo demostrar, en un escenario real, el potencial de las herramientas digitales aplicadas a la promoción y fidelización de pequeños negocios y emprendimientos.
+
+No se plantea como un servicio que los artesanos deban adquirir: es un aporte directo a la feria y a quienes la hacen posible.
+
+---
+
+### 11. Solicitud
+Por lo expuesto, pongo esta iniciativa a consideración de la Dirección de la 197.ª Feria de Loja, con el propósito de que sea evaluada y, de considerarse viable, coordinemos conjuntamente su implementación.
+
+Dado que la plataforma se encuentra desarrollada y puede entrar en funcionamiento inmediato, la dinámica podría aprovecharse durante los días de la feria.
+
+Quedo atento a la decisión de mantener una reunión para presentar personalmente el funcionamiento de la dinámica y revisar las condiciones para su ejecución.
+
+---
+
+**Atentamente,**
+
+**Ing. César Reyes Jaramillo**  
+*ActivaQR — Soluciones digitales para negocios*  
+📱 0963410409  
+✉️ negocios@cesarreyesjaramillo.com  
+        `
+    },
+    {
         slug: 'vivimos-enganados-tarjeta-presentacion-digital-no-vende',
         title: 'Vivimos engañados: Por qué tu tarjeta de presentación digital y tus redes NO te están dando ventas',
         excerpt: 'Crees que por tener un Linktree o un perfil bonito ya eres digital. La realidad es que estás perdiendo el 90% de tus prospectos por un error básico de contacto.',
