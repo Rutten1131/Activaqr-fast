@@ -1658,13 +1658,7 @@ export default function AdminDashboard() {
         );
     }
 
-    if (loading && registros.length === 0) {
-        return (
-            <div className="min-h-screen bg-navy flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
-    }
+
 
     return (
         <div className="min-h-screen bg-navy text-white p-8">

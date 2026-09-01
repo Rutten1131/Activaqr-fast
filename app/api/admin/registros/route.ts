@@ -46,10 +46,15 @@ export async function GET(req: NextRequest) {
                 s.parent_id,
                 p.nombre as parent_name,
                 p.codigo as parent_code,
-                (SELECT COUNT(*) FROM vcard_downloads_log WHERE slug = r.slug) as downloads_count
+                COALESCE(dl.downloads_count, 0) as downloads_count
             FROM registraya_vcard_registros r
             LEFT JOIN registraya_vcard_sellers s ON r.seller_id = s.id
             LEFT JOIN registraya_vcard_sellers p ON s.parent_id = p.id
+            LEFT JOIN (
+                SELECT slug, COUNT(*) as downloads_count
+                FROM vcard_downloads_log
+                GROUP BY slug
+            ) dl ON r.slug = dl.slug
         `;
         const params: any[] = [];
         const conditions: string[] = [];
