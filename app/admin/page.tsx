@@ -259,6 +259,26 @@ export default function AdminDashboard() {
         setIsAuthorized(false);
     };
 
+    // Plan pricing helper
+    const getPlanPrice = (plan?: string): number => {
+        switch (plan?.toLowerCase()) {
+            case 'basic': return 35;
+            case 'business': return 50;
+            case 'catalog': return 75;
+            case 'web': return 120;
+            case 'menu': return 50;
+            default: return 35;
+        }
+    };
+
+    // Helper to check if seller is third party (not Cesar Reyes)
+    const isThirdPartySeller = (sellerId: any, currentSellers: any[]): boolean => {
+        if (!sellerId) return false;
+        const seller = currentSellers.find((s: any) => String(s.id) === String(sellerId));
+        if (!seller) return false;
+        return seller.nombre !== 'Cesar Reyes';
+    };
+
     // Helper to calculate and set stats from records
     const calculateAndSetStats = (all: any[], currentSellers: any[]) => {
         const totalIngreso = all.reduce((acc: number, r: any) => 
