@@ -259,11 +259,94 @@ export default function AdminDashboard() {
         setIsAuthorized(false);
     };
 
+    // Helper to calculate and set stats from records
+    const calculateAndSetStats = (all: any[], currentSellers: any[]) => {
+        const totalIngreso = all.reduce((acc: number, r: any) => 
+            (r.status === 'pagado' || r.status === 'entregado') ? acc + getPlanPrice(r.plan) : acc, 0);
+
+        const totalComisionesVendedores = all.reduce((acc: number, r: any) => {
+            if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id) {
+                if (isThirdPartySeller(r.seller_id, currentSellers)) {
+                    const seller = currentSellers.find((s: any) => String(s.id) === String(r.seller_id));
+                    const percentage = seller ? parseFloat(seller.comision_porcentaje || '0') : 0;
+                    const price = getPlanPrice(r.plan);
+                    return acc + (price * percentage / 100);
+                }
+            }
+            return acc;
+        }, 0);
+
+        const clientesPendientesCount = all.filter((r: any) => r.status === 'pendiente').length;
+        const valorClientesPendientes = all.filter((r: any) => r.status === 'pendiente').reduce((acc: number, r: any) => 
+            acc + getPlanPrice(r.plan), 0);
+
+        const comisionesXPagarMonto = all.reduce((acc: number, r: any) => {
+            if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id) {
+                if (isThirdPartySeller(r.seller_id, currentSellers)) {
+                    if (r.commission_status === 'pending' || r.commission_status === 'paid_to_leader' || !r.commission_status) {
+                        const seller = currentSellers.find((s: any) => String(s.id) === String(r.seller_id));
+                        const percentage = seller ? parseFloat(seller.comision_porcentaje || '0') : 0;
+                        const price = getPlanPrice(r.plan);
+                        return acc + (price * percentage / 100);
+                    }
+                }
+            }
+            return acc;
+        }, 0);
+
+        const comisionesPendientesCount = all.filter((r: any) => 
+            r.seller_id && 
+            isThirdPartySeller(r.seller_id, currentSellers) &&
+            (r.commission_status === 'pending' || r.commission_status === 'paid_to_leader' || !r.commission_status) && 
+            (r.status === 'pagado' || r.status === 'entregado')
+        ).length;
+
+        const comisionesPagadasMonto = all.reduce((acc: number, r: any) => {
+            if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id) {
+                if (isThirdPartySeller(r.seller_id, currentSellers)) {
+                    if (r.commission_status === 'completed') {
+                        const seller = currentSellers.find((s: any) => String(s.id) === String(r.seller_id));
+                        const percentage = seller ? parseFloat(seller.comision_porcentaje || '0') : 0;
+                        const price = getPlanPrice(r.plan);
+                        return acc + (price * percentage / 100);
+                    }
+                }
+            }
+            return acc;
+        }, 0);
+
+        const colaCorreos = all.filter((r: any) => r.status === 'pagado' && !r.auto_email_sent).length;
+        
+        setStatsTotal({
+            count: all.length,
+            income: totalIngreso,
+            utility: totalIngreso - totalComisionesVendedores,
+            pending: clientesPendientesCount,
+            pendingValue: valorClientesPendientes,
+            pendingCommission: comisionesXPagarMonto,
+            paidCommission: comisionesPagadasMonto,
+            cola: colaCorreos,
+            comisionesPendientes: comisionesPendientesCount
+        });
+        setTotalCount(all.length);
+    };
+
     const fetchRegistros = async () => {
         setLoading(true);
         try {
             const adminKey = localStorage.getItem('admin_access_key') || '';
-            // Load ALL records client-side for stable search/filtering
+            // Fetch sellers list first if empty to calculate commissions accurately
+            let currentSellers = sellers;
+            if (currentSellers.length === 0) {
+                const sRes = await fetch('/api/admin/sellers', { headers: { 'x-admin-key': adminKey } });
+                if (sRes.ok) {
+                    const sData = await sRes.json();
+                    currentSellers = sData.data || [];
+                    setSellers(currentSellers);
+                }
+            }
+
+            // Load records client-side
             const url = `/api/admin/registros?page=1&limit=10000`;
             const res = await fetch(url, {
                 headers: { 'x-admin-key': adminKey }
@@ -279,6 +362,7 @@ export default function AdminDashboard() {
                 setRegistros(result.data);
                 setTotalCount(result.data.length);
                 setHasMore(false);
+                calculateAndSetStats(result.data, currentSellers);
             }
         } catch (err: any) {
             console.error('Error fetching registros:', err);
@@ -288,126 +372,8 @@ export default function AdminDashboard() {
         }
     };
 
-    const loadMoreRegistros = () => {
-        // All records are loaded upfront; no pagination needed
-    };
-
-    // Helper to calculate plan prices
-    const getPlanPrice = (plan: string): number => {
-        if (!plan) return 35;
-        const p = String(plan).toLowerCase().trim();
-        if (p.includes('catalog') || p.includes('catálogo')) return 200;
-        if (p.includes('business')) return 100;
-        if (p.includes('web') || p.includes('sitio')) return 1000;
-        return 35;
-    };
-
-    // Helper to identify third-party sellers eligible for commission (excluding César Reyes / Admin / 0% sellers)
-    const isThirdPartySeller = (sellerId: any, sellersList: any[]): boolean => {
-        if (!sellerId) return false;
-        const s = sellersList.find((seller: any) => String(seller.id) === String(sellerId));
-        if (!s) return false;
-        const name = (s.nombre || '').toLowerCase();
-        const code = String(s.codigo || s.code || '');
-        const pct = parseFloat(s.comision_porcentaje || '0');
-        if (pct <= 0) return false;
-        if (name.includes('cesar') || name.includes('césar') || name.includes('admin') || code === '001' || code === '000') return false;
-        return true;
-    };
-
-    // Fetch stats from ALL records (not paginated)
     const fetchStatsTotal = async () => {
-        try {
-            const adminKey = localStorage.getItem('admin_access_key') || '';
-            const res = await fetch('/api/admin/registros?page=1&limit=10000', {
-                headers: { 'x-admin-key': adminKey }
-            });
-            if (res.ok) {
-                const result = await res.json();
-                const all = result.data || [];
-
-                let currentSellers = sellers;
-                if (currentSellers.length === 0) {
-                    const sRes = await fetch('/api/admin/sellers', { headers: { 'x-admin-key': adminKey } });
-                    if (sRes.ok) {
-                        const sData = await sRes.json();
-                        currentSellers = sData.data || [];
-                        setSellers(currentSellers);
-                    }
-                }
-                
-                const totalIngreso = all.reduce((acc: number, r: any) => 
-                    (r.status === 'pagado' || r.status === 'entregado') ? acc + getPlanPrice(r.plan) : acc, 0);
-
-                const totalComisionesVendedores = all.reduce((acc: number, r: any) => {
-                    if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id) {
-                        if (isThirdPartySeller(r.seller_id, currentSellers)) {
-                            const seller = currentSellers.find((s: any) => String(s.id) === String(r.seller_id));
-                            const percentage = seller ? parseFloat(seller.comision_porcentaje || '0') : 0;
-                            const price = getPlanPrice(r.plan);
-                            return acc + (price * percentage / 100);
-                        }
-                    }
-                    return acc;
-                }, 0);
-
-                const clientesPendientesCount = all.filter((r: any) => r.status === 'pendiente').length;
-                const valorClientesPendientes = all.filter((r: any) => r.status === 'pendiente').reduce((acc: number, r: any) => 
-                    acc + getPlanPrice(r.plan), 0);
-
-                const comisionesXPagarMonto = all.reduce((acc: number, r: any) => {
-                    if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id) {
-                        if (isThirdPartySeller(r.seller_id, currentSellers)) {
-                            if (r.commission_status === 'pending' || r.commission_status === 'paid_to_leader' || !r.commission_status) {
-                                const seller = currentSellers.find((s: any) => String(s.id) === String(r.seller_id));
-                                const percentage = seller ? parseFloat(seller.comision_porcentaje || '0') : 0;
-                                const price = getPlanPrice(r.plan);
-                                return acc + (price * percentage / 100);
-                            }
-                        }
-                    }
-                    return acc;
-                }, 0);
-
-                const comisionesPendientesCount = all.filter((r: any) => 
-                    r.seller_id && 
-                    isThirdPartySeller(r.seller_id, currentSellers) &&
-                    (r.commission_status === 'pending' || r.commission_status === 'paid_to_leader' || !r.commission_status) && 
-                    (r.status === 'pagado' || r.status === 'entregado')
-                ).length;
-
-                const comisionesPagadasMonto = all.reduce((acc: number, r: any) => {
-                    if ((r.status === 'pagado' || r.status === 'entregado') && r.seller_id) {
-                        if (isThirdPartySeller(r.seller_id, currentSellers)) {
-                            if (r.commission_status === 'completed') {
-                                const seller = currentSellers.find((s: any) => String(s.id) === String(r.seller_id));
-                                const percentage = seller ? parseFloat(seller.comision_porcentaje || '0') : 0;
-                                const price = getPlanPrice(r.plan);
-                                return acc + (price * percentage / 100);
-                            }
-                        }
-                    }
-                    return acc;
-                }, 0);
-
-                const colaCorreos = all.filter((r: any) => r.status === 'pagado' && !r.auto_email_sent).length;
-                
-                setStatsTotal({
-                    count: all.length,
-                    income: totalIngreso,
-                    utility: totalIngreso - totalComisionesVendedores,
-                    pending: clientesPendientesCount,
-                    pendingValue: valorClientesPendientes,
-                    pendingCommission: comisionesXPagarMonto,
-                    paidCommission: comisionesPagadasMonto,
-                    cola: colaCorreos,
-                    comisionesPendientes: comisionesPendientesCount
-                });
-                setTotalCount(all.length);
-            }
-        } catch (err) {
-            console.error('Error fetching stats total:', err);
-        }
+        // Stats are now computed directly inside fetchRegistros
     };
 
     const fetchGlobalDownloadStats = async () => {

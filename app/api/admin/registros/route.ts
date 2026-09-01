@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
                 r.status, r.plan, r.created_at, r.foto_url, r.comprobante_url, r.commission_status, r.seller_id, 
                 r.tipo_perfil, r.profesion, r.bio, r.direccion, r.web, r.instagram, r.linkedin, r.template_id,
                 r.facebook, r.tiktok, r.productos_servicios, r.etiquetas, r.youtube, r.x, 
-                r.menu_digital, r.nombres, r.apellidos, r.contacto_nombre, r.contacto_apellido, 
+                r.nombres, r.apellidos, r.contacto_nombre, r.contacto_apellido, 
                 r.portada_desktop, r.portada_movil, r.wifi_ssid, r.wifi_password, 
                 r.hero_button_text, r.leader_paid_at, r.payment_method,
                 r.google_business, r.reminder_count, r.last_reminder_at,
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
                 r.hero_action, r.hero_file_url, r.hero_external_link, r.hero_wifi_steps,
                 r.hero_section_title, r.hero_step1_title, r.hero_step1_text, r.hero_step2_title, r.hero_step2_text, r.hero_step3_title, r.hero_step3_text,
                 r.google_rating, r.google_reviews_count, r.youtube_video_url, r.hero_slides_json, r.edit_code, r.mensaje,
-                -- Explicitly omitting: catalogo_json, galeria_urls to save massive bandwidth
+                -- Explicitly omitting: catalogo_json, galeria_urls, menu_digital to save massive bandwidth
                 s.nombre as sold_by_name, 
                 s.codigo as sold_by_code,
                 s.parent_id,
