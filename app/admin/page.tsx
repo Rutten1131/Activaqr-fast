@@ -386,6 +386,31 @@ export default function AdminDashboard() {
         }
     };
 
+    const loadMoreRegistros = async () => {
+        setLoadingMore(true);
+        try {
+            const adminKey = localStorage.getItem('admin_access_key') || '';
+            const nextPage = currentPage + 1;
+            const res = await fetch(`/api/admin/registros?page=${nextPage}&limit=100`, {
+                headers: { 'x-admin-key': adminKey }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.data && data.data.length > 0) {
+                    setRegistros(prev => [...prev, ...data.data]);
+                    setCurrentPage(nextPage);
+                    if (data.data.length < 100) setHasMore(false);
+                } else {
+                    setHasMore(false);
+                }
+            }
+        } catch (err) {
+            console.error('Error loading more:', err);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
     const fetchStatsTotal = async () => {
         // Stats are now computed directly inside fetchRegistros
     };
