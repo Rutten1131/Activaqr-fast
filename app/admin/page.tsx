@@ -335,38 +335,32 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             const adminKey = localStorage.getItem('admin_access_key') || '';
-            // Fetch sellers list first if empty to calculate commissions accurately
+            const [sRes, rRes] = await Promise.all([
+                fetch('/api/admin/sellers', { headers: { 'x-admin-key': adminKey } }),
+                fetch('/api/admin/registros?page=1&limit=10000', { headers: { 'x-admin-key': adminKey } })
+            ]);
+
             let currentSellers = sellers;
-            if (currentSellers.length === 0) {
-                const sRes = await fetch('/api/admin/sellers', { headers: { 'x-admin-key': adminKey } });
-                if (sRes.ok) {
-                    const sData = await sRes.json();
-                    currentSellers = sData.data || [];
-                    setSellers(currentSellers);
-                }
+            if (sRes.ok) {
+                const sData = await sRes.json().catch(() => ({}));
+                currentSellers = sData.data || [];
+                setSellers(currentSellers);
             }
 
-            // Load records client-side
-            const url = `/api/admin/registros?page=1&limit=10000`;
-            const res = await fetch(url, {
-                headers: { 'x-admin-key': adminKey }
-            });
-            if (!res.ok) {
-                const result = await res.json().catch(() => ({}));
-                console.error('Admin API Error:', result);
-                alert(`Error cargando registros: ${result.error || res.statusText}`);
-                return;
-            }
-            const result = await res.json();
-            if (result.data) {
-                setRegistros(result.data);
-                setTotalCount(result.data.length);
-                setHasMore(false);
-                calculateAndSetStats(result.data, currentSellers);
+            if (rRes.ok) {
+                const rData = await rRes.json().catch(() => ({}));
+                if (rData.data) {
+                    setRegistros(rData.data);
+                    setTotalCount(rData.data.length);
+                    setHasMore(false);
+                    calculateAndSetStats(rData.data, currentSellers);
+                }
+            } else {
+                const errData = await rRes.json().catch(() => ({}));
+                console.error('Admin API Error:', errData);
             }
         } catch (err: any) {
             console.error('Error fetching registros:', err);
-            alert(`Error de conexión: ${err.message}`);
         } finally {
             setLoading(false);
         }

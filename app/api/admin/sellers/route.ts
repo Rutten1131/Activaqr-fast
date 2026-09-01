@@ -20,30 +20,27 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ nextCode });
         }
 
-        // Fetch sellers with their sales count
+        // Fetch sellers with their sales count using efficient aggregated joins
         const query = `
                 SELECT 
                     s.id, s.nombre, s.code as codigo, s.email, s.comision_porcentaje, s.activo, s.created_at, s.terminos_aceptados_en,
                     s.banco_nombre, s.banco_beneficiario, s.banco_numero_cuenta, s.banco_cedula, s.banco_correo, s.datos_bancarios_completados,
-                    (
-                        SELECT COUNT(*) 
-                        FROM registraya_vcard_registros r 
-                        LEFT JOIN registraya_vcard_sellers sub ON r.seller_id = sub.id
-                        WHERE r.seller_id = s.id OR sub.parent_id = s.id
-                    ) as total_ventas,
-                    (
-                        SELECT COUNT(*) 
-                        FROM registraya_vcard_registros r 
-                        LEFT JOIN registraya_vcard_sellers sub ON r.seller_id = sub.id
-                        WHERE (r.seller_id = s.id OR sub.parent_id = s.id)
-                        AND r.status IN ('pagado', 'entregado')
-                    ) as ventas_pagadas,
-                    (
-                        SELECT COUNT(*)
-                        FROM registraya_vcard_sellers
-                        WHERE parent_id = s.id
-                    ) as team_count
+                    COALESCE(direct_sales.total, 0) as total_ventas,
+                    COALESCE(direct_sales.pagadas, 0) as ventas_pagadas,
+                    COALESCE(team.count, 0) as team_count
                 FROM registraya_vcard_sellers s
+                LEFT JOIN (
+                    SELECT seller_id, COUNT(*) as total, SUM(CASE WHEN status IN ('pagado', 'entregado') THEN 1 ELSE 0 END) as pagadas
+                    FROM registraya_vcard_registros
+                    WHERE seller_id IS NOT NULL
+                    GROUP BY seller_id
+                ) direct_sales ON s.id = direct_sales.seller_id
+                LEFT JOIN (
+                    SELECT parent_id, COUNT(*) as count
+                    FROM registraya_vcard_sellers
+                    WHERE parent_id IS NOT NULL
+                    GROUP BY parent_id
+                ) team ON s.id = team.parent_id
                 ORDER BY s.nombre ASC
             `;
         const [rows] = await pool.execute(query);
