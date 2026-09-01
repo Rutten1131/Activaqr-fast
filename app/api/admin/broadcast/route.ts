@@ -110,9 +110,11 @@ export async function POST(req: NextRequest) {
             mediaUrl,
             mediaType, // 'image' | 'video' | 'audio'
             recipientIds, // array of specific IDs for this batch
+            customRecipients, // array of { id?, nombre, whatsapp, slug? }
             statuses = ['pagado', 'entregado'],
             delayMs = 5000,
             testNumber, // optional number for testing
+            testName, // optional custom test name
             dynamicQr // flag to send dynamic WhatsApp QR
         } = body;
 
@@ -122,7 +124,17 @@ export async function POST(req: NextRequest) {
 
         // Determine recipients
         let recipients: any[] = [];
-        if (testNumber) {
+        if (customRecipients && Array.isArray(customRecipients) && customRecipients.length > 0) {
+            recipients = customRecipients.map((cr: any, idx: number) => ({
+                id: cr.id || `custom-${idx}-${Date.now()}`,
+                slug: cr.slug || 'cesar-reyes-jaramillo-eu0t',
+                nombre: cr.nombre?.trim() || 'Estimado(a)',
+                whatsapp: String(cr.whatsapp || '').trim(),
+                plan: cr.plan || 'personalizado',
+                status: cr.status || 'manual'
+            })).filter((r: any) => r.whatsapp.length > 0);
+            console.log(`[Broadcast] Modo Lista Personalizada → ${recipients.length} destinatarios cargados.`);
+        } else if (testNumber) {
             // Normalize phone to search in DB (try with 0 prefix and 593 prefix)
             const normalized = testNumber.startsWith('593') ? '0' + testNumber.slice(3) : testNumber;
             const pool = (await import('@/lib/db')).default;
@@ -136,7 +148,7 @@ export async function POST(req: NextRequest) {
                 recipients = [{
                     id: tr.id,
                     slug: tr.slug,
-                    nombre: tr.nombre || tr.nombre_negocio || 'Cliente',
+                    nombre: testName || tr.nombre || tr.nombre_negocio || 'Cliente',
                     whatsapp: testNumber,
                     plan: 'test',
                     status: 'test'
@@ -147,7 +159,7 @@ export async function POST(req: NextRequest) {
                 recipients = [{
                     id: 'test-id',
                     slug: 'cesar-reyes-jaramillo-eu0t',
-                    nombre: 'César',
+                    nombre: testName || 'César',
                     whatsapp: testNumber,
                     plan: 'test',
                     status: 'test'

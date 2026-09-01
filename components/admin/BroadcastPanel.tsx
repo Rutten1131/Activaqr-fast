@@ -55,13 +55,215 @@ export default function BroadcastPanel({ onClose, adminKey }: BroadcastPanelProp
     const [logs, setLogs] = useState<string[]>([]);
     const [showConfirm, setShowConfirm] = useState(false);
 
-    // Test Mode states
-    const [isTestMode, setIsTestMode] = useState(true);
+    // Audience Mode: 'test' | 'registered' | 'custom'
+    const [audienceMode, setAudienceMode] = useState<'test' | 'registered' | 'custom'>('test');
     const [testNumber, setTestNumber] = useState("593967491847");
+    const [testName, setTestName] = useState("César Reyes");
+    const [customText, setCustomText] = useState("");
+    const [customList, setCustomList] = useState<Recipient[]>([]);
 
     // Ecuador clock state
     const [ecuadorTime, setEcuadorTime] = useState("");
     const [isWithinSchedule, setIsWithinSchedule] = useState(true);
+
+    // Helper: Robust CSV & text parser (Supports Google Contacts CSV, Outlook, Excel & plain lists)
+    const parseContacts = (raw: string): Recipient[] => {
+        if (!raw || !raw.trim()) return [];
+
+        // 1. Parse CSV with quotes handling
+        const parseCSV = (text: string): string[][] => {
+            const rows: string[][] = [];
+            let currentRow: string[] = [];
+            let currentField = '';
+            let insideQuotes = false;
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+
+                if (char === '"') {
+                    if (insideQuotes && nextChar === '"') {
+                        currentField += '"';
+                        i++;
+                    } else {
+                        insideQuotes = !insideQuotes;
+                    }
+                } else if (char === ',' && !insideQuotes) {
+                    currentRow.push(currentField.trim());
+                    currentField = '';
+                } else if ((char === '\r' || char === '\n') && !insideQuotes) {
+                    if (char === '\r' && nextChar === '\n') i++;
+                    currentRow.push(currentField.trim());
+                    if (currentRow.some(c => c.length > 0)) {
+                        rows.push(currentRow);
+                    }
+                    currentRow = [];
+                    currentField = '';
+                } else {
+                    currentField += char;
+                }
+            }
+
+            if (currentField || currentRow.length > 0) {
+                currentRow.push(currentField.trim());
+                if (currentRow.some(c => c.length > 0)) {
+                    rows.push(currentRow);
+                }
+            }
+
+            return rows;
+        };
+
+        const rows = parseCSV(raw);
+        if (rows.length === 0) return [];
+
+        const list: Recipient[] = [];
+        const header = rows[0].map(h => h.toLowerCase());
+
+        // Check if row 0 is a Google Contacts or standard CSV header
+        const firstNameIdx = header.findIndex(h => /first\s*name|primer\s*nombre|^nombre$/i.test(h));
+        const middleNameIdx = header.findIndex(h => /middle\s*name|segundo\s*nombre/i.test(h));
+        const lastNameIdx = header.findIndex(h => /last\s*name|apellido/i.test(h));
+        const orgIdx = header.findIndex(h => /organization\s*name|empresa|negocio|company/i.test(h));
+        
+        // Look for phone columns
+        const phoneIdxs = header.map((h, i) => 
+            /phone|telefono|teléfono|celular|whatsapp|mobile|móvil/i.test(h) ? i : -1
+        ).filter(i => i !== -1);
+
+        const isStructuredHeader = firstNameIdx !== -1 || phoneIdxs.length > 0 || orgIdx !== -1;
+
+        if (isStructuredHeader && rows.length > 1) {
+            // Structured CSV Mode (e.g. Google Contacts)
+            for (let r = 1; r < rows.length; r++) {
+                const row = rows[r];
+                if (row.length === 0) continue;
+
+                // Extract name
+                const firstName = firstNameIdx !== -1 ? row[firstNameIdx] : '';
+                const middleName = middleNameIdx !== -1 ? row[middleNameIdx] : '';
+                const lastName = lastNameIdx !== -1 ? row[lastNameIdx] : '';
+                const orgName = orgIdx !== -1 ? row[orgIdx] : '';
+                
+                let name = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
+                if (!name && orgName) name = orgName.trim();
+
+                // Extract phone number from designated phone columns or search entire row
+                let phone = '';
+                for (const pIdx of phoneIdxs) {
+                    if (row[pIdx]) {
+                        const digits = row[pIdx].replace(/\D/g, '');
+                        if (digits.length >= 8) {
+                            phone = row[pIdx].trim();
+                            break;
+                        }
+                    }
+                }
+
+                // If not found in known phone columns, search any cell in the row
+                if (!phone) {
+                    for (const cell of row) {
+                        const digits = cell.replace(/\D/g, '');
+                        if (digits.length >= 8 && digits.length <= 15 && (cell.startsWith('+') || cell.startsWith('0') || cell.startsWith('593') || cell.includes('-'))) {
+                            phone = cell.trim();
+                            break;
+                        }
+                    }
+                }
+
+                if (phone) {
+                    const cleanDigits = phone.replace(/\D/g, '');
+                    if (cleanDigits.length >= 8) {
+                        list.push({
+                            id: `custom-${r}-${Date.now()}`,
+                            nombre: name || `Contacto ${r}`,
+                            whatsapp: phone,
+                            plan: 'manual',
+                            status: 'manual'
+                        });
+                    }
+                }
+            }
+        } else {
+            // Plain text or simple 2-column format (e.g. "Juan Perez, 0991234567")
+            const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            lines.forEach((line, idx) => {
+                if (/^(first\s*name|nombre|name|cliente|telefono|phone|whatsapp)/i.test(line)) return;
+
+                let name = "";
+                let phone = "";
+
+                if (line.includes(",") || line.includes(";") || line.includes("\t")) {
+                    const parts = line.split(/[,;\t]/).map(p => p.trim().replace(/^["']|["']$/g, ''));
+                    if (parts.length >= 2) {
+                        const part0Digits = parts[0].replace(/\D/g, "");
+                        const part1Digits = parts[1].replace(/\D/g, "");
+
+                        if (part0Digits.length >= 8 && part1Digits.length < 8) {
+                            phone = parts[0];
+                            name = parts[1];
+                        } else {
+                            name = parts[0];
+                            phone = parts[1];
+                        }
+                    }
+                } else {
+                    phone = line;
+                    name = `Contacto ${idx + 1}`;
+                }
+
+                const cleanDigits = phone.replace(/\D/g, "");
+                if (cleanDigits.length >= 8) {
+                    list.push({
+                        id: `custom-${idx}-${Date.now()}`,
+                        nombre: name || `Contacto ${idx + 1}`,
+                        whatsapp: phone,
+                        plan: 'manual',
+                        status: 'manual'
+                    });
+                }
+            });
+        }
+
+        return list;
+    };
+
+    // Parse custom text whenever it changes
+    useEffect(() => {
+        if (audienceMode === 'custom') {
+            const parsed = parseContacts(customText);
+            setCustomList(parsed);
+            setRecipients(parsed);
+        }
+    }, [customText, audienceMode]);
+
+    // Handle CSV / TXT upload for custom contacts
+    const handleCustomFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const content = event.target?.result as string;
+            if (content) {
+                setCustomText(content);
+                addLog(`📂 Archivo de contactos cargado: ${file.name}`);
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    // Download sample CSV template
+    const downloadSampleCSV = () => {
+        const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent("Nombre,Telefono\nCarlos Gomez,0991234567\nMaria Perez,+593987654321\nJuan Lopez,0985551234");
+        const link = document.createElement("a");
+        link.setAttribute("href", csvContent);
+        link.setAttribute("download", "ejemplo_contactos_activaqr.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        addLog("📥 Plantilla CSV de ejemplo descargada.");
+    };
 
     // Update Ecuador clock every second
     useEffect(() => {
@@ -84,22 +286,24 @@ export default function BroadcastPanel({ onClose, adminKey }: BroadcastPanelProp
         return () => clearInterval(interval);
     }, []);
 
-    // Load preview audience when statuses change or test mode toggles
+    // Load preview audience when mode, filters or test settings change
     useEffect(() => {
-        if (isTestMode) {
+        if (audienceMode === 'test') {
             setRecipients([{
                 id: 'test-id',
-                nombre: 'Cliente de Prueba (Tú)',
+                nombre: testName || 'Cliente de Prueba',
                 whatsapp: testNumber,
                 plan: 'test',
                 status: 'test'
             }]);
+        } else if (audienceMode === 'custom') {
+            setRecipients(customList);
         } else if (selectedStatuses.length > 0) {
             fetchPreview();
         } else {
             setRecipients([]);
         }
-    }, [selectedStatuses, selectedPlans, isTestMode, testNumber]);
+    }, [audienceMode, selectedStatuses, selectedPlans, testNumber, testName, customList]);
 
     const fetchPreview = async () => {
         setLoadingAudience(true);
@@ -260,10 +464,12 @@ export default function BroadcastPanel({ onClose, adminKey }: BroadcastPanelProp
                         mediaUrl: dynamicQr ? undefined : uploadedUrl,
                         mediaType: dynamicQr ? undefined : mediaType,
                         dynamicQr,
-                        recipientIds: isTestMode ? undefined : batch.map(r => r.id),
+                        recipientIds: audienceMode === 'registered' ? batch.map(r => r.id) : undefined,
+                        customRecipients: audienceMode === 'custom' ? batch.map(r => ({ id: r.id, nombre: r.nombre, whatsapp: r.whatsapp })) : undefined,
                         statuses: selectedStatuses,
                         delayMs,
-                        testNumber: isTestMode ? testNumber : undefined
+                        testNumber: audienceMode === 'test' ? testNumber : undefined,
+                        testName: audienceMode === 'test' ? testName : undefined
                     })
                 });
 
@@ -299,7 +505,7 @@ export default function BroadcastPanel({ onClose, adminKey }: BroadcastPanelProp
             }
 
             // If test mode, only one batch (1 recipient)
-            if (isTestMode) break;
+            if (audienceMode === 'test') break;
 
             // Pause between batches (except after the last one)
             if (batchIdx < batches.length - 1) {
@@ -368,46 +574,135 @@ export default function BroadcastPanel({ onClose, adminKey }: BroadcastPanelProp
                             <div>
                                 <div className="flex justify-between items-center mb-3">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-primary block">1. Audiencia / Destinatarios</label>
+                                </div>
+
+                                {/* Mode Switcher Tabs */}
+                                <div className="grid grid-cols-3 gap-1.5 p-1 bg-white/5 border border-white/10 rounded-2xl mb-4">
                                     <button
                                         type="button"
-                                        onClick={() => setIsTestMode(!isTestMode)}
-                                        className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
-                                            isTestMode
-                                                ? "bg-red-500/10 text-red-500 border-red-500/30"
-                                                : "bg-white/5 text-white/50 border-white/10 hover:bg-white/10"
+                                        disabled={sending}
+                                        onClick={() => setAudienceMode('test')}
+                                        className={`py-2 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all text-center ${
+                                            audienceMode === 'test'
+                                                ? 'bg-red-500/20 text-red-400 border border-red-500/30 shadow-lg'
+                                                : 'text-white/40 hover:text-white'
                                         }`}
                                     >
-                                        {isTestMode ? "Modo Prueba: ON" : "Probar en mi número"}
+                                        🧪 Probar Mi Número
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={sending}
+                                        onClick={() => setAudienceMode('custom')}
+                                        className={`py-2 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all text-center ${
+                                            audienceMode === 'custom'
+                                                ? 'bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/30 shadow-lg'
+                                                : 'text-white/40 hover:text-white'
+                                        }`}
+                                    >
+                                        📋 Lista Manual / CSV
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={sending}
+                                        onClick={() => setAudienceMode('registered')}
+                                        className={`py-2 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all text-center ${
+                                            audienceMode === 'registered'
+                                                ? 'bg-green-500/20 text-green-400 border border-green-500/30 shadow-lg'
+                                                : 'text-white/40 hover:text-white'
+                                        }`}
+                                    >
+                                        👥 Clientes BD
                                     </button>
                                 </div>
 
-                                {isTestMode ? (
+                                {audienceMode === 'test' && (
                                     <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-4 space-y-3">
                                         <p className="text-[10px] text-white/50 font-bold uppercase tracking-wider">Enviar únicamente a tu WhatsApp de pruebas:</p>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="text"
-                                                value={testNumber}
-                                                onChange={(e) => setTestNumber(e.target.value)}
-                                                placeholder="Ej: 593967491847"
-                                                disabled={sending}
-                                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-mono text-white outline-none focus:border-red-500/40"
-                                            />
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="text-[9px] text-white/40 font-bold uppercase tracking-widest block mb-1">Nombre Prueba:</label>
+                                                <input
+                                                    type="text"
+                                                    value={testName}
+                                                    onChange={(e) => setTestName(e.target.value)}
+                                                    placeholder="Ej: César Reyes"
+                                                    disabled={sending}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-red-500/40"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] text-white/40 font-bold uppercase tracking-widest block mb-1">WhatsApp:</label>
+                                                <input
+                                                    type="text"
+                                                    value={testNumber}
+                                                    onChange={(e) => setTestNumber(e.target.value)}
+                                                    placeholder="Ej: 593967491847"
+                                                    disabled={sending}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none focus:border-red-500/40"
+                                                />
+                                            </div>
                                         </div>
                                         <p className="text-[9px] text-white/30">
-                                            Evita molestar a los clientes reales. Toda la lógica del broadcast (plantillas, Evolution API, Bunny CDN) se ejecutará enviándote el mensaje a ti.
+                                            Ideal para verificar cómo llega la plantilla, saltos de línea y archivos multimedia antes de enviar a clientes.
                                         </p>
                                     </div>
-                                ) : (
-                                    <>
-                                        <div className="flex gap-4">
+                                )}
+
+                                {audienceMode === 'custom' && (
+                                    <div className="bg-[#00F0FF]/5 border border-[#00F0FF]/20 rounded-2xl p-4 space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <p className="text-[10px] text-[#00F0FF] font-black uppercase tracking-wider">Pegar o Subir Contactos:</p>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={downloadSampleCSV}
+                                                    className="bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-lg text-[9px] font-bold text-white/70 hover:text-white flex items-center gap-1 transition-all"
+                                                >
+                                                    📥 Descargar Ejemplo
+                                                </button>
+                                                <label className="cursor-pointer bg-[#00F0FF]/10 hover:bg-[#00F0FF]/20 border border-[#00F0FF]/30 text-[#00F0FF] px-2.5 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1.5 transition-all">
+                                                    <Upload size={12} />
+                                                    Subir CSV / TXT
+                                                    <input
+                                                        type="file"
+                                                        accept=".csv,.txt"
+                                                        className="hidden"
+                                                        onChange={handleCustomFileUpload}
+                                                        disabled={sending}
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <textarea
+                                            value={customText}
+                                            onChange={(e) => setCustomText(e.target.value)}
+                                            placeholder={"Formato por línea:\nJuan Perez, 0991234567\nMaría Gómez, 593987654321\n0985551234"}
+                                            rows={4}
+                                            disabled={sending}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs font-mono text-white placeholder-white/20 outline-none focus:border-[#00F0FF]/40 resize-none"
+                                        />
+
+                                        <div className="flex justify-between items-center text-[9px] text-white/40">
+                                            <span>Formatos: <strong className="text-white/60">Nombre, Teléfono</strong> o solo <strong className="text-white/60">Teléfono</strong></span>
+                                            {customList.length > 0 && (
+                                                <span className="text-[#00F0FF] font-bold">✓ {customList.length} contactos detectados</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {audienceMode === 'registered' && (
+                                    <div className="space-y-4">
+                                        <div className="flex gap-2 flex-wrap">
                                             {["pagado", "entregado", "pendiente"].map((status) => (
                                                 <button
                                                     key={status}
                                                     type="button"
                                                     disabled={sending}
                                                     onClick={() => handleStatusToggle(status)}
-                                                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all flex items-center gap-2 ${
+                                                    className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest border transition-all flex items-center gap-2 ${
                                                         selectedStatuses.includes(status)
                                                             ? status === 'pendiente' 
                                                                 ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/30" 
@@ -424,14 +719,14 @@ export default function BroadcastPanel({ onClose, adminKey }: BroadcastPanelProp
                                                 </button>
                                             ))}
                                         </div>
-                                        <div className="flex flex-wrap gap-4 mt-4">
+                                        <div className="flex flex-wrap gap-2">
                                             {["digital", "catalog", "pro", "business"].map((plan) => (
                                                 <button
                                                     key={plan}
                                                     type="button"
                                                     disabled={sending}
                                                     onClick={() => handlePlanToggle(plan)}
-                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all ${
+                                                    className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all ${
                                                         selectedPlans.includes(plan)
                                                             ? "bg-primary/20 text-primary border-primary/40"
                                                             : "bg-white/5 text-white/30 border-white/10 hover:bg-white/10"
@@ -441,7 +736,7 @@ export default function BroadcastPanel({ onClose, adminKey }: BroadcastPanelProp
                                                 </button>
                                             ))}
                                         </div>
-                                        <div className="mt-4 flex items-center gap-3">
+                                        <div className="flex items-center gap-3">
                                             <label className="text-[10px] font-black uppercase tracking-widest text-white/50">Límite de envíos:</label>
                                             <input
                                                 type="number"
@@ -450,16 +745,16 @@ export default function BroadcastPanel({ onClose, adminKey }: BroadcastPanelProp
                                                 onChange={(e) => setSendLimit(e.target.value === '' ? '' : parseInt(e.target.value))}
                                                 placeholder="Todos"
                                                 disabled={sending}
-                                                className="w-24 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs font-mono text-white outline-none focus:border-primary/40"
+                                                className="w-24 bg-white/5 border border-white/10 rounded-lg px-3 py-1 text-xs font-mono text-white outline-none focus:border-primary/40"
                                             />
                                         </div>
                                         {statusFilterWarning(selectedStatuses) && (
-                                            <div className="mt-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-xl p-3 flex gap-2 items-start text-[10px]">
+                                            <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-xl p-3 flex gap-2 items-start text-[10px]">
                                                 <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                                                 <span>Recomendamos enviar solo a <strong>pagado</strong> o <strong>entregado</strong> para evitar spam no deseado.</span>
                                             </div>
                                         )}
-                                    </>
+                                    </div>
                                 )}
                             </div>
 
