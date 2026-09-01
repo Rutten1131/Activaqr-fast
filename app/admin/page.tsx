@@ -1486,25 +1486,24 @@ export default function AdminDashboard() {
             // --- Smart fuzzy search across all relevant fields ---
             let matchesSearch = true;
             if (term) {
-                const fields = [
-                    r.nombre || '',
-                    r.email || '',
-                    r.slug || '',
-                    r.whatsapp || r.telefono || '',
-                    r.plan || '',
-                    r.status || '',
-                    String(r.id || ''),
-                    r.profesion || '',
-                    r.nombre_negocio || '',
-                    r.etiquetas || '',
-                    r.productos_servicios || '',
-                    r.bio || '',
-                ].map(f => f.toLowerCase());
-                // Match if ALL space-separated words appear in any field
+                const searchString = [
+                    r.nombre,
+                    r.email,
+                    r.slug,
+                    r.whatsapp,
+                    r.telefono,
+                    r.plan,
+                    r.status,
+                    r.id,
+                    r.profesion,
+                    r.nombre_negocio,
+                    typeof r.etiquetas === 'string' ? r.etiquetas : JSON.stringify(r.etiquetas || ''),
+                    typeof r.productos_servicios === 'string' ? r.productos_servicios : JSON.stringify(r.productos_servicios || ''),
+                    r.bio
+                ].filter(Boolean).join(' ').toLowerCase();
+
                 const words = term.split(/\s+/).filter(Boolean);
-                matchesSearch = words.every(word =>
-                    fields.some(f => f.includes(word))
-                );
+                matchesSearch = words.every(word => searchString.includes(word));
             }
 
             // --- Status filter ---
