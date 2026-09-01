@@ -22,7 +22,8 @@ const HIDDEN_LAYOUT_ROUTES = [
     '/menu',
     '/solidario-nestor',
     '/feria',
-    '/feria-loja'
+    '/feria-loja',
+    '/admin'
 ];
 
 

@@ -1629,15 +1629,11 @@ export default function AdminDashboard() {
     if (!isAuthorized) {
         return (
             <div className="min-h-screen bg-navy flex items-center justify-center p-6">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="max-w-md w-full glass-card p-12 text-center"
-                >
+                <div className="max-w-md w-full glass-card p-12 text-center relative z-10 shadow-2xl border border-white/10 rounded-[32px]">
                     <div className="w-20 h-20 bg-primary/20 text-primary rounded-full flex items-center justify-center mx-auto mb-8">
                         <ShieldAlert size={40} />
                     </div>
-                    <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-8">Acceso Restringido</h2>
+                    <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-8 text-white">Acceso Restringido</h2>
                     <form onSubmit={handleLogin} className="space-y-6">
                         {/* Accessible username field (hidden) */}
                         <input type="text" name="username" autoComplete="username" style={{ display: 'none' }} defaultValue="admin" />
@@ -1647,13 +1643,13 @@ export default function AdminDashboard() {
                             autoComplete="current-password"
                             value={accessKey}
                             onChange={(e) => setAccessKey(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-primary/40 text-center font-bold text-white"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-primary/40 text-center font-bold text-white placeholder-white/40"
                         />
-                        <button type="submit" className="w-full bg-primary py-4 rounded-2xl font-black uppercase tracking-widest shadow-orange">
+                        <button type="submit" className="w-full bg-primary py-4 rounded-2xl font-black uppercase tracking-widest text-navy shadow-orange hover:brightness-110 transition-all">
                             Entrar
                         </button>
                     </form>
-                </motion.div>
+                </div>
             </div>
         );
     }
