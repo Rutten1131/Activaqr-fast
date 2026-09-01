@@ -269,7 +269,7 @@ export default function AdminDashboard() {
                 headers: { 'x-admin-key': adminKey }
             });
             if (!res.ok) {
-                const result = await res.json();
+                const result = await res.json().catch(() => ({}));
                 console.error('Admin API Error:', result);
                 alert(`Error cargando registros: ${result.error || res.statusText}`);
                 return;
@@ -283,8 +283,9 @@ export default function AdminDashboard() {
         } catch (err: any) {
             console.error('Error fetching registros:', err);
             alert(`Error de conexión: ${err.message}`);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const loadMoreRegistros = () => {
