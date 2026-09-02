@@ -6,9 +6,13 @@ export const dynamic = 'force-dynamic';
 // Increase max duration for broadcast (Vercel Pro = 60s)
 export const maxDuration = 60;
 
-const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
-const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY;
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE;
+function getEvolutionConfig() {
+    return {
+        apiUrl: process.env.EVOLUTION_API_URL || 'http://178.238.238.158:8080',
+        apiKey: process.env.EVOLUTION_API_KEY || '42a447c1-3d74-4b52-9571-042c174f7621',
+        instance: process.env.EVOLUTION_INSTANCE || 'barber_593963410409'
+    };
+}
 
 /**
  * GET: Preview — returns count and list of recipients based on status filter
@@ -67,26 +71,19 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST: Send broadcast message to a specific batch of recipients
- * Body: { message, mediaUrl?, mediaType?, recipientIds?, statuses?, delayMs?, testNumber? }
- * 
- * The frontend controls batching:
- *   - Fetches all recipients via GET
- *   - Splits into micro-batches of 5-10
- *   - Calls POST for each batch with recipientIds[]
- *   - Waits 15-30s between batches
  */
 export async function POST(req: NextRequest) {
     const auth = requireAdmin(req);
     if (auth) return auth;
 
-    // Validate Ecuador business hours (8:00 AM - 6:00 PM ECT)
+    // Validate Ecuador business hours (8:00 AM - 8:00 PM ECT)
     const ecuadorNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
     const ecuadorHour = ecuadorNow.getHours();
     const ecuadorMinutes = ecuadorNow.getMinutes();
     const timeStr = `${ecuadorHour.toString().padStart(2, '0')}:${ecuadorMinutes.toString().padStart(2, '0')}`;
 
     if (ecuadorHour < 8 || ecuadorHour >= 20) {
-        console.log(`[Broadcast] Bloqueado: hora actual en Ecuador = ${timeStr} (fuera de 08:00-18:00)`);
+        console.log(`[Broadcast] Bloqueado: hora actual en Ecuador = ${timeStr} (fuera de 08:00-20:00)`);
         return NextResponse.json({
             error: `Fuera de horario permitido. Hora actual en Ecuador: ${timeStr}. Solo se permite enviar entre 08:00 y 20:00.`,
             ecuadorTime: timeStr,
@@ -94,7 +91,9 @@ export async function POST(req: NextRequest) {
         }, { status: 403 });
     }
 
-    console.log(`[Broadcast] Hora Ecuador: ${timeStr} — dentro de horario permitido.`);
+    const { apiUrl: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, instance: EVOLUTION_INSTANCE } = getEvolutionConfig();
+
+    console.log(`[Broadcast] Hora Ecuador: ${timeStr} — Destino Evolution: ${EVOLUTION_API_URL} (instancia: ${EVOLUTION_INSTANCE})`);
 
     // Validate Evolution API config
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE) {
