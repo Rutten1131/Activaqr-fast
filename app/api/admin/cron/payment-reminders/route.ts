@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
+// ⚠️ MODO MANUAL: Esta ruta SOLO se activa desde el panel admin.
+// Los recordatorios automáticos están DESACTIVADOS.
+
 const CESAR_ID = 11;
-const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
-const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY;
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE;
+
+function getEvolutionConfig() {
+    return {
+        apiUrl: process.env.EVOLUTION_API_URL || 'http://178.238.238.158:8080',
+        apiKey: process.env.EVOLUTION_API_KEY || '42a447c1-3d74-4b52-9571-042c174f7621',
+        instance: process.env.EVOLUTION_INSTANCE || 'barber_593963410409'
+    };
+}
 
 function generateVCard(user: any) {
     const escapeVCardValue = (text: string) => {
@@ -72,16 +81,11 @@ function generateVCard(user: any) {
 }
 
 export async function GET(req: NextRequest) {
-    const authHeader = req.headers.get('Authorization');
-    const cronSecret = process.env.CRON_SECRET || process.env.ADMIN_API_KEY;
+    // Solo admin autenticado puede disparar esto manualmente
+    const authError = requireAdmin(req);
+    if (authError) return authError;
 
-    const { searchParams } = new URL(req.url);
-    const isManual = searchParams.get('manual') === 'true';
-
-    // Security check
-    if (!isManual && authHeader !== `Bearer ${cronSecret}` && searchParams.get('key') !== cronSecret) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const { apiUrl: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, instance: EVOLUTION_INSTANCE } = getEvolutionConfig();
 
     try {
         console.log('[Cron-Payment] Iniciando bot de recordatorios de pago...');
