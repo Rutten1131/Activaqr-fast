@@ -76,20 +76,10 @@ export async function POST(req: NextRequest) {
     const auth = requireAdmin(req);
     if (auth) return auth;
 
-    // Validate Ecuador business hours (8:00 AM - 8:00 PM ECT)
     const ecuadorNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
     const ecuadorHour = ecuadorNow.getHours();
     const ecuadorMinutes = ecuadorNow.getMinutes();
     const timeStr = `${ecuadorHour.toString().padStart(2, '0')}:${ecuadorMinutes.toString().padStart(2, '0')}`;
-
-    if (ecuadorHour < 8 || ecuadorHour >= 20) {
-        console.log(`[Broadcast] Bloqueado: hora actual en Ecuador = ${timeStr} (fuera de 08:00-20:00)`);
-        return NextResponse.json({
-            error: `Fuera de horario permitido. Hora actual en Ecuador: ${timeStr}. Solo se permite enviar entre 08:00 y 20:00.`,
-            ecuadorTime: timeStr,
-            allowed: false
-        }, { status: 403 });
-    }
 
     const { apiUrl: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, instance: EVOLUTION_INSTANCE } = getEvolutionConfig();
 

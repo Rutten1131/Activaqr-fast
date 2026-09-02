@@ -275,10 +275,7 @@ export default function BroadcastPanel({ onClose, adminKey }: BroadcastPanelProp
                 hour12: false
             });
             setEcuadorTime(ecuadorStr);
-
-            const ecuadorDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
-            const h = ecuadorDate.getHours();
-            setIsWithinSchedule(h >= 8 && h < 20);
+            setIsWithinSchedule(true);
         };
 
         updateClock();
