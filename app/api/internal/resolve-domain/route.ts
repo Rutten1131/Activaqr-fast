@@ -13,12 +13,15 @@ export async function GET(request: NextRequest) {
 
     const cleanHost = host.split(':')[0].toLowerCase().trim();
 
+    // Normalizamos quitando www. si existe para que funcione con y sin www
+    const domainWithoutWww = cleanHost.replace(/^www\./, '');
+
     try {
         const [rows]: any = await pool.execute(
             `SELECT id, slug, plan, status, custom_domain 
              FROM registraya_vcard_registros 
-             WHERE custom_domain = ? LIMIT 1`,
-            [cleanHost]
+             WHERE custom_domain IN (?, ?) LIMIT 1`,
+            [cleanHost, domainWithoutWww]
         );
 
         if (rows && rows.length > 0) {

@@ -597,24 +597,10 @@ export default function VCardEditModal({
                 })(),
                 template_id: formData.template_id || 'classic',
                 menu_digital: (() => {
-                    if (formData.catalogo_json?.categories?.length > 0 || formData.catalogo_json?.products?.length > 0) {
-                        const cats = formData.catalogo_json.categories || [];
-                        const prods = formData.catalogo_json.products || [];
-                        return JSON.stringify(cats.map(catName => {
-                            const catProds = prods.filter(
-                                (p: any) => (p.category || p.categoria || '').toLowerCase() === catName.toLowerCase()
-                            );
-                            return {
-                                name: catName,
-                                items: catProds.map((p: any) => ({
-                                    id: p.id,
-                                    name: p.name || p.titulo || 'Plato',
-                                    price: p.price || p.precio || '',
-                                    desc: p.description || p.descripcion || '',
-                                    image: (p.images && p.images[0]) || p.image || p.foto || '',
-                                }))
-                            };
-                        }));
+                    // Si el usuario tiene plan catálogo o plantilla hedkandi, o no está editando explícitamente menú tradicional de restaurantes,
+                    // NO sintetizar menu_digital para evitar activar accidentalmente la sección 'NUESTRA CARTA' (MenuTabs).
+                    if (userData?.plan === 'catalog' || formData.template_id === 'hedkandi' || formData.template_id === 'showcase') {
+                        return null;
                     }
                     if (menuCategories.length > 0) {
                         return JSON.stringify(menuCategories.map(cat => ({
@@ -638,7 +624,7 @@ export default function VCardEditModal({
                             })
                         })));
                     }
-                    return formData.menu_digital;
+                    return formData.menu_digital || null;
                 })(),
                 // Asegurar que json_override sea string para la API
                 json_override: typeof formData.json_override === 'object' 
@@ -1266,7 +1252,7 @@ export default function VCardEditModal({
     const marqueeText = (() => {
         const raw = formData.json_override;
         const parsed = typeof raw === 'string' ? safeParse(raw, {}) : (raw || {});
-        return parsed.marqueeText || formData.nombre_negocio || '';
+        return parsed.marqueeText !== undefined ? parsed.marqueeText : '';
     })();
 
     const updateMarqueeText = (text: string) => {
@@ -2063,11 +2049,36 @@ export default function VCardEditModal({
                                                 >
                                                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         {/* Video Promocional */}
-                                                        <div className="col-span-full space-y-1">
+                                                        <div className="col-span-full space-y-2">
                                                             <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest decoration-primary decoration-2 underline-offset-4 flex items-center gap-2">
-                                                                <Video size={14} /> Video Promocional (YouTube, TikTok, IG, FB)
+                                                                <Video size={14} /> Video Promocional (YouTube, TikTok, IG, FB o MP4)
                                                             </label>
                                                             <input className="w-full border rounded-lg p-3 text-gray-900 text-sm font-bold bg-gray-50 border-indigo-200" value={formData.youtube_video_url} onChange={(e) => setFormData({ ...formData, youtube_video_url: e.target.value })} placeholder="Pega aquí el link de YouTube, TikTok, Instagram o Facebook..." />
+                                                            <div className="flex items-center gap-3 pt-1">
+                                                                <label className="text-[9px] font-black uppercase text-gray-400">Orientación:</label>
+                                                                <select
+                                                                    className="border border-indigo-200 rounded-lg px-2.5 py-1 text-xs font-bold text-gray-700 bg-white"
+                                                                    value={formData.youtube_video_url?.includes('aspect=vertical') ? 'vertical' : (formData.youtube_video_url?.includes('aspect=horizontal') ? 'horizontal' : 'auto')}
+                                                                    onChange={e => {
+                                                                        const aspect = e.target.value;
+                                                                        let url = formData.youtube_video_url || '';
+                                                                        if (!url) return;
+                                                                        try {
+                                                                            const urlObj = new URL(url);
+                                                                            if (aspect === 'auto') urlObj.searchParams.delete('aspect');
+                                                                            else urlObj.searchParams.set('aspect', aspect);
+                                                                            setFormData({ ...formData, youtube_video_url: urlObj.toString() });
+                                                                        } catch {
+                                                                            // Si no es URL parseable directamente
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <option value="auto">Auto (detectar)</option>
+                                                                    <option value="vertical">Vertical (9:16)</option>
+                                                                    <option value="horizontal">Horizontal (16:9)</option>
+                                                                </select>
+                                                                <span className="text-[9px] text-gray-400 font-medium">Recomendado para videos directos o formato móvil</span>
+                                                            </div>
                                                         </div>
 
                                                         {/* Redes Sociales */}
@@ -2343,7 +2354,7 @@ export default function VCardEditModal({
                                                                     className="w-full border rounded-xl p-3 text-gray-900 text-sm font-bold bg-gray-50 focus:ring-2 focus:ring-pink-500/20 outline-none transition-all"
                                                                     value={marqueeText}
                                                                     onChange={(e) => updateMarqueeText(e.target.value)}
-                                                                    placeholder={formData.nombre_negocio || "Nombre de tu negocio"}
+                                                                    placeholder={formData.nombre_negocio || userData?.nombre || "Nombre de tu negocio"}
                                                                 />
                                                                 <p className="text-[10px] text-gray-400 italic mt-1">Deja vacío para usar el nombre del negocio por defecto</p>
                                                             </div>
@@ -2408,7 +2419,7 @@ export default function VCardEditModal({
                                                                         item_label_singular: itemLabelSingular,
                                                                         item_label_plural: itemLabelPlural
                                                                     },
-                                                                    json_override: JSON.stringify(updatedOv),
+                                                                    json_override: updatedOv,
                                                                 });
                                                             }}
                                                             themeColor="#FF5C00"

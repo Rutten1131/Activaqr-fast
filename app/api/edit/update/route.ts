@@ -147,7 +147,8 @@ export async function POST(req: NextRequest) {
 
             // 2. Synthesize menu_digital payload from catalogo_json if needed
             let menuDigitalPayload = data.menu_digital || null;
-            if (!menuDigitalPayload && data.catalogo_json) {
+            const isHedkandiOrCatalog = data.template_id === 'hedkandi' || data.template_id === 'showcase' || data.plan === 'catalog';
+            if (!menuDigitalPayload && data.catalogo_json && !isHedkandiOrCatalog) {
                 try {
                     const catData = typeof data.catalogo_json === 'string' ? JSON.parse(data.catalogo_json) : data.catalogo_json;
                     if (catData && catData.categories && catData.products) {

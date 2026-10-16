@@ -14,7 +14,8 @@ import ShareButton from '@/components/ShareButton';
 import { safeParse } from '@/lib/jsonUtils';
 import MapSection from '@/components/MapSection';
 import type { ClassicTemplateProps } from '@/components/templates/types';
-import { checkIsVerticalVideo, getDirectVideoUrl } from '@/lib/videoUtils';
+import { checkIsVerticalVideo, getDirectVideoUrl, needsSocialEmbed } from '@/lib/videoUtils';
+import SocialVideoEmbed from '@/components/card/SocialVideoEmbed';
 import LimitedTimeOffer from '@/components/LimitedTimeOffer';
 
 function cn(...inputs: ClassValue[]) {
@@ -827,9 +828,10 @@ export default function ClassicTemplate({
                                             {/* Video Spotlight (AQUÍ - DEBAJO DEL CATÁLOGO) */}
                                             {(() => {
                                                 const videoUrl = data.youtube_video_url || data.youtube || data.tiktok;
+                                                const isSocial = needsSocialEmbed(videoUrl);
                                                 const embedUrl = getVideoEmbedUrl(videoUrl);
                                                 const directVideoUrl = getDirectVideoUrl(videoUrl);
-                                                if (!embedUrl && !directVideoUrl) return null;
+                                                if (!embedUrl && !directVideoUrl && !isSocial) return null;
                                                 
                                                 const isVertical = checkIsVerticalVideo(videoUrl);
                                                 return (
@@ -849,7 +851,13 @@ export default function ClassicTemplate({
                                                             "w-full rounded-[2rem] md:rounded-[3.5rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border border-white/10 bg-black/60 relative group",
                                                             isVertical ? "max-w-md mx-auto aspect-[9/16]" : "aspect-video"
                                                         )}>
-                                                            {embedUrl ? (
+                                                            {isSocial && videoUrl ? (
+                                                                <SocialVideoEmbed 
+                                                                    url={videoUrl}
+                                                                    isVertical={isVertical}
+                                                                    className="w-full h-full"
+                                                                />
+                                                            ) : embedUrl ? (
                                                                 <iframe
                                                                     width="100%"
                                                                     height="100%"

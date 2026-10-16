@@ -87,7 +87,11 @@ export async function proxy(request: NextRequest) {
         }
     }
 
-    return NextResponse.next();
+    // Para cualquier otra ruta del dominio custom, propagamos el header
+    // para que layout.tsx suprima el Navbar/Footer de ActivaQR
+    const fallback = NextResponse.next();
+    fallback.headers.set('x-custom-domain', host);
+    return fallback;
 }
 
 export const config = {

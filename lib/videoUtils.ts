@@ -25,33 +25,34 @@ export const getTikTokID = (url: string): string | null => {
     if (!url) return null;
     if (!url.includes('tiktok.com')) return null;
     
-    // Formato embed directo: https://www.tiktok.com/embed/123456789012345678
-    const embedMatch = url.match(/tiktok\.com\/embed\/(\d+)/);
+    // Limpiar posibles query params antes de regex
+    const cleanUrl = url.trim().split('?')[0].split('#')[0];
+
+    // Formato embed directo: https://www.tiktok.com/embed/123456789012345678 o /embed/v2/
+    const embedMatch = cleanUrl.match(/tiktok\.com\/embed(?:\/v2)?\/(\d+)/);
     if (embedMatch) return embedMatch[1];
     
+    // Formato player directo: https://www.tiktok.com/player/v1/123456789012345678
+    const playerMatch = cleanUrl.match(/tiktok\.com\/player\/v1\/(\d+)/);
+    if (playerMatch) return playerMatch[1];
+
     // Formato estandar: https://www.tiktok.com/@usuario/video/123456789012345678
-    const videoMatch = url.match(/\/video\/(\d+)/);
+    const videoMatch = cleanUrl.match(/\/video\/(\d+)/);
     if (videoMatch) return videoMatch[1];
     
     // Formato antiguo: /v/123456789012345678
-    const vMatch = url.match(/\/v\/(\d+)/);
+    const vMatch = cleanUrl.match(/\/v\/(\d+)/);
     if (vMatch) return vMatch[1];
     
     // Formato share largo: https://www.tiktok.com/i18n/share/{username}/{videoId}
-    const shareMatch = url.match(/tiktok\.com\/i18n\/share\/[^\/]+\/(\d+)/);
+    const shareMatch = cleanUrl.match(/tiktok\.com\/i18n\/share\/[^\/]+\/(\d+)/);
     if (shareMatch) return shareMatch[1];
     
     // Formato share simple: https://www.tiktok.com/i18n/share/{videoId}
-    const shareSimpleMatch = url.match(/tiktok\.com\/i18n\/share\/(\d+)/);
+    const shareSimpleMatch = cleanUrl.match(/tiktok\.com\/i18n\/share\/(\d+)/);
     if (shareSimpleMatch) return shareSimpleMatch[1];
     
-    // Links cortos vm.tiktok.com - NO se puede extraer ID sin hacer fetch
-    // Estos retornaran null pero el template puede intentar usar el link directo
-    if (url.includes('vm.tiktok.com') || url.includes('vt.tiktok.com')) {
-        // Retornar el URL tal cual para que el template intente embed de otra forma
-        return null;
-    }
-    
+    // Links cortos vm.tiktok.com / vt.tiktok.com requieren resolución por backend
     return null;
 };
 
@@ -165,11 +166,10 @@ export const getVideoEmbedUrl = (url: string | null | undefined): string | null 
     if (ytId) return `https://www.youtube.com/embed/${ytId}`;
 
     const ttId = getTikTokID(url);
-    if (ttId) return `https://www.tiktok.com/embed/v2/${ttId}`;
+    if (ttId) return `https://www.tiktok.com/player/v1/${ttId}`;
 
     // TikTok short links (vm.tiktok.com, vt.tiktok.com) - usar ?url= parametro
     if (url.includes('tiktok.com') && (url.includes('vm.tiktok.com') || url.includes('vt.tiktok.com'))) {
-        // TikTok acepta la URL original como parametro para resolver el video
         return `https://www.tiktok.com/embed/?url=${encodeURIComponent(url)}`;
     }
 
@@ -246,18 +246,20 @@ export const checkIsVerticalVideo = (url: string | null | undefined): boolean =>
 };
 
 /**
- * Detecta si una URL es de video (cualquier plataforma soportada o video directo).
- * Útil para auto-clasificar links pegados por el usuario en el editor.
+ * Detecta si una URL necesita ser renderizada con SocialVideoEmbed (Instagram, Facebook o TikTok).
+ * Estas redes sociales requieren un tratamiento especial con iframe seguro y botón directo en caso de bloqueo.
  */
-/**
- * Detecta si una URL necesita ser renderizada con el SDK de Meta (Instagram o Facebook).
- * Estas URLs NO funcionan con iframes crudos y necesitan los SDKs oficiales.
- */
-export const needsMetaSDKEmbed = (url: string | null | undefined): boolean => {
+export const needsSocialEmbed = (url: string | null | undefined): boolean => {
     if (!url) return false;
     const trimmed = url.trim().toLowerCase();
-    return trimmed.includes('instagram.com') || trimmed.includes('facebook.com') || trimmed.includes('fb.watch');
+    return trimmed.includes('instagram.com') || 
+           trimmed.includes('facebook.com') || 
+           trimmed.includes('fb.watch') ||
+           trimmed.includes('tiktok.com');
 };
+
+/** Compatibilidad legacy para CatalogGallery */
+export const needsMetaSDKEmbed = needsSocialEmbed;
 
 export const isVideoUrl = (url: string | null | undefined): boolean => {
     if (!url) return false;

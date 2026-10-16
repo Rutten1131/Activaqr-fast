@@ -6,6 +6,7 @@ import PWARegistration from "@/components/PWARegistration";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { HeaderWrapper, FooterWrapper, WhatsAppWidgetWrapper } from "@/components/LayoutWrapper";
+import { headers } from "next/headers";
 
 export const viewport: Viewport = {
   themeColor: '#002B49',
@@ -71,11 +72,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Si el request viene de un dominio personalizado (rewrite transparente),
+  // el middleware pone x-custom-domain. En ese caso ocultamos el layout de ActivaQR.
+  const headersList = await headers();
+  const isCustomDomain = !!headersList.get('x-custom-domain');
+
   return (
     <html lang="es" className="scroll-smooth" suppressHydrationWarning>
       <body
@@ -119,12 +125,12 @@ export default function RootLayout({
           }}
         />
         <PWARegistration />
-        <HeaderWrapper />
+        {!isCustomDomain && <HeaderWrapper />}
         {children}
-        <FooterWrapper />
-
-        <WhatsAppWidgetWrapper />
+        {!isCustomDomain && <FooterWrapper />}
+        {!isCustomDomain && <WhatsAppWidgetWrapper />}
       </body>
     </html>
   );
 }
+

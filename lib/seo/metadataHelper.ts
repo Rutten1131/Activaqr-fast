@@ -15,6 +15,7 @@ export function buildClientSeoMetadata(
     
     // Parsear json_override para verificar si hay configuraciones de SEO manuales
     let seoConfig: SeoConfig = {};
+    let customFaviconUrl: string | null = null;
     if (profile.json_override) {
         try {
             const parsed = typeof profile.json_override === 'string'
@@ -22,6 +23,9 @@ export function buildClientSeoMetadata(
                 : profile.json_override;
             if (parsed?.seo) {
                 seoConfig = parsed.seo;
+            }
+            if (parsed?.custom_favicon) {
+                customFaviconUrl = parsed.custom_favicon;
             }
         } catch {
             // ignore
@@ -32,6 +36,9 @@ export function buildClientSeoMetadata(
         ? (profile.nombre_negocio || profile.nombre)
         : profile.nombre;
 
+    // Determinar si es dominio personalizado del cliente
+    const hasCustomDomain = Boolean(profile.custom_domain && profile.custom_domain.trim() !== '');
+
     // Determinar ciudad / ubicación si está presente en dirección
     let locationSuffix = '';
     if (profile.direccion) {
@@ -41,11 +48,13 @@ export function buildClientSeoMetadata(
         }
     }
 
-    // Título optimizado
+    // Título optimizado (sin sufijo "- ActivaQR" si es custom domain)
     let title = seoConfig.customTitle;
     if (!title) {
         if (isCatalog) {
-            title = `${displayName} | Catálogo Digital & Menú${locationSuffix} - ActivaQR`;
+            title = hasCustomDomain
+                ? `${displayName} | Catálogo Digital & Servicios${locationSuffix}`
+                : `${displayName} | Catálogo Digital & Menú${locationSuffix} - ActivaQR`;
         } else {
             const niche = classification.nichedTitleSuffix;
             title = `${displayName} | ${niche}${locationSuffix} - Perfil Oficial`;
@@ -56,9 +65,11 @@ export function buildClientSeoMetadata(
     let description = seoConfig.customDescription;
     if (!description) {
         if (isCatalog) {
-            description = `Explora el catálogo oficial de ${displayName}. Descubre nuestros productos, platillos, promociones y haz tu pedido o reserva directamente por WhatsApp.`;
+            description = `Explora el catálogo oficial de ${displayName}. Descubre nuestros productos, servicios, promociones y haz tu pedido o reserva directamente por WhatsApp.`;
         } else if (profile.bio && profile.bio.length > 20) {
-            description = `${profile.bio} Contacta con ${displayName} directamente a través de su tarjeta digital interactiva ActivaQR.`;
+            description = hasCustomDomain
+                ? `${profile.bio} Contacta con ${displayName} directamente.`
+                : `${profile.bio} Contacta con ${displayName} directamente a través de su tarjeta digital interactiva ActivaQR.`;
         } else {
             const niche = classification.nichedTitleSuffix;
             description = `Conoce a ${displayName} (${niche}). Guarda mi contacto, consulta servicios, ubicación, redes y catálogo en un solo clic.`;
@@ -135,11 +146,22 @@ export function buildClientSeoMetadata(
         ? effectiveBaseUrl
         : `${baseUrl}/${isCatalog ? 'catalog' : 'card'}/${profile.slug}`;
 
+    // Determinar favicon del cliente
+    // Prioridad 1: custom_favicon definido en json_override
+    // Prioridad 2: foto_url (logo o foto de perfil del cliente) si tiene dominio propio
+    // Fallback: /favicon.ico del sistema
+    const clientFavicon = customFaviconUrl || (hasCustomDomain && profile.foto_url && profile.foto_url.startsWith('http') ? profile.foto_url : '/favicon.ico');
+
     const metadata: Metadata = {
         metadataBase: new URL(effectiveBaseUrl),
         title,
         description,
         keywords,
+        icons: {
+            icon: clientFavicon,
+            shortcut: clientFavicon,
+            apple: clientFavicon,
+        },
         alternates: {
             canonical: canonicalUrl,
             languages: {
@@ -151,7 +173,7 @@ export function buildClientSeoMetadata(
             title,
             description,
             url: canonicalUrl,
-            siteName: 'ActivaQR',
+            siteName: hasCustomDomain ? displayName : 'ActivaQR',
             locale: 'es_EC',
             type: isCatalog ? 'website' : 'profile',
             images: ogImages,

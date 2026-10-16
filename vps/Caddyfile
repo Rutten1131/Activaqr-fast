@@ -1,0 +1,90 @@
+178.238.238.158.sslip.io {
+    encode gzip zstd
+
+    handle /_next/static/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        reverse_proxy localhost:3000
+    }
+
+    reverse_proxy localhost:3000
+}
+
+activaqr.178.238.238.158.sslip.io, activaqr.com, www.activaqr.com {
+    encode gzip zstd
+
+    handle /_next/static/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        reverse_proxy localhost:3001
+    }
+
+    reverse_proxy localhost:3001
+}
+
+crm.178.238.238.158.sslip.io {
+    encode gzip zstd
+
+    handle /_next/static/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        reverse_proxy localhost:3002
+    }
+
+    reverse_proxy localhost:3002
+}
+
+scraper.178.238.238.158.sslip.io {
+    encode gzip zstd
+    reverse_proxy localhost:8000
+}
+
+sastreriacarlospoma.com, www.sastreriacarlospoma.com, carlospoma.178.238.238.158.sslip.io {
+    encode gzip zstd
+    reverse_proxy localhost:4001
+}
+
+# Agenda Cultural Loja Webhook Bot
+agenda-bot.178.238.238.158.sslip.io {
+    encode gzip zstd
+    reverse_proxy localhost:8092
+}
+
+# FreeLLMAPI - gateway de IA
+ai.178.238.238.158.sslip.io {
+    encode gzip zstd
+
+    handle /v1/* {
+        reverse_proxy localhost:3010
+    }
+    handle /v1beta/* {
+        reverse_proxy localhost:3010
+    }
+    handle /mcp* {
+        reverse_proxy localhost:3010
+    }
+    handle {
+        respond "Not found" 404
+    }
+}
+
+# LibreriaQR - SaaS y Chatbot WhatsApp
+libreria.178.238.238.158.sslip.io {
+    encode gzip zstd
+
+    handle /_next/static/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        reverse_proxy localhost:3003
+    }
+
+    reverse_proxy localhost:3003
+}
+
+# Catalogo Beauty Studio Isabella Jimenez
+beautystudioisabeljimenez.com, www.beautystudioisabeljimenez.com {
+    encode gzip zstd
+
+    handle /_next/static/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        reverse_proxy localhost:3001
+    }
+
+    reverse_proxy localhost:3001
+}

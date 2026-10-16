@@ -34,16 +34,17 @@ const isPlaceholderUrl = (url: string | null | undefined): boolean => {
 
 interface VCardClientProps {
     showCatalog?: boolean;
+    initialData?: any;
 }
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 
-export default function VCardClient({ showCatalog = false }: VCardClientProps) {
+export default function VCardClient({ showCatalog = false, initialData }: VCardClientProps) {
     const { slug } = useParams();
 
     // Data
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<any>(initialData ?? null);
+    const [loading, setLoading] = useState(!initialData);
 
     // UI States — Classic template
     const [isAccordionOpen, setIsAccordionOpen] = useState(false);
@@ -78,7 +79,8 @@ export default function VCardClient({ showCatalog = false }: VCardClientProps) {
 
     // ─── Data Fetching ────────────────────────────────────────────────────────
     useEffect(() => {
-        if (!slug) return;
+        // Si ya tenemos datos pre-cargados del servidor, no hacemos fetch
+        if (initialData || !slug) return;
         const fetchData = async () => {
             try {
                 const res = await fetch(`/api/profile/${slug}`);
@@ -93,7 +95,7 @@ export default function VCardClient({ showCatalog = false }: VCardClientProps) {
             }
         };
         fetchData();
-    }, [slug]);
+    }, [slug, initialData]);
 
     // ─── Color Extraction ─────────────────────────────────────────────────────
     useEffect(() => {

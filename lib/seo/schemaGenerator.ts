@@ -6,7 +6,23 @@ import { classifyBusinessProfile } from './businessClassifier';
  */
 export function generateSchemaJsonLd(profile: ClientProfileData, baseUrl: string = 'https://www.activaqr.com'): Record<string, any> {
     const classification = classifyBusinessProfile(profile);
-    const schemaType = classification.category;
+    
+    // Parsear json_override para verificar si hay configuraciones de SEO manuales
+    let seoConfig: any = {};
+    if (profile.json_override) {
+        try {
+            const parsed = typeof profile.json_override === 'string'
+                ? JSON.parse(profile.json_override)
+                : profile.json_override;
+            if (parsed?.seo) {
+                seoConfig = parsed.seo;
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    const schemaType = seoConfig.schemaCategory || classification.category;
     
     const displayName = profile.tipo_perfil === 'negocio'
         ? (profile.nombre_negocio || profile.nombre)
@@ -247,12 +263,37 @@ export function generateCombinedSchemaJsonLd(
     const businessSchema = generateSchemaJsonLd(profile, baseUrl);
     const breadcrumbSchema = generateBreadcrumbJsonLd(profile, baseUrl, isCatalog);
 
+    const graph: any[] = [businessSchema, breadcrumbSchema];
+
+    // Si existen FAQs personalizadas para el cliente (ideal para respuestas directas en Google y LLMs)
+    if (profile.json_override) {
+        try {
+            const parsed = typeof profile.json_override === 'string'
+                ? JSON.parse(profile.json_override)
+                : profile.json_override;
+            const faqs = parsed?.seo?.faqs;
+            if (Array.isArray(faqs) && faqs.length > 0) {
+                graph.push({
+                    '@context': 'https://schema.org',
+                    '@type': 'FAQPage',
+                    mainEntity: faqs.map((f: any) => ({
+                        '@type': 'Question',
+                        name: f.q || f.question,
+                        acceptedAnswer: {
+                            '@type': 'Answer',
+                            text: f.a || f.answer
+                        }
+                    }))
+                });
+            }
+        } catch {
+            // ignore
+        }
+    }
+
     return {
         '@context': 'https://schema.org',
-        '@graph': [
-            businessSchema,
-            breadcrumbSchema
-        ]
+        '@graph': graph
     };
 }
 

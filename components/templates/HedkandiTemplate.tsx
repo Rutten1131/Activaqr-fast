@@ -7,7 +7,8 @@ import { safeParse } from '@/lib/jsonUtils';
 import MapSection from '@/components/MapSection';
 import { Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { checkIsVerticalVideo, getDirectVideoUrl } from '@/lib/videoUtils';
+import { checkIsVerticalVideo, getDirectVideoUrl, needsSocialEmbed } from '@/lib/videoUtils';
+import SocialVideoEmbed from '@/components/card/SocialVideoEmbed';
 import ShareButton from '@/components/ShareButton';
 import LimitedTimeOffer from '@/components/LimitedTimeOffer';
 
@@ -483,6 +484,8 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                         const directVideoUrl = getDirectVideoUrl(videoUrl);
                         const isVertical = checkIsVerticalVideo(videoUrl);
 
+                        const isSocial = needsSocialEmbed(videoUrl);
+
                         return (
                             <motion.div
                                 initial={{ y: 40, opacity: 0 }}
@@ -491,10 +494,23 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                                 transition={{ duration: 1 }}
                                 className={cn(
                                     "w-full flex justify-center mx-auto",
-                                    embedUrl || directVideoUrl ? (isVertical ? "max-w-[450px]" : "max-w-4xl") : "max-w-[400px]"
+                                    embedUrl || directVideoUrl || isSocial ? (isVertical ? "max-w-[450px]" : "max-w-4xl") : "max-w-[400px]"
                                 )}
                             >
-                                {embedUrl ? (
+                                {isSocial && videoUrl ? (
+                                    <div className="w-full rounded-[3rem] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-black/5 bg-black/5 p-3 md:p-6">
+                                        <div className={cn(
+                                            "rounded-[2rem] overflow-hidden bg-black",
+                                            isVertical ? "aspect-[9/16]" : "aspect-video"
+                                        )}>
+                                            <SocialVideoEmbed 
+                                                url={videoUrl}
+                                                isVertical={isVertical}
+                                                className="w-full h-full"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : embedUrl ? (
                                     <div className="w-full rounded-[3rem] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-black/5 bg-black/5 p-3 md:p-6">
                                         <div className={cn(
                                             "rounded-[2rem] overflow-hidden bg-black",
@@ -802,7 +818,7 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                 <div className="animate-hedkandi-marquee whitespace-nowrap mb-12">
                     {[...Array(10)].map((_, i) => (
                         <span key={i} className="font-display-condensed text-[10rem] md:text-[15rem] leading-none text-black mx-8 uppercase italic opacity-10">
-                            {props.marqueeText || props.data?.nombre_negocio || "HEDKANDI"}
+                            {props.marqueeText || props.data?.nombre_negocio || props.data?.nombre || "HEDKANDI"}
                         </span>
                     ))}
                 </div>

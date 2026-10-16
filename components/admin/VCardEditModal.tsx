@@ -590,7 +590,7 @@ export default function VCardEditModal({
             const raw = editingRegistro?.json_override;
             parsed = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
         } catch (e) {}
-        return parsed.marqueeText || editingRegistro?.nombre_negocio || '';
+        return parsed.marqueeText !== undefined ? parsed.marqueeText : '';
     })();
 
     const updateMarqueeText = (text: string) => {

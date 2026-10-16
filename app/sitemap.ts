@@ -1,11 +1,62 @@
 import { MetadataRoute } from 'next';
 import pool from '@/lib/db';
 import { BLOG_POSTS } from '@/lib/blog-data';
+import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600; // Revalidar cada hora
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+    const headersList = await headers();
+    const rawHost = headersList.get('host') || 'www.activaqr.com';
+    const cleanHost = rawHost.split(':')[0].toLowerCase().trim();
+    const domainWithoutWww = cleanHost.replace(/^www\./, '');
+
+    const isActivaQr = cleanHost.includes('activaqr.com') || cleanHost.includes('localhost');
+
+    // ─── CASO A: DOMINIO PERSONALIZADO DE UN CLIENTE ─────────────────────────────
+    if (!isActivaQr) {
+        try {
+            const [rows]: any = await pool.execute(
+                `SELECT id, slug, plan, status, last_edited_at, created_at, json_override 
+                 FROM registraya_vcard_registros 
+                 WHERE custom_domain IN (?, ?) AND status != 'cancelado' LIMIT 1`,
+                [cleanHost, domainWithoutWww]
+            );
+
+            if (rows && rows.length > 0) {
+                const client = rows[0];
+                const clientOrigin = `https://${cleanHost}`;
+                const lastMod = client.last_edited_at 
+                    ? new Date(client.last_edited_at) 
+                    : (client.created_at ? new Date(client.created_at) : new Date());
+
+                const customSitemap: MetadataRoute.Sitemap = [
+                    {
+                        url: clientOrigin,
+                        lastModified: lastMod,
+                        changeFrequency: 'weekly',
+                        priority: 1.0,
+                    }
+                ];
+
+                if (client.plan === 'catalog' || client.plan === 'business') {
+                    customSitemap.push({
+                        url: `${clientOrigin}/catalog/${client.slug}`,
+                        lastModified: lastMod,
+                        changeFrequency: 'weekly',
+                        priority: 0.9,
+                    });
+                }
+
+                return customSitemap;
+            }
+        } catch (err) {
+            console.error('[Sitemap] Error fetching custom domain sitemap:', err);
+        }
+    }
+
+    // ─── CASO B: DOMINIO PRINCIPAL ACTIVAQR (SITEMAP COMPLETO) ──────────────────
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.activaqr.com';
 
     // 1. Páginas estáticas y de conversión

@@ -9,7 +9,8 @@ import MapSection from '@/components/MapSection';
 import CatalogGallery from '../card/CatalogGallery';
 import ShareButton from '@/components/ShareButton';
 import { BaseTemplateProps, HeroCarouselTemplateProps } from './types';
-import { checkIsVerticalVideo, getDirectVideoUrl } from '@/lib/videoUtils';
+import { checkIsVerticalVideo, getDirectVideoUrl, needsSocialEmbed } from '@/lib/videoUtils';
+import SocialVideoEmbed from '@/components/card/SocialVideoEmbed';
 import LimitedTimeOffer from '@/components/LimitedTimeOffer';
 
 
@@ -469,9 +470,10 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
             {/* NEW: VIDEO SECTION (Ahora debajo de catálogo) */}
             {(() => {
                 const videoUrl = data.video_url || data.youtube_video_url || data.youtube || data.tiktok;
+                const isSocial = needsSocialEmbed(videoUrl);
                 const embedUrl = getVideoEmbedUrl?.(videoUrl);
                 const directVideoUrl = getDirectVideoUrl(videoUrl);
-                if (!embedUrl && !directVideoUrl) return null;
+                if (!embedUrl && !directVideoUrl && !isSocial) return null;
 
                 const isVertical = checkIsVerticalVideo(videoUrl);
 
@@ -486,7 +488,13 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
                                 "relative w-full rounded-2xl overflow-hidden shadow-2xl border-4 border-white/5 mx-auto",
                                 isVertical ? "max-w-[400px] aspect-[9/16]" : "aspect-video"
                             )}>
-                                {embedUrl ? (
+                                {isSocial && videoUrl ? (
+                                    <SocialVideoEmbed 
+                                        url={videoUrl}
+                                        isVertical={isVertical}
+                                        className="w-full h-full"
+                                    />
+                                ) : embedUrl ? (
                                     <iframe 
                                         src={embedUrl} 
                                         title="Video Corporativo"
