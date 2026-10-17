@@ -21,16 +21,34 @@ const FALLBACK_EXPERIENCE_IMAGES = [
 ];
 
 export default function HedkandiTemplate(props: HedkandiTemplateProps) {
-    // Auto-play for the Hero Slider
+    // Auto-play for the Hero Slider with ref to prevent timer recreation churn
+    const currentSlideIndexRef = React.useRef(props.currentSlideIndex || 0);
     React.useEffect(() => {
-        if (props.activeSlides && props.activeSlides.length > 1) {
-            const interval = setInterval(() => {
-                const nextIndex = ((props.currentSlideIndex || 0) + 1) % props.activeSlides!.length;
-                props.setCurrentSlideIndex?.(nextIndex);
-            }, 5000);
-            return () => clearInterval(interval);
-        }
-    }, [props.activeSlides, props.currentSlideIndex, props.setCurrentSlideIndex]);
+        currentSlideIndexRef.current = props.currentSlideIndex || 0;
+    }, [props.currentSlideIndex]);
+
+    React.useEffect(() => {
+        if (!props.activeSlides || props.activeSlides.length <= 1) return;
+
+        // Preload slide images to prevent black flickers
+        props.activeSlides.forEach(slide => {
+            const urls = [
+                slide.portada_desktop,
+                slide.portada_movil,
+            ].filter((u): u is string => typeof u === 'string' && u.length > 0);
+            urls.forEach(url => {
+                const img = new Image();
+                img.src = url;
+            });
+        });
+
+        const interval = setInterval(() => {
+            const nextIndex = (currentSlideIndexRef.current + 1) % props.activeSlides!.length;
+            props.setCurrentSlideIndex?.(nextIndex);
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [props.activeSlides, props.setCurrentSlideIndex]);
  
     // State for the Experience Slider
     const [activeExpIndex, setActiveExpIndex] = React.useState(0);
@@ -121,31 +139,33 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
 
             {/* 1. HERO SECTION */}
             <section className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-end pb-4 md:pb-8 bg-[#1A1A1A]">
-                {/* Dynamic Banner Slider */}
+                {/* Dynamic Banner Slider — CSS transitions (no motion.div initial reset) */}
                 <div className="absolute inset-0 z-0">
                     {props.activeSlides && props.activeSlides.length > 0 ? (
-                        props.activeSlides.map((slide, idx) => (
-                            <motion.div
-                                key={slide.id || idx}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: props.currentSlideIndex === idx ? 1 : 0 }}
-                                transition={{ duration: 1.5, ease: "easeInOut" }}
-                                className="absolute inset-0"
-                                style={{ 
-                                    pointerEvents: props.currentSlideIndex === idx ? 'auto' : 'none'
-                                }}
-                            >
+                        props.activeSlides.map((slide, idx) => {
+                            const isCurrent = props.currentSlideIndex === idx;
+                            return (
                                 <div
-                                    className="absolute inset-0 bg-cover bg-center md:hidden"
-                                    style={{ backgroundImage: `url(${slide.portada_movil || slide.portada_desktop || props.data?.portada_movil || props.data?.portada_desktop})` }}
-                                />
-                                <div
-                                    className="absolute inset-0 bg-cover bg-center hidden md:block"
-                                    style={{ backgroundImage: `url(${slide.portada_desktop || slide.portada_movil || props.data?.portada_desktop || props.data?.portada_movil})` }}
-                                />
-
-                            </motion.div>
-                        ))
+                                    key={slide.id || idx}
+                                    className="absolute inset-0"
+                                    style={{ 
+                                        opacity: isCurrent ? 1 : 0,
+                                        zIndex: isCurrent ? 10 : 0,
+                                        transition: 'opacity 1.2s ease-in-out',
+                                        pointerEvents: isCurrent ? 'auto' : 'none'
+                                    }}
+                                >
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center md:hidden"
+                                        style={{ backgroundImage: `url(${slide.portada_movil || slide.portada_desktop || props.data?.portada_movil || props.data?.portada_desktop})` }}
+                                    />
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center hidden md:block"
+                                        style={{ backgroundImage: `url(${slide.portada_desktop || slide.portada_movil || props.data?.portada_desktop || props.data?.portada_movil})` }}
+                                    />
+                                </div>
+                            );
+                        })
                     ) : (
                         <div className="absolute inset-0">
                             <div
@@ -156,7 +176,6 @@ export default function HedkandiTemplate(props: HedkandiTemplateProps) {
                                 className="absolute inset-0 bg-cover bg-center hidden md:block"
                                 style={{ backgroundImage: `url(${props.data?.portada_desktop || props.data?.portada_movil})` }}
                             />
-
                         </div>
                     )}
                 </div>

@@ -51,7 +51,7 @@ export const DishSteamViewer: React.FC<DishSteamViewerProps> = ({
         <img
           src={src}
           alt={alt}
-          className="w-full h-full object-cover scale-130"
+          className="w-full h-full object-cover scale-105"
           loading="lazy"
         />
 
@@ -86,19 +86,19 @@ export const DishSteamViewer: React.FC<DishSteamViewerProps> = ({
         */
         @keyframes full3dOrbit {
           0% {
-            transform: scale(1.20) rotateX(16deg) rotateY(0deg) translateX(0px) translateY(0px);
+            transform: scale(1.02) rotateX(8deg) rotateY(0deg) translateX(0px) translateY(0px);
           }
           25% {
-            transform: scale(1.28) rotateX(6deg) rotateY(26deg) translateX(-30px) translateY(-12px);
+            transform: scale(1.05) rotateX(4deg) rotateY(14deg) translateX(-15px) translateY(-6px);
           }
           50% {
-            transform: scale(1.35) rotateX(-14deg) rotateY(0deg) translateX(0px) translateY(-24px);
+            transform: scale(1.08) rotateX(-8deg) rotateY(0deg) translateX(0px) translateY(-12px);
           }
           75% {
-            transform: scale(1.28) rotateX(6deg) rotateY(-26deg) translateX(30px) translateY(-12px);
+            transform: scale(1.05) rotateX(4deg) rotateY(-14deg) translateX(15px) translateY(-6px);
           }
           100% {
-            transform: scale(1.20) rotateX(16deg) rotateY(0deg) translateX(0px) translateY(0px);
+            transform: scale(1.02) rotateX(8deg) rotateY(0deg) translateX(0px) translateY(0px);
           }
         }
 

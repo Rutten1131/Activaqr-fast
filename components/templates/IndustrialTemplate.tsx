@@ -209,33 +209,36 @@ export default function IndustrialTemplate(props: HeroCarouselTemplateProps) {
                 {/* Background Image with Dark Overlay */}
                 <div className="absolute inset-0 z-0">
                     {activeSlides && activeSlides.length > 0 ? (
-                        activeSlides.map((slide, idx) => (
-                            <motion.div
-                                key={slide.id || idx}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: currentSlideIndex === idx ? 1 : 0 }}
-                                transition={{ duration: 1.5, ease: "easeInOut" }}
-                                className="absolute inset-0"
-                                style={{ 
-                                    pointerEvents: currentSlideIndex === idx ? 'auto' : 'none'
-                                }}
-                            >
+                        activeSlides.map((slide, idx) => {
+                            const isCurrent = currentSlideIndex === idx;
+                            return (
                                 <div
-                                    className="absolute inset-0 bg-cover bg-center md:hidden"
+                                    key={slide.id || idx}
+                                    className="absolute inset-0"
                                     style={{ 
-                                        backgroundImage: `url(${slide.portada_movil || slide.portada_desktop || data.foto_url})`,
-                                        opacity: 0.6
+                                        opacity: isCurrent ? 1 : 0,
+                                        zIndex: isCurrent ? 10 : 0,
+                                        transition: 'opacity 1.2s ease-in-out',
+                                        pointerEvents: isCurrent ? 'auto' : 'none'
                                     }}
-                                />
-                                <div
-                                    className="absolute inset-0 bg-cover bg-center hidden md:block"
-                                    style={{ 
-                                        backgroundImage: `url(${slide.portada_desktop || slide.portada_movil || data.foto_url})`,
-                                        opacity: 0.6
-                                    }}
-                                />
-                            </motion.div>
-                        ))
+                                >
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center md:hidden"
+                                        style={{ 
+                                            backgroundImage: `url(${slide.portada_movil || slide.portada_desktop || data.foto_url})`,
+                                            opacity: 0.6
+                                        }}
+                                    />
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center hidden md:block"
+                                        style={{ 
+                                            backgroundImage: `url(${slide.portada_desktop || slide.portada_movil || data.foto_url})`,
+                                            opacity: 0.6
+                                        }}
+                                    />
+                                </div>
+                            );
+                        })
                     ) : (
                         <>
                             <div

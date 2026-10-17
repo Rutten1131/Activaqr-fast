@@ -230,6 +230,17 @@ export default function CatalogGallery({
         setDetailQuantity(1); // Reset default qty in lightbox
         setActiveMediaType(getImages(item).length > 0 ? 'image' : 'video');
         if (onLightboxToggle) onLightboxToggle(true);
+
+        // Precargar inmediatamente todas las fotos del producto para cambio instantáneo
+        const imgs = getImages(item);
+        if (imgs.length > 1) {
+            imgs.forEach(url => {
+                if (url) {
+                    const preloadImg = new Image();
+                    preloadImg.src = url;
+                }
+            });
+        }
     };
 
     const handleCloseItem = () => {
@@ -462,59 +473,75 @@ export default function CatalogGallery({
                                         ? "h-[50vh] md:h-auto md:aspect-square" 
                                         : (current.type === 'video' ? "aspect-video md:aspect-square" : "aspect-[4/3] md:aspect-square")
                                 )}>
-                                    <div className="w-full h-full flex items-center justify-center p-1 md:p-4">
-                                        {current.type === 'video' ? (
-                                            (() => {
-                                                // Instagram y Facebook: usar SDK oficial de Meta
-                                                if (needsMetaSDKEmbed(current.url)) {
-                                                    const isVert = checkIsVerticalVideo(current.url);
-                                                    return (
-                                                        <SocialVideoEmbed
-                                                            url={current.url}
-                                                            isVertical={isVert}
-                                                            className="w-full h-full"
-                                                        />
-                                                    );
-                                                }
-                                                const embedUrl = getVideoEmbedUrl(current.url);
-                                                if (embedUrl) {
-                                                    const isVert = checkIsVerticalVideo(current.url);
-                                                    return (
-                                                        <iframe 
-                                                            src={embedUrl}
-                                                            className={cn(
-                                                                "rounded-xl md:rounded-2xl shadow-2xl mx-auto w-full h-full",
-                                                                isVert 
-                                                                    ? "max-h-[35vh] md:max-h-[60vh] aspect-[9/16]" 
-                                                                    : "aspect-video"
-                                                            )}
-                                                            allowFullScreen
-                                                            allow="autoplay; encrypted-media"
-                                                        />
-                                                    );
-                                                }
-                                                return null;
-                                            })()
-                                        ) : (
-                                            // Primera imagen en restaurante: efecto 3D orbital
-                                            (isFoodRestaurant || true) && mediaIndex === 0 ? (
-                                                <div className="w-full h-full min-h-[250px] aspect-square relative rounded-xl md:rounded-2xl overflow-hidden shadow-2xl bg-black">
-                                                    <DishSteamViewer
-                                                        src={current.url}
-                                                        alt={selectedItem.name || selectedItem.titulo}
-                                                        enableSteam={true}
-                                                        enableRotation={true}
-                                                        className="w-full h-full object-cover"
-                                                    />
+                                    <div className="w-full h-full flex items-center justify-center p-1 md:p-4 relative overflow-hidden">
+                                        {allMedia.map((m, idx) => {
+                                            const isCurrent = idx === mediaIndex;
+                                            return (
+                                                <div
+                                                    key={`${idx}-${m.type}`}
+                                                    className="absolute inset-0 w-full h-full flex items-center justify-center p-1 md:p-4"
+                                                    style={{
+                                                        opacity: isCurrent ? 1 : 0,
+                                                        zIndex: isCurrent ? 10 : 0,
+                                                        transition: 'opacity 0.25s ease-in-out',
+                                                        pointerEvents: isCurrent ? 'auto' : 'none'
+                                                    }}
+                                                >
+                                                    {m.type === 'video' ? (
+                                                        (() => {
+                                                            if (!isCurrent) return null;
+                                                            // Instagram y Facebook: usar SDK oficial de Meta
+                                                            if (needsMetaSDKEmbed(m.url)) {
+                                                                const isVert = checkIsVerticalVideo(m.url);
+                                                                return (
+                                                                    <SocialVideoEmbed
+                                                                        url={m.url}
+                                                                        isVertical={isVert}
+                                                                        className="w-full h-full"
+                                                                    />
+                                                                );
+                                                            }
+                                                            const embedUrl = getVideoEmbedUrl(m.url);
+                                                            if (embedUrl) {
+                                                                const isVert = checkIsVerticalVideo(m.url);
+                                                                return (
+                                                                    <iframe 
+                                                                        src={embedUrl}
+                                                                        className={cn(
+                                                                            "rounded-xl md:rounded-2xl shadow-2xl mx-auto w-full h-full",
+                                                                            isVert 
+                                                                                ? "max-h-[35vh] md:max-h-[60vh] aspect-[9/16]" 
+                                                                                : "aspect-video"
+                                                                        )}
+                                                                        allowFullScreen
+                                                                        allow="autoplay; encrypted-media"
+                                                                    />
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()
+                                                    ) : (
+                                                        isFoodRestaurant && idx === 0 ? (
+                                                            <div className="w-full h-full min-h-[250px] aspect-square relative rounded-xl md:rounded-2xl overflow-hidden shadow-2xl bg-black">
+                                                                <DishSteamViewer
+                                                                    src={m.url}
+                                                                    alt={selectedItem.name || selectedItem.titulo}
+                                                                    enableSteam={true}
+                                                                    enableRotation={true}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <img 
+                                                                src={m.url} 
+                                                                alt={selectedItem.name || selectedItem.titulo}
+                                                                className="max-w-full max-h-full object-contain rounded-xl md:rounded-2xl shadow-2xl select-none"
+                                                            />
+                                                        )
+                                                    )}
                                                 </div>
-                                            ) : (
-                                                <img 
-                                                    src={current.url} 
-                                                    alt={selectedItem.name || selectedItem.titulo}
-                                                    className="max-w-full max-h-full object-contain rounded-xl md:rounded-2xl shadow-2xl"
-                                                />
-                                            )
-                                        )}
+                                            );
+                                        })}
                                     </div>
 
                                     {/* Navigation Controls */}
@@ -1148,79 +1175,90 @@ export default function CatalogGallery({
                                 
                                 return (
                                     <div className={cn(
-                                        "w-full md:w-3/5 bg-black/50 flex flex-col items-center justify-center relative p-0",
+                                        "w-full md:w-3/5 bg-black/50 flex flex-col items-center justify-center relative p-0 overflow-hidden",
                                         isVertical 
                                             ? "h-[50vh] md:h-auto md:aspect-auto" 
                                             : (current.type === 'video' ? "aspect-video md:aspect-auto" : "aspect-square md:aspect-auto")
                                     )}>
-                                        <AnimatePresence mode="wait">
-                                                <motion.div
-                                                    key={`${mediaIndex}-${current.type}`}
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    exit={{ opacity: 0 }}
-                                                    className="w-full h-full flex items-center justify-center overflow-visible"
-                                                >
-                                                    {current.type === 'video' ? (
-                                                        (() => {
-                                                            // Instagram y Facebook: usar SDK oficial de Meta
-                                                            if (needsMetaSDKEmbed(current.url)) {
-                                                                const isVertical = checkIsVerticalVideo(current.url);
+                                        <div className="relative w-full h-full flex items-center justify-center">
+                                            {allMedia.map((m, idx) => {
+                                                const isCurrent = idx === mediaIndex;
+                                                return (
+                                                    <div
+                                                        key={`${idx}-${m.type}`}
+                                                        className="absolute inset-0 w-full h-full flex items-center justify-center"
+                                                        style={{
+                                                            opacity: isCurrent ? 1 : 0,
+                                                            zIndex: isCurrent ? 10 : 0,
+                                                            transition: 'opacity 0.25s ease-in-out',
+                                                            pointerEvents: isCurrent ? 'auto' : 'none'
+                                                        }}
+                                                    >
+                                                        {m.type === 'video' ? (
+                                                            (() => {
+                                                                if (!isCurrent) return null;
+                                                                // Instagram y Facebook: usar SDK oficial de Meta
+                                                                if (needsMetaSDKEmbed(m.url)) {
+                                                                    const isVert = checkIsVerticalVideo(m.url);
+                                                                    return (
+                                                                        <SocialVideoEmbed
+                                                                            url={m.url}
+                                                                            isVertical={isVert}
+                                                                            className="w-full h-full"
+                                                                        />
+                                                                    );
+                                                                }
+                                                                const embedUrl = getVideoEmbedUrl(m.url);
+                                                                if (embedUrl) {
+                                                                    const isVert = checkIsVerticalVideo(m.url);
+                                                                    return (
+                                                                        <iframe 
+                                                                            src={embedUrl}
+                                                                            className={cn(
+                                                                                "rounded-2xl md:rounded-[32px] shadow-2xl mx-auto",
+                                                                                isVert 
+                                                                                    ? "h-full max-h-[60vh] md:max-h-[75vh] aspect-[9/16]" 
+                                                                                    : "w-full aspect-video"
+                                                                            )}
+                                                                            allowFullScreen
+                                                                            allow="autoplay; encrypted-media"
+                                                                        />
+                                                                    );
+                                                                }
                                                                 return (
-                                                                    <SocialVideoEmbed
-                                                                        url={current.url}
-                                                                        isVertical={isVertical}
-                                                                        className="w-full h-full"
+                                                                    <video 
+                                                                        src={m.url} 
+                                                                        controls 
+                                                                        autoPlay
+                                                                        className="max-w-full max-h-[50vh] md:max-h-[70vh] rounded-2xl md:rounded-[32px] shadow-2xl"
                                                                     />
                                                                 );
-                                                            }
-                                                            const embedUrl = getVideoEmbedUrl(current.url);
-                                                            if (embedUrl) {
-                                                                const isVertical = checkIsVerticalVideo(current.url);
-                                                                return (
-                                                                    <iframe 
-                                                                        src={embedUrl}
-                                                                        className={cn(
-                                                                            "rounded-2xl md:rounded-[32px] shadow-2xl mx-auto",
-                                                                            isVertical 
-                                                                                ? "h-full max-h-[60vh] md:max-h-[75vh] aspect-[9/16]" 
-                                                                                : "w-full aspect-video"
-                                                                        )}
-                                                                        allowFullScreen
-                                                                        allow="autoplay; encrypted-media"
-                                                                    />
-                                                                );
-                                                            }
-                                                            return (
-                                                                <video 
-                                                                    src={current.url} 
-                                                                    controls 
-                                                                    autoPlay
-                                                                    className="max-w-full max-h-[50vh] md:max-h-[70vh] rounded-2xl md:rounded-[32px] shadow-2xl"
-                                                                />
-                                                            );
-                                                        })()
-                                                    ) : (
-                                                        (isFoodRestaurant || true) && mediaIndex === 0 ? (
-                                                            <div className="w-full h-[300px] sm:h-[400px] md:h-full max-h-[50vh] md:max-h-[70vh] aspect-square relative rounded-2xl md:rounded-[32px] overflow-hidden shadow-2xl bg-black">
-                                                                <DishSteamViewer
-                                                                    src={current.url}
-                                                                    alt={selectedItem.name || selectedItem.titulo}
-                                                                    enableSteam={true}
-                                                                    enableRotation={true}
-                                                                    className="w-full h-full object-cover"
-                                                                />
-                                                            </div>
+                                                            })()
                                                         ) : (
-                                                            <img
-                                                                src={current.url}
-                                                                alt={selectedItem.name || selectedItem.titulo}
-                                                                className="max-w-full max-h-[50vh] md:max-h-[70vh] object-contain rounded-2xl md:rounded-[32px] shadow-2xl"
-                                                            />
-                                                        )
-                                                    )}
-                                                </motion.div>
-                                            </AnimatePresence>
+                                                            isFoodRestaurant && idx === 0 ? (
+                                                                <div className="w-full h-[300px] sm:h-[400px] md:h-full max-h-[50vh] md:max-h-[70vh] aspect-square relative rounded-2xl md:rounded-[32px] overflow-hidden shadow-2xl bg-black">
+                                                                    <DishSteamViewer
+                                                                        src={m.url}
+                                                                        alt={selectedItem.name || selectedItem.titulo}
+                                                                        enableSteam={true}
+                                                                        enableRotation={true}
+                                                                        className="w-full h-full object-cover"
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-full h-full max-h-[60vh] md:max-h-[75vh] flex items-center justify-center p-2 sm:p-4">
+                                                                    <img
+                                                                        src={m.url}
+                                                                        alt={selectedItem.name || selectedItem.titulo}
+                                                                        className="max-w-full max-h-[55vh] md:max-h-[70vh] object-contain rounded-2xl md:rounded-[28px] shadow-2xl select-none"
+                                                                    />
+                                                                </div>
+                                                            )
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
 
                                             {/* Navegación entre imágenes/videos */}
                                             {total > 1 && (

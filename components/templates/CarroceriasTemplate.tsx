@@ -137,33 +137,36 @@ function HeroSection(props: HeroSectionProps) {
             {/* Bg image */}
             <div className="absolute inset-0 overflow-hidden">
                     {props.activeSlides && props.activeSlides.length > 0 ? (
-                        props.activeSlides.map((slide, idx) => (
-                            <motion.div
-                                key={slide.id || idx}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: props.currentSlideIndex === idx ? 1 : 0 }}
-                                transition={{ duration: 1.5, ease: "easeInOut" }}
-                                className="absolute inset-0"
-                                style={{ 
-                                    pointerEvents: props.currentSlideIndex === idx ? 'auto' : 'none'
-                                }}
-                            >
+                        props.activeSlides.map((slide, idx) => {
+                            const isCurrent = props.currentSlideIndex === idx;
+                            return (
                                 <div
-                                    className="absolute inset-0 bg-cover bg-center md:hidden"
+                                    key={slide.id || idx}
+                                    className="absolute inset-0"
                                     style={{ 
-                                        backgroundImage: `url(${slide.portada_movil || slide.portada_desktop || props.data.foto_url || 'https://images.unsplash.com/photo-1586528116311-ad8ed7c80a30?w=1920&auto=format&fit=crop'})`,
-                                        opacity: 0.65 
+                                        opacity: isCurrent ? 1 : 0,
+                                        zIndex: isCurrent ? 10 : 0,
+                                        transition: 'opacity 1.2s ease-in-out',
+                                        pointerEvents: isCurrent ? 'auto' : 'none'
                                     }}
-                                />
-                                <div
-                                    className="absolute inset-0 bg-cover bg-center hidden md:block"
-                                    style={{ 
-                                        backgroundImage: `url(${slide.portada_desktop || slide.portada_movil || props.data.foto_url || 'https://images.unsplash.com/photo-1586528116311-ad8ed7c80a30?w=1920&auto=format&fit=crop'})`,
-                                        opacity: 0.65 
-                                    }}
-                                />
-                            </motion.div>
-                        ))
+                                >
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center md:hidden"
+                                        style={{ 
+                                            backgroundImage: `url(${slide.portada_movil || slide.portada_desktop || props.data.foto_url || 'https://images.unsplash.com/photo-1586528116311-ad8ed7c80a30?w=1920&auto=format&fit=crop'})`,
+                                            opacity: 0.65 
+                                        }}
+                                    />
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center hidden md:block"
+                                        style={{ 
+                                            backgroundImage: `url(${slide.portada_desktop || slide.portada_movil || props.data.foto_url || 'https://images.unsplash.com/photo-1586528116311-ad8ed7c80a30?w=1920&auto=format&fit=crop'})`,
+                                            opacity: 0.65 
+                                        }}
+                                    />
+                                </div>
+                            );
+                        })
                     ) : (
                         <>
                             <div

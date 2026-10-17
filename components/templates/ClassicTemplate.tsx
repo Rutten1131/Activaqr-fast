@@ -359,27 +359,30 @@ export default function ClassicTemplate({
             {showHero && activeSlides.length > 0 && (
                 <section className="relative min-h-screen w-full flex flex-col items-center justify-end pb-12 md:pb-24 overflow-hidden">
                     <div className="absolute inset-0 z-0">
-                        {activeSlides.map((slide, idx) => (
-                            <motion.div
-                                key={slide.id || idx}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: currentSlideIndex === idx ? 1 : 0 }}
-                                transition={{ duration: 1.5, ease: "easeInOut" }}
-                                className="absolute inset-0"
-                                style={{ 
-                                    pointerEvents: currentSlideIndex === idx ? 'auto' : 'none'
-                                }}
-                            >
+                        {activeSlides.map((slide, idx) => {
+                            const isCurrent = currentSlideIndex === idx;
+                            return (
                                 <div
-                                    className="absolute inset-0 bg-cover bg-center bg-no-repeat md:hidden"
-                                    style={{ backgroundImage: `url('${slide.portada_movil || slide.portada_desktop}')` }}
-                                />
-                                <div
-                                    className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden md:block"
-                                    style={{ backgroundImage: `url('${slide.portada_desktop || slide.portada_movil}')` }}
-                                />
-                            </motion.div>
-                        ))}
+                                    key={slide.id || idx}
+                                    className="absolute inset-0"
+                                    style={{ 
+                                        opacity: isCurrent ? 1 : 0,
+                                        zIndex: isCurrent ? 10 : 0,
+                                        transition: 'opacity 1.2s ease-in-out',
+                                        pointerEvents: isCurrent ? 'auto' : 'none'
+                                    }}
+                                >
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center bg-no-repeat md:hidden"
+                                        style={{ backgroundImage: `url('${slide.portada_movil || slide.portada_desktop}')` }}
+                                    />
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden md:block"
+                                        style={{ backgroundImage: `url('${slide.portada_desktop || slide.portada_movil}')` }}
+                                    />
+                                </div>
+                            );
+                        })}
                     </div>
 
                     <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/70 z-0" />
