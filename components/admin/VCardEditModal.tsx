@@ -1423,13 +1423,55 @@ export default function VCardEditModal({
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-2 block ml-1">Google Maps (URL Compartir)</label>
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-2 block ml-1">Google Maps (URL Compartir / Cómo Llegar)</label>
                                                 <input
                                                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 font-bold text-white outline-none focus:border-primary/40 transition-all"
                                                     value={editingRegistro.google_business || ''}
                                                     onChange={e => setEditingRegistro({ ...editingRegistro, google_business: e.target.value })}
                                                     placeholder="https://maps.app.goo.gl/..."
                                                 />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2 ml-1">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-amber-400 block">⭐ Enlace Directo para Reseñas en Google (5 Estrellas)</label>
+                                                    {editingRegistro.google_business && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                let parsed: any = {};
+                                                                try {
+                                                                    parsed = typeof editingRegistro.json_override === 'string' ? JSON.parse(editingRegistro.json_override || '{}') : (editingRegistro.json_override || {});
+                                                                } catch {}
+                                                                parsed.google_review_url = editingRegistro.google_business;
+                                                                setEditingRegistro({ ...editingRegistro, json_override: parsed });
+                                                            }}
+                                                            className="text-[9px] text-amber-400/80 hover:text-amber-300 underline font-semibold transition-colors"
+                                                        >
+                                                            Copiar de Google Maps
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <input
+                                                    className="w-full bg-white/5 border border-amber-500/20 focus:border-amber-500 rounded-2xl px-6 py-4 font-bold text-white outline-none transition-all"
+                                                    value={(() => {
+                                                        try {
+                                                            const parsed = typeof editingRegistro.json_override === 'string' ? JSON.parse(editingRegistro.json_override || '{}') : (editingRegistro.json_override || {});
+                                                            return parsed.google_review_url || '';
+                                                        } catch { return ''; }
+                                                    })()}
+                                                    onChange={e => {
+                                                        let parsed: any = {};
+                                                        try {
+                                                            parsed = typeof editingRegistro.json_override === 'string' ? JSON.parse(editingRegistro.json_override || '{}') : (editingRegistro.json_override || {});
+                                                        } catch {}
+                                                        parsed.google_review_url = e.target.value;
+                                                        setEditingRegistro({ ...editingRegistro, json_override: parsed });
+                                                    }}
+                                                    placeholder="Ej. https://maps.app.goo.gl/... o https://g.page/r/.../review"
+                                                />
+                                                <p className="text-[9px] text-white/40 mt-1 ml-1 font-medium">
+                                                    Este enlace es el que se abre al tocar 5 estrellas en "Tu opinión es nuestro motor". Si se deja vacío, tomará automáticamente el de Google Maps arriba.
+                                                </p>
                                             </div>
 
                                             {/* SECCIÓN MENÚ DIGITAL / CARTA INTERACTIVA CON IA */}

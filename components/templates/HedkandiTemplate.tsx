@@ -906,7 +906,9 @@ function InteractiveRatingSection({ data, themePrimary }: { data: any; themePrim
 
     const activeAccent = themePrimary && themePrimary !== '#1A1A1A' ? themePrimary : '#f66739';
     const parsedOverride = safeParse(data?.json_override, {} as any);
-    const googleReviewUrl = parsedOverride?.google_review_url || data?.google_business || '#';
+    const rawReviewUrl = (parsedOverride?.google_review_url || '').trim();
+    const rawBusinessUrl = (data?.google_business || '').trim();
+    const googleReviewUrl = rawReviewUrl || rawBusinessUrl || '#';
 
     const handleRatingClick = (rating: number) => {
         setSelectedRating(rating);

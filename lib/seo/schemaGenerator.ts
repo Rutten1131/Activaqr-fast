@@ -145,19 +145,44 @@ export function generateSchemaJsonLd(profile: ClientProfileData, baseUrl: string
                 : profile.catalogo_json;
 
             if (catObj?.products && Array.isArray(catObj.products)) {
+                const isServiceBusiness = [
+                    'BeautySalon', 'HairSalon', 'DaySpa', 'ProfessionalService', 
+                    'LegalService', 'AccountingService', 'Dentist', 'MedicalBusiness', 
+                    'Physiotherapy', 'AutoRepair'
+                ].includes(schemaType);
+
                 for (const p of catObj.products.slice(0, 15)) {
                     if (p.name || p.nombre) {
-                        offerItems.push({
+                        const rawPrice = p.price || p.precio;
+                        const numericPrice = rawPrice ? String(rawPrice).replace(/[^0-9.]/g, '') : '';
+                        const hasExactPrice = Boolean(numericPrice && !isNaN(Number(numericPrice)) && Number(numericPrice) > 0);
+
+                        // Si es restaurante -> MenuItem
+                        // Si es negocio de servicios o el ítem no tiene precio numérico de venta cerrado -> Service
+                        // Solo si es una tienda (Store) con precio numérico exacto -> Product
+                        let itemType = 'Product';
+                        if (schemaType === 'Restaurant' || schemaType === 'FoodEstablishment' || schemaType === 'CafeOrCoffeeShop' || schemaType === 'BarOrPub') {
+                            itemType = 'MenuItem';
+                        } else if (isServiceBusiness || !hasExactPrice) {
+                            itemType = 'Service';
+                        }
+
+                        const offerObj: Record<string, any> = {
                             '@type': 'Offer',
                             itemOffered: {
-                                '@type': schemaType === 'Restaurant' ? 'MenuItem' : 'Product',
+                                '@type': itemType,
                                 name: p.name || p.nombre,
                                 description: p.description || p.descripcion || undefined,
                                 image: p.image || p.imagen || undefined
-                            },
-                            price: p.price || p.precio ? String(p.price || p.precio).replace(/[^0-9.]/g, '') : undefined,
-                            priceCurrency: 'USD'
-                        });
+                            }
+                        };
+
+                        if (hasExactPrice) {
+                            offerObj.price = numericPrice;
+                            offerObj.priceCurrency = 'USD';
+                        }
+
+                        offerItems.push(offerObj);
                     }
                 }
             }

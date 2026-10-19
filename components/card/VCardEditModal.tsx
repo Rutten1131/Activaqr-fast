@@ -17,8 +17,9 @@ interface VCardEditModalProps {
     onlyCatalog?: boolean;
 }
 
-const safeParse = <T,>(str: string | null | undefined, fallback: T): T => {
+const safeParse = <T,>(str: string | object | null | undefined, fallback: T): T => {
     if (!str) return fallback;
+    if (typeof str === 'object') return str as unknown as T; // already parsed
     try {
         return JSON.parse(str) as T;
     } catch (e) {
@@ -2404,22 +2405,24 @@ export default function VCardEditModal({
                                                             itemLabelSingular={formData.catalogo_json?.item_label_singular || safeParse<any>(formData.json_override, {})?.item_label_singular || "Producto"}
                                                             itemLabelPlural={formData.catalogo_json?.item_label_plural || safeParse<any>(formData.json_override, {})?.item_label_plural || "Productos"}
                                                             onChange={({ categories, products, categoryImages, itemLabelSingular, itemLabelPlural }) => {
-                                                                const ov = safeParse<any>(formData.json_override, {});
-                                                                const updatedOv = { 
-                                                                    ...ov, 
-                                                                    category_images: categoryImages,
-                                                                    item_label_singular: itemLabelSingular,
-                                                                    item_label_plural: itemLabelPlural
-                                                                };
-                                                                setFormData({
-                                                                    ...formData,
-                                                                    catalogo_json: {
-                                                                        categories,
-                                                                        products,
+                                                                setFormData(prev => {
+                                                                    const ov = safeParse<any>(prev.json_override, {});
+                                                                    const updatedOv = { 
+                                                                        ...ov, 
+                                                                        category_images: categoryImages,
                                                                         item_label_singular: itemLabelSingular,
                                                                         item_label_plural: itemLabelPlural
-                                                                    },
-                                                                    json_override: updatedOv,
+                                                                    };
+                                                                    return {
+                                                                        ...prev,
+                                                                        catalogo_json: {
+                                                                            categories,
+                                                                            products,
+                                                                            item_label_singular: itemLabelSingular,
+                                                                            item_label_plural: itemLabelPlural
+                                                                        },
+                                                                        json_override: updatedOv,
+                                                                    };
                                                                 });
                                                             }}
                                                             themeColor="#FF5C00"
