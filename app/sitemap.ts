@@ -31,6 +31,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
                     ? new Date(client.last_edited_at) 
                     : (client.created_at ? new Date(client.created_at) : new Date());
 
+                // Para custom domains, la home YA ES el catálogo.
+                // No agregar /catalog/slug porque tiene canonical a la raíz y confunde a Google.
                 const customSitemap: MetadataRoute.Sitemap = [
                     {
                         url: clientOrigin,
@@ -39,15 +41,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
                         priority: 1.0,
                     }
                 ];
-
-                if (client.plan === 'catalog' || client.plan === 'business') {
-                    customSitemap.push({
-                        url: `${clientOrigin}/catalog/${client.slug}`,
-                        lastModified: lastMod,
-                        changeFrequency: 'weekly',
-                        priority: 0.9,
-                    });
-                }
 
                 return customSitemap;
             }
