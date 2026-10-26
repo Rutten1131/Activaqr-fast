@@ -158,13 +158,13 @@ export function generateSchemaJsonLd(profile: ClientProfileData, baseUrl: string
                         const hasExactPrice = Boolean(numericPrice && !isNaN(Number(numericPrice)) && Number(numericPrice) > 0);
 
                         // Si es restaurante -> MenuItem
-                        // Si es negocio de servicios o el ítem no tiene precio numérico de venta cerrado -> Service
-                        // Solo si es una tienda (Store) con precio numérico exacto -> Product
-                        let itemType = 'Product';
+                        // Para negocios locales, profesionales y catálogos de presentación donde no hay
+                        // checkout transaccional directo (se cotiza por WhatsApp) -> 'Service'
+                        // Esto evita que Google exija obligatoriamente "offers", "review" o "aggregateRating"
+                        // de e-commerce transaccional en la ficha de producto de Search Console.
+                        let itemType = 'Service';
                         if (schemaType === 'Restaurant' || schemaType === 'FoodEstablishment' || schemaType === 'CafeOrCoffeeShop' || schemaType === 'BarOrPub') {
                             itemType = 'MenuItem';
-                        } else if (isServiceBusiness || !hasExactPrice) {
-                            itemType = 'Service';
                         }
 
                         const offerObj: Record<string, any> = {
